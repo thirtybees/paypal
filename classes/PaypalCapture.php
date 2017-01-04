@@ -1,6 +1,7 @@
 <?php
 /**
  * 2007-2016 PrestaShop
+ * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -10,18 +11,13 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2007-2016 PrestaShop SA
+ *  @copyright 2017 Thirty Bees
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -51,6 +47,17 @@ class PaypalCapture extends ObjectModel
     protected $table = 'paypal_capture';
     protected $identifier = 'id_paypal_capture';
 
+    /**
+     * PaypalCapture constructor.
+     *
+     * @param null $id
+     * @param null $id_lang
+     * @param null $id_shop
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function __construct($id = null, $id_lang = null, $id_shop = null)
     {
         if (version_compare(_PS_VERSION_, '1.5', '>')) {
@@ -77,6 +84,13 @@ class PaypalCapture extends ObjectModel
         return parent::__construct($id, $id_lang, $id_shop);
     }
 
+    /**
+     * @return array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getFields()
     {
         $fields = parent::getFields();
@@ -92,6 +106,15 @@ class PaypalCapture extends ObjectModel
         return $fields;
     }
 
+    /**
+     * @param $id_order
+     *
+     * @return float
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public static function getTotalAmountCapturedByIdOrder($id_order)
     {
         //Tester la version de prestashop
@@ -112,6 +135,15 @@ class PaypalCapture extends ObjectModel
 
     }
 
+    /**
+     * @param Order $order
+     *
+     * @return float
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getRestToPaid(Order $order)
     {
         $cart = new Cart($order->id_cart);
@@ -119,6 +151,15 @@ class PaypalCapture extends ObjectModel
         return Tools::ps_round($totalPaid, 2) - Tools::ps_round(self::getTotalAmountCapturedByIdOrder($order->id), 2);
     }
 
+    /**
+     * @param $id_order
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getRestToCapture($id_order)
     {
         $cart = Cart::getCartByOrderId($id_order);
@@ -132,6 +173,13 @@ class PaypalCapture extends ObjectModel
 
     }
 
+    /**
+     * @return array|false|mysqli_result|null|PDOStatement|resource
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getListCaptured()
     {
         if (version_compare(_PS_VERSION_, '1.5', '<')) {
@@ -154,6 +202,15 @@ class PaypalCapture extends ObjectModel
         return $result;
     }
 
+    /**
+     * @param $price
+     *
+     * @return bool|float
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public static function parsePrice($price)
     {
         $regexp = "/^([0-9\s]{0,10})((\.|,)[0-9]{0,2})?$/isD";

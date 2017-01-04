@@ -1,6 +1,7 @@
 <?php
 /**
  * 2007-2016 PrestaShop
+ * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -10,18 +11,13 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2007-2016 PrestaShop SA
+ *  @copyright 2017 Thirty Bees
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
  */
 
 include_once _PS_MODULE_DIR_.'paypal/paypal.php';
@@ -79,6 +75,15 @@ class PaypalExpressCheckout extends Paypal
         'secure_key', 'ready', 'payer_id',
     );
 
+    /**
+     * PaypalExpressCheckout constructor.
+     *
+     * @param bool $type
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function __construct($type = false)
     {
         parent::__construct();
@@ -114,6 +119,13 @@ class PaypalExpressCheckout extends Paypal
     }
 
     // Will build the product_list depending of the type
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function initParameters()
     {
         if (!$this->context->cart || !$this->context->cart->id) {
@@ -133,6 +145,15 @@ class PaypalExpressCheckout extends Paypal
         return (bool) count($this->product_list);
     }
 
+    /**
+     * @param bool $access_token
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function setExpressCheckout($access_token = false)
     {
         $this->method = 'SetExpressCheckout';
@@ -166,6 +187,13 @@ class PaypalExpressCheckout extends Paypal
         $this->_storeToken();
     }
 
+    /**
+     * @param $fields
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function setCancelUrl(&$fields)
     {
         $url = urldecode(Tools::getValue('current_shop_url'));
@@ -189,6 +217,11 @@ class PaypalExpressCheckout extends Paypal
 
     }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getExpressCheckout()
     {
         $this->method = 'GetExpressCheckoutDetails';
@@ -202,6 +235,11 @@ class PaypalExpressCheckout extends Paypal
         $this->_storeToken();
     }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function doExpressCheckout()
     {
         $this->method = 'DoExpressCheckoutPayment';
@@ -224,6 +262,13 @@ class PaypalExpressCheckout extends Paypal
         $this->result += $fields;
     }
 
+    /**
+     * @param $fields
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function callAPI($fields)
     {
         $this->logs = array();
@@ -235,6 +280,13 @@ class PaypalExpressCheckout extends Paypal
         $this->_storeToken();
     }
 
+    /**
+     * @param $fields
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _setPaymentDetails(&$fields)
     {
         // Required field
@@ -273,6 +325,14 @@ class PaypalExpressCheckout extends Paypal
 
     }
 
+    /**
+     * @param $fields
+     * @param $id_address
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function setShippingAddress(&$fields, $id_address)
     {
         $address = new Address($id_address);
@@ -302,6 +362,15 @@ class PaypalExpressCheckout extends Paypal
         $fields['PAYMENTREQUEST_0_SHIPTOZIP'] = $address->postcode;
     }
 
+    /**
+     * @param $fields
+     * @param $index
+     * @param $total
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function setProductsList(&$fields, &$index, &$total)
     {
         foreach ($this->product_list as $product) {
@@ -322,6 +391,15 @@ class PaypalExpressCheckout extends Paypal
         }
     }
 
+    /**
+     * @param $fields
+     * @param $index
+     * @param $total
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function setDiscountsList(&$fields, &$index, &$total)
     {
         $discounts = (_PS_VERSION_ < '1.5') ? $this->context->cart->getDiscounts() : $this->context->cart->getCartRules();
@@ -345,6 +423,15 @@ class PaypalExpressCheckout extends Paypal
 
     }
 
+    /**
+     * @param $fields
+     * @param $index
+     * @param $total
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function setGiftWrapping(&$fields, &$index, &$total)
     {
         if ($this->context->cart->gift == 1) {
@@ -359,6 +446,16 @@ class PaypalExpressCheckout extends Paypal
         }
     }
 
+    /**
+     * @param $fields
+     * @param $index
+     * @param $total
+     * @param $taxes
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function setPaymentValues(&$fields, &$index, &$total, &$taxes)
     {
         if (version_compare(_PS_VERSION_, '1.5', '<')) {
@@ -402,6 +499,13 @@ class PaypalExpressCheckout extends Paypal
         }
     }
 
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function rightPaymentProcess()
     {
         $total = $this->getTotalPaid();
@@ -417,6 +521,10 @@ class PaypalExpressCheckout extends Paypal
 
     /**
      * @return mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getTotalPaid()
     {
@@ -450,6 +558,11 @@ class PaypalExpressCheckout extends Paypal
         return Tools::ps_round($shipping_cost, $this->decimals) + $total;
     }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _storeToken()
     {
         if (is_array($this->result) && isset($this->result['TOKEN'])) {
@@ -459,6 +572,11 @@ class PaypalExpressCheckout extends Paypal
     }
 
     // Store data for the next reloading page
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _storeCookieInfo()
     {
         $tab = array();
@@ -470,6 +588,11 @@ class PaypalExpressCheckout extends Paypal
         $this->context->cookie->{self::$cookie_name} = serialize($tab);
     }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function displayPaypalInContextCheckout()
     {
         $this->secure_key = $this->getSecureKey();
@@ -478,6 +601,13 @@ class PaypalExpressCheckout extends Paypal
         die;
     }
 
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function hasSucceedRequest()
     {
         if (is_array($this->result)) {
@@ -491,6 +621,13 @@ class PaypalExpressCheckout extends Paypal
         return false;
     }
 
+    /**
+     * @return string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function getSecureKey()
     {
         if (!count($this->product_list)) {
@@ -510,11 +647,27 @@ class PaypalExpressCheckout extends Paypal
         return md5(serialize($key));
     }
 
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function isProductsListStillRight()
     {
         return $this->secure_key == $this->getSecureKey();
     }
 
+    /**
+     * @param $type
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function setExpressCheckoutType($type)
     {
         if (in_array($type, $this->available_type)) {
@@ -524,6 +677,11 @@ class PaypalExpressCheckout extends Paypal
         return false;
     }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function redirectToAPI()
     {
         $this->secure_key = $this->getSecureKey();
@@ -543,6 +701,14 @@ class PaypalExpressCheckout extends Paypal
         exit(0);
     }
 
+    /**
+     * @param      $customer
+     * @param bool $redirect
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function redirectToCheckout($customer, $redirect = false)
     {
         $this->ready = true;

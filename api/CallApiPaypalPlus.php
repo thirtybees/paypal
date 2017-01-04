@@ -1,27 +1,23 @@
 <?php
 /**
  * 2007-2016 PrestaShop
+ * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Open Software License (OSL 3.0)
+ * This source file is subject to the Academic Free License (AFL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
+ *  @copyright 2017 Thirty Bees
+ *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
 require_once _PS_MODULE_DIR_.'paypal/api/ApiPaypalPlus.php';
@@ -38,12 +34,26 @@ class CallApiPaypalPlus extends ApiPaypalPlus
     protected $cart = null;
     protected $customer = null;
 
+    /**
+     * @param $params
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function setParams($params)
     {
         $this->cart = new Cart($params['cart']->id);
         $this->customer = new Customer($params['cookie']->id_customer);
     }
 
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getApprovalUrl()
     {
         /*
@@ -68,6 +78,15 @@ class CallApiPaypalPlus extends ApiPaypalPlus
         return false;
     }
 
+    /**
+     * @param $paymentId
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function lookUpPayment($paymentId)
     {
 
@@ -85,6 +104,16 @@ class CallApiPaypalPlus extends ApiPaypalPlus
         return $this->sendByCURL(URL_PPP_LOOK_UP.$paymentId, false, $header);
     }
 
+    /**
+     * @param $payer_id
+     * @param $paymentId
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function executePayment($payer_id, $paymentId)
     {
 
@@ -104,6 +133,16 @@ class CallApiPaypalPlus extends ApiPaypalPlus
         return $this->sendByCURL(URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', Tools::jsonEncode($data), $header);
     }
 
+    /**
+     * @param $paymentId
+     * @param $data
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function executeRefund($paymentId, $data)
     {
 

@@ -1,6 +1,7 @@
 <?php
 /**
  * 2007-2016 PrestaShop
+ * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -10,18 +11,13 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2007-2016 PrestaShop SA
+ *  @copyright 2017 Thirty Bees
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
  */
 
 class PayPalConnect
@@ -29,11 +25,23 @@ class PayPalConnect
     private $_logs = array();
     private $paypal = null;
 
+    /**
+     * PayPalConnect constructor.
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function __construct()
     {
         $this->paypal = new PayPal();
     }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function makeConnection($host, $script, $body, $simple_mode = false, $http_header = false, $identify = false)
     {
         $this->_logs[] = $this->paypal->l('Making new connection to').' \''.$host.$script.'\'';
@@ -55,6 +63,13 @@ class PayPalConnect
         return Tools::substr($tmp, strpos($tmp, $result[0]));
     }
 
+    /**
+     * @return array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getLogs()
     {
         return $this->_logs;
@@ -63,6 +78,18 @@ class PayPalConnect
     /************************************************************/
     /********************** CONNECT METHODS *********************/
     /************************************************************/
+    /**
+     * @param      $url
+     * @param      $body
+     * @param bool $http_header
+     * @param bool $identify
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _connectByCURL($url, $body, $http_header = false, $identify = false)
     {
         $ch = @curl_init();
@@ -115,6 +142,17 @@ class PayPalConnect
         return $result ? $result : false;
     }
 
+    /**
+     * @param $host
+     * @param $script
+     * @param $body
+     *
+     * @return bool|string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _connectByFSOCK($host, $script, $body)
     {
         $fp = @fsockopen('tls://'.$host, 443, $errno, $errstr, 4);
@@ -144,6 +182,17 @@ class PayPalConnect
         return isset($tmp) ? $tmp : false;
     }
 
+    /**
+     * @param $host
+     * @param $script
+     * @param $lenght
+     *
+     * @return string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _makeHeader($host, $script, $lenght)
     {
         return 'POST '.(string) $script.' HTTP/1.1'."\r\n".
@@ -153,6 +202,15 @@ class PayPalConnect
             'Connection: close'."\r\n\r\n";
     }
 
+    /**
+     * @param $message
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function _logPaypal($message){
         try{
             $date = date('Ymd');
@@ -180,7 +238,7 @@ class PayPalConnect
                 Configuration::updateValue('PAYPAL_PURGE_LOG_DATE',$date);
             }
 
-        }catch (Exception $e){
+        } catch (Exception $e){
             return false;
         }
     }

@@ -1,6 +1,7 @@
 <?php
 /**
  * 2007-2016 PrestaShop
+ * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -10,18 +11,13 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2007-2016 PrestaShop SA
+ *  @copyright 2017 Thirty Bees
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
  */
 
 include_once dirname(__FILE__).'/../../../config/config.inc.php';
@@ -51,6 +47,13 @@ $ppec = new PaypalExpressCheckout($request_type);
 $token = Tools::getValue('token');
 $payer_id = Tools::getValue('PayerID');
 
+/**
+ * @param $ppec
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2016 PrestaShop SA
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
 function setContextData($ppec)
 {
     // Create new Cart to avoid any refresh or other bad manipulations
@@ -70,6 +73,10 @@ function setContextData($ppec)
 /**
  * Set customer information
  * Used to create user account with PayPal account information
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2016 PrestaShop SA
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 function setCustomerInformation($ppec, $email)
 {
@@ -84,6 +91,10 @@ function setCustomerInformation($ppec, $email)
 /**
  * Set customer address (when not logged in)
  * Used to create user address with PayPal account information
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2016 PrestaShop SA
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 function setCustomerAddress($ppec, $customer, $id = null)
 {
@@ -125,6 +136,16 @@ function setCustomerAddress($ppec, $customer, $id = null)
     return $address;
 }
 
+/**
+ * @param $ppec
+ * @param $customer
+ *
+ * @return Address|bool
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2016 PrestaShop SA
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
 function checkAndModifyAddress($ppec, $customer)
 {
     $context = Context::getContext();
@@ -288,6 +309,10 @@ if ($request_type && $ppec->type) {
 }
 /**
  * Check payment return
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2016 PrestaShop SA
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 function validateOrder($customer, $cart, $ppec)
 {

@@ -1,5 +1,6 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
@@ -10,18 +11,13 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
+ *  @copyright 2017 Thirty Bees
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
  */
 
 class PayPalLogin
@@ -31,11 +27,25 @@ class PayPalLogin
 
     private $paypal_connect = null;
 
+    /**
+     * PayPalLogin constructor.
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function __construct()
     {
         $this->paypal_connect = new PayPalConnect();
     }
 
+    /**
+     * @return string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getIdentityAPIURL()
     {
         if (Configuration::get('PAYPAL_SANDBOX')) {
@@ -47,6 +57,13 @@ class PayPalLogin
 
     }
 
+    /**
+     * @return string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getTokenServiceEndpoint()
     {
         if (Configuration::get('PAYPAL_SANDBOX')) {
@@ -58,11 +75,25 @@ class PayPalLogin
 
     }
 
+    /**
+     * @return string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getUserInfoEndpoint()
     {
         return '/v1/identity/openidconnect/userinfo';
     }
 
+    /**
+     * @return string
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public static function getReturnLink()
     {
         // return 'http://requestb.in/1jlaizq1';
@@ -74,6 +105,13 @@ class PayPalLogin
 
     }
 
+    /**
+     * @return array|bool|mixed|PayPalLoginUser
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getAuthorizationCode()
     {
         unset($this->_logs);
@@ -133,6 +171,13 @@ class PayPalLogin
         }
     }
 
+    /**
+     * @return array|bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     public function getRefreshToken()
     {
         unset($this->_logs);
@@ -170,6 +215,16 @@ class PayPalLogin
         return false;
     }
 
+    /**
+     * @param $access_token
+     * @param $login
+     *
+     * @return bool|Customer
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function getUserInformations($access_token, &$login)
     {
         unset($this->_logs);
@@ -216,6 +271,15 @@ class PayPalLogin
         return false;
     }
 
+    /**
+     * @param $result
+     *
+     * @return Customer
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     private function setCustomer($result)
     {
         $customer = new Customer();
