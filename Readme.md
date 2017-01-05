@@ -1,4 +1,5 @@
 # PayPal
+![PayPal](/logo.png)
 
 ## About
 
