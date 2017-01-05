@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,156 +15,64 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-/**
- * @since 1.5.0
- */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
+require_once dirname(__FILE__).'/../../paypal.php';
 
 class PayPalSubmitModuleFrontController extends ModuleFrontController
 {
-    public $display_column_left = false;
-    public $ssl = true;
+    /** @var PayPal $module */
+    public $module;
 
     /**
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * Initialize content
      */
     public function initContent()
     {
         parent::initContent();
 
-        $this->paypal = new PayPal();
-        $this->context = Context::getContext();
-
-        $this->id_module = (int) Tools::getValue('id_module');
-        $this->id_order = (int) Tools::getValue('id_order');
-        $order = new Order($this->id_order);
-        $order_state = new OrderState($order->current_state);
-        $paypal_order = PayPalOrder::getOrderById($this->id_order);
-
-        if ($order_state->template[$this->context->language->id] == 'payment_error') {
+        $idOrder = (int) Tools::getValue('id_order');
+        $order = new Order($idOrder);
+        $paypalOrder = PayPalOrder::getOrderById($idOrder);
+        $price = Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
+        $orderState = new OrderState($idOrder);
+        if ($orderState) {
+            $orderStateMessage = $orderState->template[$this->context->language->id];
+        }
+        if (!$order || !$orderState || (isset($orderStateMessage) && ($orderStateMessage == 'payment_error'))) {
             $this->context->smarty->assign(
                 array(
-                    'message' => $order_state->name[$this->context->language->id],
-                    'logs' => array(
-                        $this->paypal->l('An error occurred while processing payment.'),
-                    ),
-                    'order' => $paypal_order,
-                    'price' => Tools::displayPrice($paypal_order['total_paid'], $this->context->currency),
+                    'logs' => array($this->module->l('An error occurred while processing payment.')),
+                    'order' => $paypalOrder,
+                    'price' => $price,
                 )
             );
-
-            return $this->setTemplate('error.tpl');
-        }
-
-        $order_currency = new Currency((int) $order->id_currency);
-        $display_currency = new Currency((int) $this->context->currency->id);
-
-        $price = Tools::convertPriceFull($paypal_order['total_paid'], $order_currency, $display_currency);
-
-        $this->context->smarty->assign(
-            array(
-                'is_guest' => (($this->context->customer->is_guest) || $this->context->customer->id == false),
-                'order' => $paypal_order,
-                'price' => Tools::displayPrice($price, $this->context->currency->id),
-                'HOOK_ORDER_CONFIRMATION' => $this->displayOrderConfirmation(),
-                'HOOK_PAYMENT_RETURN' => $this->displayPaymentReturn(),
-            )
-        );
-        if (version_compare(_PS_VERSION_, '1.5', '>')) {
-            $this->context->smarty->assign(array(
-                'reference_order' => Order::getUniqReferenceOf($paypal_order['id_order']),
-            ));
-        }
-
-        if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-            $this->context->smarty->assign(
-                array(
-                    'id_order' => (int) $this->id_order,
-                    'id_order_formatted' => sprintf('#%06d', (int) $this->id_order),
-                    'order_reference' => $order->reference,
-                )
-            );
-
-            /* If guest we clear the cookie for security reason */
-            $this->context->customer->mylogout();
-        }
-
-        $this->module->assignCartSummary();
-
-        if ($this->context->getMobileDevice() == true) {
-            $this->setTemplate('order-confirmation-mobile.tpl');
-        } else {
-            $this->setTemplate('order-confirmation.tpl');
-        }
-
-    }
-
-    /**
-     * @return array|bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    private function displayHook()
-    {
-        if (Validate::isUnsignedId($this->id_order) && Validate::isUnsignedId($this->id_module)) {
-            $order = new Order((int) $this->id_order);
-            $currency = new Currency((int) $order->id_currency);
-
-            if (Validate::isLoadedObject($order)) {
-                $params = array();
-                $params['objOrder'] = $order;
-                $params['currencyObj'] = $currency;
-                $params['currency'] = $currency->sign;
-                $params['total_to_pay'] = $order->getOrdersTotalPaid();
-
-                return $params;
+            if (isset($orderStateMessage) && $orderStateMessage) {
+                $this->context->smarty->assign('message', $orderStateMessage);
             }
+            $template = 'error.tpl';
+        } else {
+            $this->context->smarty->assign(
+                array(
+                    'order' => $paypalOrder,
+                    'price' => $price,
+                    'reference_order' => Order::getUniqReferenceOf($paypalOrder['id_order']),
+                    'HOOK_ORDER_CONFIRMATION' => '',
+                    'HOOK_PAYMENT_RETURN' => $this->module->hookPaymentReturn(),
+                )
+            );
+
+            $template = 'order-confirmation.tpl';
         }
+        $this->context->smarty->assign('use_mobile', (bool) $this->module->useMobile());
 
-        return false;
-    }
-
-    /**
-     * Execute the hook displayPaymentReturn
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function displayPaymentReturn()
-    {
-        $params = $this->displayHook();
-
-        if ($params && is_array($params)) {
-            return Hook::exec('displayPaymentReturn', $params, (int) $this->id_module);
-        }
-
-        return false;
-    }
-
-    /**
-     * Execute the hook displayOrderConfirmation
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function displayOrderConfirmation()
-    {
-        $params = $this->displayHook();
-
-        if ($params && is_array($params)) {
-            return Hook::exec('displayOrderConfirmation', $params);
-        }
-
-        return false;
+        $this->setTemplate($template);
     }
 }

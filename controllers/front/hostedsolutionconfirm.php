@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,8 +15,8 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -24,22 +24,25 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-/**
- * @param      $object
- * @param bool $install
- *
- * @return bool
- *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2016 PrestaShop SA
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- */
-function upgrade_module_3_10_10($object, $install = false)
+require_once dirname(__FILE__).'/../../paypal.php';
+
+class PayPalHostedsolutionconfirmModuleFrontController extends ModuleFrontController
 {
-    if(file_exists(_PS_MODULE_DIR_.'paypal/api/Results.txt'))
+    public function initContent()
     {
-        unlink(_PS_MODULE_DIR_.'paypal/api/Results.txt');
+        if ($idCart = Tools::getValue('id_cart')) {
+            $idOrder = Db::getInstance()->getValue('
+		SELECT id_order
+		FROM `'._DB_PREFIX_.'paypal_order`
+		WHERE `id_order` = '.(int) Order::getOrderByCartId((int) $idCart));
+
+            if ($idOrder !== false) {
+                echo (int) $idOrder;
+            }
+
+        }
+
+        die();
+
     }
-    Configuration::updateValue('PAYPAL_VERSION', '3.10.10');
-    return true;
 }

@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,10 +15,11 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
+
 			    	
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
 header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT");

@@ -20,6 +20,10 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PayPalLogin
 {
     private $_logs = array();
@@ -96,13 +100,7 @@ class PayPalLogin
      */
     public static function getReturnLink()
     {
-        // return 'http://requestb.in/1jlaizq1';
-        if (method_exists(Context::getContext()->shop, 'getBaseUrl')) {
-            return Context::getContext()->shop->getBaseUrl().'modules/paypal/paypal_login/paypal_login_token.php';
-        } else {
-            return 'http://'.Configuration::get('PS_SHOP_DOMAIN').'/modules/paypal/paypal_login/paypal_login_token.php';
-        }
-
+        return Context::getContext()->link->getModuleLink('paypal', 'logintoken', array(), Tools::usingSecureMode());
     }
 
     /**
@@ -152,7 +150,7 @@ class PayPalLogin
                 return false;
             }
 
-            $temp = PaypalLoginUser::getByIdCustomer((int) $context->customer->id);
+            $temp = PayPalLoginUser::getByIdCustomer((int) $context->customer->id);
 
             if ($temp) {
                 $login = $temp;
@@ -181,7 +179,7 @@ class PayPalLogin
     public function getRefreshToken()
     {
         unset($this->_logs);
-        $login = PaypalLoginUser::getByIdCustomer((int) Context::getContext()->customer->id);
+        $login = PayPalLoginUser::getByIdCustomer((int) Context::getContext()->customer->id);
 
         if (!is_object($login)) {
             return false;
@@ -294,17 +292,17 @@ class PayPalLogin
         $customer->passwd = Tools::encrypt(Tools::passwdGen());
         $customer->save();
 
-        $result_address = $result->address;
+        $resultAddress = $result->address;
 
         $address = new Address();
         $address->id_customer = $customer->id;
-        $address->id_country = Country::getByIso($result_address->country);
+        $address->id_country = Country::getByIso($resultAddress->country);
         $address->alias = 'My address';
         $address->lastname = $customer->lastname;
         $address->firstname = $customer->firstname;
-        $address->address1 = $result_address->street_address;
-        $address->postcode = $result_address->postal_code;
-        $address->city = $result_address->locality;
+        $address->address1 = $resultAddress->street_address;
+        $address->postcode = $resultAddress->postal_code;
+        $address->city = $resultAddress->locality;
         $address->phone = $result->phone_number;
 
         $address->save();

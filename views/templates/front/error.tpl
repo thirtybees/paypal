@@ -1,6 +1,6 @@
 {*
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -14,10 +14,9 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *
 *}
 
 {if $smarty.const._PS_VERSION_ < 1.5 && isset($use_mobile) && $use_mobile}
@@ -29,7 +28,7 @@
 	<h2>{$message|escape:'htmlall':'UTF-8'}</h2>
 	{if isset($logs) && $logs}
 		<div class="error">
-			<p><b>{l s='Please try to contact the merchant:' mod='paypal'}</b></p>
+			<strong>{l s='Please try to contact the merchant:' mod='paypal'}</strong>
 			
 			<ol>
 			{foreach from=$logs key=key item=log}

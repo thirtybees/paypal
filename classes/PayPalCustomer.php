@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,8 +15,8 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -24,18 +24,23 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-/**
- * @param      $object
- * @param bool $install
- *
- * @return bool
- *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2016 PrestaShop SA
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- */
-function upgrade_module_3_10_4($object, $install = false)
+class PayPalCustomer extends PayPalObjectModel
 {
-    Configuration::updateValue('PAYPAL_VERSION', '3.10.4');
-    return Configuration::updateValue('PAYPAL_UPDATED_COUNTRIES_OK', true);
+    /** @var int $id_customer */
+    public $id_customer;
+
+    /** @var string $paypal_email */
+    public $paypal_email;
+
+    /**
+     * @see ObjectModel::$definition
+     */
+    public static $definition = array(
+        'table' => 'paypal_customer',
+        'primary' => 'id_paypal_customer',
+        'fields' => array(
+            'id_customer' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'),
+            'paypal_email' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'),
+        ),
+    );
 }

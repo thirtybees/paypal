@@ -26,32 +26,37 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalConfirmModuleFrontController extends ModuleFrontController
+class PayPalExpresscheckoutajaxModuleFrontController extends ModuleFrontController
 {
-    /** @var PayPal $module */
-    public $module;
-
-    public $display_column_left = false;
-
-    /**
-     * Initialize content
-     */
     public function initContent()
     {
-        if (!$this->context->customer->isLogged(true) || empty($this->context->cart)) {
-            Tools::redirect('index.php');
+        // Ajax query
+        $quantity = Tools::getValue('get_qty');
+
+        if (Configuration::get('PS_CATALOG_MODE') == 1) {
+            die('0');
         }
 
-        parent::initContent();
+        if ($quantity && $quantity > 0) {
+            /* Ajax response */
+            $idProduct = (int) Tools::getValue('id_product');
+            $idProductAttribute = (int) Tools::getValue('id_product_attribute');
+            $productQuantity = Product::getQuantity($idProduct, $idProductAttribute);
+            $product = new Product($idProduct);
 
-        $this->context = Context::getContext();
+            if (!$product->available_for_order) {
+                die('0');
+            }
 
-        $this->module->assignCartSummary();
+            if ($productQuantity > 0) {
+                die('1');
+            }
 
-        $this->context->smarty->assign(array(
-            'form_action' => $this->context->link->getModuleLink($this->module->name, 'expresscheckoutpayment', array(), Tools::usingSecureMode()),
-        ));
+            if ($productQuantity <= 0 && $product->isAvailableWhenOutOfStock((int) $product->out_of_stock)) {
+                die('1');
+            }
 
-        $this->setTemplate('order-summary.tpl');
+        }
+        die('0');
     }
 }

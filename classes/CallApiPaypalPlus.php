@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,12 +15,14 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-require_once _PS_MODULE_DIR_.'paypal/api/ApiPaypalPlus.php';
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 define('URL_PPP_CREATE_TOKEN', '/v1/oauth2/token');
 define('URL_PPP_CREATE_PAYMENT', '/v1/payments/payment');
@@ -29,7 +31,7 @@ define('URL_PPP_WEBPROFILE', '/v1/payment-experience/web-profiles');
 define('URL_PPP_EXECUTE_PAYMENT', '/v1/payments/payment/');
 define('URL_PPP_EXECUTE_REFUND', '/v1/payments/sale/');
 
-class CallApiPaypalPlus extends ApiPaypalPlus
+class CallApiPayPalPlus extends ApiPayPalPlus
 {
     protected $cart = null;
     protected $customer = null;

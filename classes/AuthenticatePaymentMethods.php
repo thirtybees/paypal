@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,16 +15,19 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class AuthenticatePaymentMethods
 {
-
     /**
-     * @param $iso_code
+     * @param $isoCode
      *
      * @return bool|mixed
      *
@@ -32,7 +35,7 @@ class AuthenticatePaymentMethods
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public static function getPaymentMethodsByIsoCode($iso_code)
+    public static function getPaymentMethodsByIsoCode($isoCode)
     {
         // WPS -> Web Payment Standard
         // HSS -> Web Payment Pro / Integral Evolution
@@ -40,7 +43,7 @@ class AuthenticatePaymentMethods
         // PPP -> PAYPAL PLUS
         // PVZ -> Braintree / Payment VZero
 
-        $payment_method = array(
+        $paymentMethod = array(
             // EUROPE
             'BE'=>array(WPS, ECS),
             'CZ'=>array(WPS, ECS),
@@ -105,11 +108,11 @@ class AuthenticatePaymentMethods
             'SN'=>array(WPS, ECS),
         );
 
-        return isset($payment_method[$iso_code]) ? $payment_method[$iso_code] : false;
+        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : false;
     }
 
     /**
-     * @param $iso_code
+     * @param $isoCode
      *
      * @return bool|int|string
      *
@@ -117,7 +120,7 @@ class AuthenticatePaymentMethods
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public static function getCountryDependencyRetroCompatibilite($iso_code)
+    public static function getCountryDependencyRetroCompatibilite($isoCode)
     {
         $localizations = array(
             'AU' => array('AU'), 'BE' => array('BE'), 'CN' => array('CN', 'MO'),
@@ -155,7 +158,7 @@ class AuthenticatePaymentMethods
                 'TW'), 'US' => array('US'));
 
         foreach ($localizations as $key => $value) {
-            if (in_array($iso_code, $value)) {
+            if (in_array($isoCode, $value)) {
                 return $key;
             }
         }
@@ -164,7 +167,7 @@ class AuthenticatePaymentMethods
     }
 
     /**
-     * @param $iso_code
+     * @param $isoCode
      *
      * @return mixed
      *
@@ -172,14 +175,14 @@ class AuthenticatePaymentMethods
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public static function getPaymentMethodsRetroCompatibilite($iso_code)
+    public static function getPaymentMethodsRetroCompatibilite($isoCode)
     {
         // WPS -> Web Payment Standard
         // HSS -> Web Payment Pro / Integral Evolution
         // ECS -> Express Checkout Solution
         // PPP -> PAYPAL PLUS
 
-        $payment_method = array(
+        $paymentMethod = array(
             'AU' => array(WPS, HSS, ECS),
             'BE' => array(WPS, ECS),
             'CN' => array(WPS, ECS),
@@ -207,11 +210,11 @@ class AuthenticatePaymentMethods
             'US' => array(WPS, ECS),
             'ZA' => array(WPS, ECS));
 
-        return isset($payment_method[$iso_code]) ? $payment_method[$iso_code] : $payment_method['GB'];
+        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : $paymentMethod['GB'];
     }
 
     /**
-     * @param $iso_code
+     * @param $isoCode
      *
      * @return mixed
      *
@@ -219,13 +222,13 @@ class AuthenticatePaymentMethods
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public static function authenticatePaymentMethodByLang($iso_code)
+    public static function authenticatePaymentMethodByLang($isoCode)
     {
-        return self::getPaymentMethodsRetroCompatibilite(self::getCountryDependencyRetroCompatibilite($iso_code));
+        return self::getPaymentMethodsRetroCompatibilite(self::getCountryDependencyRetroCompatibilite($isoCode));
     }
 
     /**
-     * @param $iso_code
+     * @param $isoCode
      *
      * @return bool|mixed
      *
@@ -233,8 +236,8 @@ class AuthenticatePaymentMethods
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public static function authenticatePaymentMethodByCountry($iso_code)
+    public static function authenticatePaymentMethodByCountry($isoCode)
     {
-        return self::getPaymentMethodsByIsoCode($iso_code);
+        return self::getPaymentMethodsByIsoCode($isoCode);
     }
 }

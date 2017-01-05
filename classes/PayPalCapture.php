@@ -1,0 +1,164 @@
+<?php
+/**
+ * 2017 Thirty Bees
+ * 2007-2016 PrestaShop
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@thirtybees.com so we can send you a copy immediately.
+ *
+ *  @author    Thirty Bees <modules@thirtybees.com>
+ *  @author    PrestaShop SA <contact@prestashop.com>
+ *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
+ *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
+class PayPalCapture extends PayPalObjectModel
+{
+    /** @var int $id_order */
+    public $id_order;
+
+    /** @var float $capture_amount */
+    public $capture_amount;
+
+    /** @var $result */
+    public $result;
+
+    /** @var string $date_add */
+    public $date_add;
+
+    /** @var string $date_upd */
+    public $date_upd;
+
+    /** @var int $id_paypal_capture */
+    public $id_paypal_capture;
+
+    /**
+     * @see ObjectModel::$definition
+     */
+    public static $definition = array(
+        'table' => 'paypal_capture',
+        'primary' => 'id_paypal_capture',
+        'fields' => array(
+            'id_order' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'),
+            'capture_amount' => array('type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'),
+            'result' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'TEXT'),
+            'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'),
+            'date_upd' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'),
+        ),
+    );
+
+    /**
+     * @param $idOrder
+     *
+     * @return float
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public static function getTotalAmountCapturedByIdOrder($idOrder)
+    {
+        $query = new DbQuery();
+        $query->select('SUM(capture_amount)');
+        $query->from(self::$definition['table']);
+        $query->where('id_order = '.(int) $idOrder);
+        $query->where('result = "Completed"');
+
+        return Tools::ps_round(DB::getInstance()->getValue($query), 2);
+    }
+
+    /**
+     * @param Order $order
+     *
+     * @return float
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function getRestToPaid(Order $order)
+    {
+        $cart = new Cart($order->id_cart);
+        $totalPaid = Tools::ps_round($cart->getOrderTotal(), 2);
+
+        return Tools::ps_round($totalPaid, 2) - Tools::ps_round(self::getTotalAmountCapturedByIdOrder($order->id), 2);
+    }
+
+    /**
+     * @param $idOrder
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function getRestToCapture($idOrder)
+    {
+        $cart = Cart::getCartByOrderId($idOrder);
+
+        $total = Tools::ps_round($cart->getOrderTotal(), 2) - Tools::ps_round(self::getTotalAmountCapturedByIdOrder($idOrder), 2);
+
+        if ($total > Tools::ps_round(0, 2)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @return array|false|mysqli_result|null|PDOStatement|resource
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function getListCaptured()
+    {
+        $query = new DbQuery();
+        $query->from(self::$definition['table']);
+        $query->where('id_order = '.$this->id_order);
+        $query->orderBy('date_add DESC');
+
+        $result = DB::getInstance()->executeS($query);
+
+        return $result;
+    }
+
+    /**
+     * @param $price
+     *
+     * @return bool|float
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public static function parsePrice($price)
+    {
+        $regexp = "/^([0-9\s]{0,10})((\.|,)[0-9]{0,2})?$/isD";
+
+        if (preg_match($regexp, $price)) {
+            $arrayRegexp = array("#,#isD", "# #isD");
+            $arrayReplace = array(".", "");
+            $price = preg_replace($arrayRegexp, $arrayReplace, $price);
+
+            return Tools::ps_round($price, 2);
+        } else {
+            return false;
+        }
+
+    }
+}

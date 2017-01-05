@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,39 +15,30 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
-
-include_once dirname(__FILE__).'/../../config/config.inc.php';
-//include_once _PS_ROOT_DIR_.'/init.php';
-include_once _PS_MODULE_DIR_.'paypal/paypal.php';
 
 /*
  * Instant payment notification class.
  * (wait for PayPal payment confirmation, then validate order)
  */
-class PayPalIPN extends PayPal
+class PayPalIpn extends PayPal
 {
-
     /**
      * @param $result
      *
      * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getIPNTransactionDetails($result)
     {
         if (is_array($result) || (strcmp(trim($result), "VERIFIED") === false)) {
-            $transaction_id = pSQL($result['txn_id']);
+            $transactionId = pSQL($result['txn_id']);
 
             return array(
-                'id_transaction' => $transaction_id,
-                'transaction_id' => $transaction_id,
+                'id_transaction' => $transactionId,
+                'transaction_id' => $transactionId,
                 'id_invoice' => $result['invoice'],
                 'currency' => pSQL($result['mc_currency']),
                 'total_paid' => (float) $result['mc_gross'],
@@ -56,11 +47,11 @@ class PayPalIPN extends PayPal
                 'payment_status' => pSQL($result['payment_status']),
             );
         } else {
-            $transaction_id = pSQL(Tools::getValue('txn_id'));
+            $transactionId = pSQL(Tools::getValue('txn_id'));
 
             return array(
-                'id_transaction' => $transaction_id,
-                'transaction_id' => $transaction_id,
+                'id_transaction' => $transactionId,
+                'transaction_id' => $transactionId,
                 'id_invoice' => pSQL(Tools::getValue('invoice')),
                 'currency' => pSQL(Tools::getValue('mc_currency')),
                 'total_paid' => (float) Tools::getValue('mc_gross'),
@@ -73,23 +64,19 @@ class PayPalIPN extends PayPal
 
     /**
      * @param $custom
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function confirmOrder($custom)
     {
         $result = $this->getResult();
 
-        $payment_status = Tools::getValue('payment_status');
-        $mc_gross = Tools::getValue('mc_gross');
-        $txn_id = Tools::getValue('txn_id');
+        $paymentStatus = Tools::getValue('payment_status');
+        $mcGross = Tools::getValue('mc_gross');
+        $txnId = Tools::getValue('txn_id');
 
-        $id_order = (int) PayPalOrder::getIdOrderByTransactionId($txn_id);
+        $idOrder = (int) PayPalOrder::getIdOrderByTransactionId($txnId);
 
-        if ($id_order != 0) {
-            Context::getContext()->cart = new Cart((int) $id_order);
+        if ($idOrder != 0) {
+            Context::getContext()->cart = new Cart((int) $idOrder);
         } elseif (isset($custom['id_cart'])) {
             Context::getContext()->cart = new Cart((int) $custom['id_cart']);
         }
@@ -107,11 +94,11 @@ class PayPalIPN extends PayPal
         if (strcmp(trim($result), "VERIFIED") === false) {
             $details = $this->getIPNTransactionDetails($result);
 
-            if ($id_order != 0) {
+            if ($idOrder != 0) {
                 $history = new OrderHistory();
-                $history->id_order = (int) $id_order;
+                $history->id_order = (int) $idOrder;
 
-                PayPalOrder::updateOrder($id_order, $details);
+                PayPalOrder::updateOrder($idOrder, $details);
                 $history->changeIdOrderState((int) Configuration::get('PS_OS_ERROR'), $history->id_order);
 
                 $history->addWithemail();
@@ -123,28 +110,28 @@ class PayPalIPN extends PayPal
             if (version_compare(_PS_VERSION_, '1.5', '<')) {
                 $shop = null;
             } else {
-                $shop_id = Context::getContext()->shop->id;
-                $shop = new Shop($shop_id);
+                $idShop = Context::getContext()->shop->id;
+                $shop = new Shop($idShop);
             }
 
-            if ($id_order != 0) {
-                $order = new Order((int) $id_order);
-                $values = $this->checkPayment($payment_status, $mc_gross, false);
+            if ($idOrder != 0) {
+                $order = new Order((int) $idOrder);
+                $values = $this->checkPayment($paymentStatus, $mcGross, false);
 
                 if ((int) $order->current_state == (int) $values['payment_type']) {
                     return;
                 }
 
                 $history = new OrderHistory();
-                $history->id_order = (int) $id_order;
+                $history->id_order = (int) $idOrder;
 
-                PayPalOrder::updateOrder($id_order, $details);
+                PayPalOrder::updateOrder($idOrder, $details);
                 $history->changeIdOrderState($values['payment_type'], $history->id_order);
 
                 $history->addWithemail();
                 $history->save();
             } else {
-                $values = $this->checkPayment($payment_status, $mc_gross, true);
+                $values = $this->checkPayment($paymentStatus, $mcGross, true);
                 $customer = new Customer((int) Context::getContext()->cart->id_customer);
                 $this->validateOrder(Context::getContext()->cart->id, $values['payment_type'], $values['total_price'], $this->displayName, $values['message'], $details, Context::getContext()->cart->id_currency, false, $customer->secure_key, $shop);
             }
@@ -152,9 +139,9 @@ class PayPalIPN extends PayPal
     }
 
     /**
-     * @param $payment_status
-     * @param $mc_gross_not_rounded
-     * @param $new_order
+     * @param $paymentStatus
+     * @param $mcGrossNotRounded
+     * @param $newOrder
      *
      * @return array
      *
@@ -162,46 +149,46 @@ class PayPalIPN extends PayPal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function checkPayment($payment_status, $mc_gross_not_rounded, $new_order)
+    public function checkPayment($paymentStatus, $mcGrossNotRounded, $newOrder)
     {
-        $currency_decimals = is_array(Context::getContext()->currency) ? (int) Context::getContext()->currency['decimals'] : (int) Context::getContext()->currency->decimals;
-        $this->decimals = $currency_decimals * _PS_PRICE_DISPLAY_PRECISION_;
+        $currencyDecimals = is_array(Context::getContext()->currency) ? (int) Context::getContext()->currency['decimals'] : (int) Context::getContext()->currency->decimals;
+        $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
 
-        $mc_gross = Tools::ps_round($mc_gross_not_rounded, $this->decimals);
+        $mcGross = Tools::ps_round($mcGrossNotRounded, $this->decimals);
 
-        $cart_details = Context::getContext()->cart->getSummaryDetails(null, true);
-        $cart_hash = sha1(serialize(Context::getContext()->cart->nbProducts()));
+        $cartDetails = Context::getContext()->cart->getSummaryDetails(null, true);
+        $cartHash = sha1(serialize(Context::getContext()->cart->nbProducts()));
         $custom = Tools::jsonDecode(Tools::getValue('custom'), true);
 
-        $shipping = $cart_details['total_shipping_tax_exc'];
-        $subtotal = $cart_details['total_price_without_tax'] - $cart_details['total_shipping_tax_exc'];
-        $tax = $cart_details['total_tax'];
+        $shipping = $cartDetails['total_shipping_tax_exc'];
+        $subtotal = $cartDetails['total_price_without_tax'] - $cartDetails['total_shipping_tax_exc'];
+        $tax = $cartDetails['total_tax'];
 
-        $total_price = Tools::ps_round($shipping + $subtotal + $tax, $this->decimals);
+        $totalPrice = Tools::ps_round($shipping + $subtotal + $tax, $this->decimals);
 
-        if (($new_order == true) && ($this->comp($mc_gross, $total_price, 2) !== 0)) {
-            $payment_type = (int) Configuration::get('PS_OS_ERROR');
+        if (($newOrder == true) && (bccomp($mcGross, $totalPrice, 2) !== 0)) {
+            $paymentType = (int) Configuration::get('PS_OS_ERROR');
             $message = $this->l('Price paid on paypal is not the same that on PrestaShop.').'<br />';
-        } elseif (($new_order == true) && ($custom['hash'] != $cart_hash)) {
-            $payment_type = (int) Configuration::get('PS_OS_ERROR');
+        } elseif (($newOrder == true) && ($custom['hash'] != $cartHash)) {
+            $paymentType = (int) Configuration::get('PS_OS_ERROR');
             $message = $this->l('Cart changed, please retry.').'<br />';
         } else {
-            return $this->getDetails($payment_status) + array(
-                'payment_status' => $payment_status,
-                'total_price' => $total_price,
+            return $this->getDetails($paymentStatus) + array(
+                'payment_status' => $paymentStatus,
+                'total_price' => $totalPrice,
             );
         }
 
         return array(
             'message' => $message,
-            'payment_type' => $payment_type,
-            'payment_status' => $payment_status,
-            'total_price' => $total_price,
+            'payment_type' => $paymentType,
+            'payment_status' => $paymentStatus,
+            'total_price' => $totalPrice,
         );
     }
 
     /**
-     * @param $payment_status
+     * @param $paymentStatus
      *
      * @return array
      *
@@ -209,27 +196,27 @@ class PayPalIPN extends PayPal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getDetails($payment_status)
+    public function getDetails($paymentStatus)
     {
         if ((bool) Configuration::get('PAYPAL_CAPTURE')) {
-            $payment_type = (int) Configuration::get('PS_OS_WS_PAYMENT');
+            $paymentType = (int) Configuration::get('PS_OS_WS_PAYMENT');
             $message = $this->l('Pending payment capture.').'<br />';
         } else {
-            if (strcmp($payment_status, 'Completed') === 0) {
-                $payment_type = (int) Configuration::get('PS_OS_PAYMENT');
+            if (strcmp($paymentStatus, 'Completed') === 0) {
+                $paymentType = (int) Configuration::get('PS_OS_PAYMENT');
                 $message = $this->l('Payment accepted.').'<br />';
-            } elseif (strcmp($payment_status, 'Pending') === 0) {
-                $payment_type = (int) Configuration::get('PS_OS_PAYPAL');
+            } elseif (strcmp($paymentStatus, 'Pending') === 0) {
+                $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                 $message = $this->l('Pending payment confirmation.').'<br />';
             } else {
-                $payment_type = (int) Configuration::get('PS_OS_ERROR');
+                $paymentType = (int) Configuration::get('PS_OS_ERROR');
                 $message = $this->l('Cart changed, please retry.').'<br />';
             }
         }
 
         return array(
             'message' => $message,
-            'payment_type' => (int) $payment_type,
+            'payment_type' => (int) $paymentType,
         );
     }
 
@@ -242,37 +229,28 @@ class PayPalIPN extends PayPal
      */
     public function getResult()
     {
-        if ((int) Configuration::get('PAYPAL_SANDBOX') == 1) {
-            $action_url = 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
+        if (Configuration::get('PAYPAL_SANDBOX')) {
+            $actionUrl = 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
         } else {
-            $action_url = 'https://www.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
+            $actionUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
         }
 
         $request = '';
         foreach ($_POST as $key => $value) {
             $value = urlencode(Tools::stripslashes($value));
-            $request .= "&$key=$value";
+            $request .= "&{$key}={$value}";
         }
-
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_URL, $action_url.$request);
+        curl_setopt($curl, CURLOPT_URL, $actionUrl.$request);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($curl, CURLOPT_TIMEOUT, 5);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 
         $content = curl_exec($curl);
         curl_close($curl);
+
         return $content;
-    }
-}
-
-if (Tools::getValue('receiver_email') == Configuration::get('PAYPAL_BUSINESS_ACCOUNT')) {
-
-    if (Tools::getIsset('custom')) {
-        $ipn = new PayPalIPN();
-        $custom = Tools::jsonDecode(Tools::getValue('custom'), true);
-        $ipn->confirmOrder($custom);
     }
 }

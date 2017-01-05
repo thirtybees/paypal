@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,10 +15,11 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
+
 
 include_once dirname(__FILE__).'/../../../config/config.inc.php';
 include_once dirname(__FILE__).'/../../../init.php';
@@ -27,32 +28,17 @@ include_once dirname(__FILE__).'/../../../init.php';
  * Init var
  */
 
-if (version_compare(_PS_VERSION_, '1.5', '<')) {
+$values = array(
+    'id_cart' => (int) Tools::getValue('id_cart'),
+    'id_module' => (int) Module::getInstanceByName('paypal')->id,
+    'paymentId' => Tools::getValue('paymentId'),
+    'token' => Tools::getValue('token'),
+);
+$values['key'] = Context::getContext()->customer->secure_key;
+$link = Context::getContext()->link->getModuleLink('paypal', 'submitplus', $values);
+Tools::redirect($link);
+die();
 
-    include_once _PS_MODULE_DIR_.'paypal/backward_compatibility/backward.php';
-    $context = Context::getContext();
-    $ajax = Tools::getValue('ajax');
-    /*
-     * Pour la version 1.4
-     */
-    if ($ajax) {
-        displayAjax($context);
-    } else {
-        displayConfirm($context);
-    }
-
-} else {
-    $values = array(
-        'id_cart' => (int) Tools::getValue('id_cart'),
-        'id_module' => (int) Module::getInstanceByName('paypal')->id,
-        'paymentId' => Tools::getValue('paymentId'),
-        'token' => Tools::getValue('token'),
-    );
-    $values['key'] = Context::getContext()->customer->secure_key;
-    $link = Context::getContext()->link->getModuleLink('paypal', 'submitplus', $values);
-    Tools::redirect($link);
-    die();
-}
 
 /**
  * @param $context
@@ -75,7 +61,7 @@ function displayConfirm($context)
 
     if (!empty($id_cart) && !empty($paymentId) && !empty($token)) {
 
-        $CallApiPaypalPlus = new CallApiPaypalPlus();
+        $CallApiPaypalPlus = new CallApiPayPalPlus();
         $payment = Tools::jsonDecode($CallApiPaypalPlus->lookUpPayment($paymentId));
 
         if (isset($payment->state)) {
@@ -173,7 +159,7 @@ function displayAjax($context)
 
         include_once _PS_MODULE_DIR_.'paypal/paypal.php';
 
-        $CallApiPaypalPlus = new CallApiPaypalPlus();
+        $CallApiPaypalPlus = new CallApiPayPalPlus();
         $payment = Tools::jsonDecode($CallApiPaypalPlus->executePayment($payerID, $paymentId));
 
         if (isset($payment->state)) {

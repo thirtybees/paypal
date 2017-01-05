@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,15 +15,14 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-include_once _PS_MODULE_DIR_.'paypal/paypal.php';
-include_once _PS_MODULE_DIR_.'paypal/api/paypal_lib.php';
+require_once dirname(__FILE__).'/../paypal.php';
 
-class PaypalExpressCheckout extends Paypal
+class PayPalExpressCheckout extends Paypal
 {
     public $logs = array();
 
@@ -31,35 +30,35 @@ class PaypalExpressCheckout extends Paypal
 
     public $method;
 
-    /** @var currency Currency used for the payment process **/
+    /** @var Currency $currency Currency used for the payment process **/
     public $currency;
 
-    /** @var decimals Used to set prices precision **/
+    /** @var int $decimals Used to set prices precision **/
     public $decimals;
 
-    /** @var result Contains the last request result **/
+    /** @var string $result Contains the last request result **/
     public $result;
 
-    /** @var token Contains the last token **/
+    /** @var string $token Contains the last token **/
     public $token;
 
     /* Depending of the type set, id_cart or id_product will be set */
-    public $id_cart;
+    public $idCart;
 
     // Depending of the type set, id_cart or id_product will be set
-    public $id_product;
+    public $idProduct;
 
-    public $id_p_attr;
+    public $idProductAttribute;
 
     public $quantity;
 
-    public $payer_id;
+    public $payerId;
 
-    public $available_type = array('cart', 'product', 'payment_cart');
+    public $availableTypes = array('cart', 'product', 'payment_cart');
 
-    public $total_different_product;
+    public $totalDifferentProduct;
 
-    public $product_list = array();
+    public $productList = array();
 
     /* Used to know if user can validated his payment after shipping / address selection */
     public $ready = false;
@@ -67,16 +66,22 @@ class PaypalExpressCheckout extends Paypal
     /* Take for now cart or product value */
     public $type = false;
 
-    public static $cookie_name = 'express_checkout';
+    public static $cookieName = 'express_checkout';
 
-    public $cookie_key = array(
-        'token', 'id_product', 'id_p_attr',
-        'quantity', 'type', 'total_different_product',
-        'secure_key', 'ready', 'payer_id',
+    public $cookieKey = array(
+        'token',
+        'id_product',
+        'id_prodcut_attrbute',
+        'quantity',
+        'type',
+        'total_different_product',
+        'secure_key',
+        'ready',
+        'payer_id',
     );
 
     /**
-     * PaypalExpressCheckout constructor.
+     * PayPalExpressCheckout constructor.
      *
      * @param bool $type
      *
@@ -90,32 +95,19 @@ class PaypalExpressCheckout extends Paypal
 
         // If type is sent, the cookie has to be delete
         if ($type) {
-            unset($this->context->cookie->{self::$cookie_name});
+            unset($this->context->cookie->{self::$cookieName});
             $this->setExpressCheckoutType($type);
         }
 
         // Store back the PayPal data if present under the cookie
-        if (isset($this->context->cookie->{self::$cookie_name})) {
-            $paypal = unserialize($this->context->cookie->{self::$cookie_name});
+        if (isset($this->context->cookie->{self::$cookieName})) {
+            $paypal = unserialize($this->context->cookie->{self::$cookieName});
 
-            foreach ($this->cookie_key as $key) {
+            foreach ($this->cookieKey as $key) {
                 $this->{$key} = $paypal[$key];
             }
 
         }
-
-        $this->currency = new Currency((int) $this->context->cart->id_currency);
-
-        if (!Validate::isLoadedObject($this->currency)) {
-            $this->_errors[] = $this->l('Not a valid currency');
-        }
-
-        if (count($this->_errors)) {
-            return false;
-        }
-
-        $currency_decimals = is_array($this->currency) ? (int) $this->currency['decimals'] : (int) $this->currency->decimals;
-        $this->decimals = $currency_decimals * _PS_PRICE_DISPLAY_PRECISION_;
     }
 
     // Will build the product_list depending of the type
@@ -126,27 +118,41 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function initParameters()
+    protected function initParameters()
     {
         if (!$this->context->cart || !$this->context->cart->id) {
             return false;
         }
 
-        $cart_currency = new Currency((int) $this->context->cart->id_currency);
-        $currency_module = $this->getCurrency((int) $this->context->cart->id_currency);
+        $cartCurrency = new Currency((int) $this->context->cart->id_currency);
+        $currencyModule = $this->getCurrency((int) $this->context->cart->id_currency);
 
-        if ($cart_currency !== $currency_module) {
-            $this->context->cart->id_currency = $currency_module->id;
+        $this->currency = $cartCurrency;
+
+        if (!Validate::isLoadedObject($this->currency)) {
+            $this->errors[] = $this->l('Not a valid currency');
+        }
+
+        if (count($this->errors)) {
+            return false;
+        }
+
+        $currencyDecimals = is_array($this->currency) ? (int) $this->currency['decimals'] : (int) $this->currency->decimals;
+        $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
+
+        if ($cartCurrency !== $currencyModule) {
+            $this->context->cart->id_currency = $currencyModule->id;
             $this->context->cart->update();
         }
 
-        $this->context->currency = $currency_module;
-        $this->product_list = $this->context->cart->getProducts(true);
-        return (bool) count($this->product_list);
+        $this->context->currency = $currencyModule;
+        $this->productList = $this->context->cart->getProducts(true);
+
+        return (bool) count($this->productList);
     }
 
     /**
-     * @param bool $access_token
+     * @param bool $accessToken
      *
      * @return bool
      *
@@ -154,19 +160,19 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function setExpressCheckout($access_token = false)
+    public function setExpressCheckout($accessToken = false)
     {
         $this->method = 'SetExpressCheckout';
         $fields = array();
         $this->setCancelUrl($fields);
 
         // Only this call need to get the value from the $_GET / $_POST array
-        if (!$this->initParameters(true) || !$fields['CANCELURL']) {
+        if (!$this->initParameters() || !$fields['CANCELURL']) {
             return false;
         }
 
         // Set payment detail (reference)
-        $this->_setPaymentDetails($fields);
+        $this->setPaymentDetails($fields);
         $fields['SOLUTIONTYPE'] = 'Sole';
         $fields['LANDINGPAGE'] = 'Login';
 
@@ -175,44 +181,40 @@ class PaypalExpressCheckout extends Paypal
         $fields['PWD'] = Configuration::get('PAYPAL_API_PASSWORD');
         $fields['SIGNATURE'] = Configuration::get('PAYPAL_API_SIGNATURE');
 
-        if ($access_token) {
-            $fields['IDENTITYACCESSTOKEN'] = $access_token;
+        if ($accessToken) {
+            $fields['IDENTITYACCESSTOKEN'] = $accessToken;
         }
 
         if (Country::getIsoById(Configuration::get('PAYPAL_COUNTRY_DEFAULT')) == 'de') {
-            $fields['BANKTXNPENDINGURL'] = 'payment.php?banktxnpendingurl=true';
+            $fields['BANKTXNPENDINGURL'] = Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutpayment', array('banktxnpendingurl' => 'true'), Tools::usingSecureMode());
         }
 
         $this->callAPI($fields);
-        $this->_storeToken();
+        $this->storeToken();
     }
 
     /**
      * @param $fields
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function setCancelUrl(&$fields)
     {
-        $url = urldecode(Tools::getValue('current_shop_url'));
-        $parsed_data = parse_url($url);
+        $url = Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutpayment', array(), Tools::usingSecureMode()).'?'.urldecode($_SERVER['QUERY_STRING']);
+        $parsedData = parse_url($url);
 
-        $parsed_data['scheme'] .= '://';
+        $parsedData['scheme'] .= '://';
 
-        if (isset($parsed_data['path'])) {
-            $parsed_data['path'] .= '?paypal_ec_canceled=1&';
-            $parsed_data['query'] = isset($parsed_data['query']) ? $parsed_data['query'] : null;
+        if (isset($parsedData['path'])) {
+            $parsedData['path'] .= '?paypal_ec_canceled=1&';
+            $parsedData['query'] = isset($parsedData['query']) ? $parsedData['query'] : null;
         } else {
-            $parsed_data['path'] = '?paypal_ec_canceled=1&';
-            $parsed_data['query'] = '/'.(isset($parsed_data['query']) ? $parsed_data['query'] : null);
+            $parsedData['path'] = '?paypal_ec_canceled=1&';
+            $parsedData['query'] = '/'.(isset($parsedData['query']) ? $parsedData['query'] : null);
         }
 
-        $cancel_url = implode($parsed_data);
+        $cancelUrl = implode($parsedData);
 
-        if (!empty($cancel_url)) {
-            $fields['CANCELURL'] = $cancel_url;
+        if (!empty($cancelUrl)) {
+            $fields['CANCELURL'] = $cancelUrl;
         }
 
     }
@@ -232,7 +234,7 @@ class PaypalExpressCheckout extends Paypal
         $this->callAPI($fields);
 
         // The same token of SetExpressCheckout
-        $this->_storeToken();
+        $this->storeToken();
     }
 
     /**
@@ -245,18 +247,18 @@ class PaypalExpressCheckout extends Paypal
         $this->method = 'DoExpressCheckoutPayment';
         $fields = array();
         $fields['TOKEN'] = $this->token;
-        $fields['PAYERID'] = $this->payer_id;
+        $fields['PAYERID'] = $this->payerId;
 
         if (Configuration::get('PAYPAL_COUNTRY_DEFAULT') == 1) {
             $fields['BANKTXNPENDINGURL'] = '';
         }
 
-        if (count($this->product_list) <= 0) {
+        if (count($this->productList) <= 0) {
             $this->initParameters();
         }
 
         // Set payment detail (reference)
-        $this->_setPaymentDetails($fields);
+        $this->setPaymentDetails($fields);
         $this->callAPI($fields);
 
         $this->result += $fields;
@@ -269,15 +271,15 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function callAPI($fields)
+    protected function callAPI($fields)
     {
         $this->logs = array();
-        $paypal_lib = new PaypalLib();
+        $paypalLib = new PaypalLib();
 
-        $this->result = $paypal_lib->makeCall($this->getAPIURL(), $this->getAPIScript(), $this->method, $fields, $this->method_version);
-        $this->logs = array_merge($this->logs, $paypal_lib->getLogs());
+        $this->result = $paypalLib->makeCall($this->getAPIURL(), $this->getAPIScript(), $this->method, $fields, $this->method_version);
+        $this->logs = array_merge($this->logs, $paypalLib->getLogs());
 
-        $this->_storeToken();
+        $this->storeToken();
     }
 
     /**
@@ -287,10 +289,10 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _setPaymentDetails(&$fields)
+    protected function setPaymentDetails(&$fields)
     {
         // Required field
-        $fields['RETURNURL'] = PayPal::getShopDomainSsl(true, true)._MODULE_DIR_.$this->name.'/express_checkout/payment.php';
+        $fields['RETURNURL'] = Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutpayment', array(), Tools::usingSecureMode());
         $fields['NOSHIPPING'] = '1';
         $fields['BUTTONSOURCE'] = $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD'));
 
@@ -306,13 +308,13 @@ class PaypalExpressCheckout extends Paypal
         // Payment values
         $this->setPaymentValues($fields, $index, $total, $taxes);
 
-        $id_address = (int) $this->context->cart->id_address_delivery;
-        if (($id_address == 0) && ($this->context->customer)) {
-            $id_address = Address::getFirstCustomerAddressId($this->context->customer->id);
+        $idAddress = (int) $this->context->cart->id_address_delivery;
+        if (($idAddress == 0) && ($this->context->customer)) {
+            $idAddress = Address::getFirstCustomerAddressId($this->context->customer->id);
         }
 
-        if ($id_address && method_exists($this->context->cart, 'isVirtualCart') && !$this->context->cart->isVirtualCart()) {
-            $this->setShippingAddress($fields, $id_address);
+        if ($idAddress && method_exists($this->context->cart, 'isVirtualCart') && !$this->context->cart->isVirtualCart()) {
+            $this->setShippingAddress($fields, $idAddress);
         } else {
             $fields['NOSHIPPING'] = '0';
         }
@@ -327,15 +329,15 @@ class PaypalExpressCheckout extends Paypal
 
     /**
      * @param $fields
-     * @param $id_address
+     * @param $idAddress
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function setShippingAddress(&$fields, $id_address)
+    protected function setShippingAddress(&$fields, $idAddress)
     {
-        $address = new Address($id_address);
+        $address = new Address($idAddress);
 
         //We allow address modification when using express checkout shortcut
         if ($this->type != 'payment_cart') {
@@ -371,9 +373,9 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function setProductsList(&$fields, &$index, &$total)
+    protected function setProductsList(&$fields, &$index, &$total)
     {
-        foreach ($this->product_list as $product) {
+        foreach ($this->productList as $product) {
             $fields['L_PAYMENTREQUEST_0_NUMBER'.++$index] = (int) $product['id_product'];
 
             $fields['L_PAYMENTREQUEST_0_NAME'.$index] = $product['name'];
@@ -400,7 +402,7 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function setDiscountsList(&$fields, &$index, &$total)
+    protected function setDiscountsList(&$fields, &$index, &$total)
     {
         $discounts = (_PS_VERSION_ < '1.5') ? $this->context->cart->getDiscounts() : $this->context->cart->getCartRules();
 
@@ -432,17 +434,17 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function setGiftWrapping(&$fields, &$index, &$total)
+    protected function setGiftWrapping(&$fields, &$index, &$total)
     {
         if ($this->context->cart->gift == 1) {
-            $gift_wrapping_price = $this->getGiftWrappingPrice();
+            $giftWrappingPrice = $this->getGiftWrappingPrice();
 
             $fields['L_PAYMENTREQUEST_0_NAME'.++$index] = $this->l('Gift wrapping');
 
-            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = Tools::ps_round($gift_wrapping_price, $this->decimals);
+            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = Tools::ps_round($giftWrappingPrice, $this->decimals);
             $fields['L_PAYMENTREQUEST_0_QTY'.$index] = 1;
 
-            $total = Tools::ps_round($total + $gift_wrapping_price, $this->decimals);
+            $total = Tools::ps_round($total + $giftWrappingPrice, $this->decimals);
         }
     }
 
@@ -456,13 +458,9 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function setPaymentValues(&$fields, &$index, &$total, &$taxes)
+    protected function setPaymentValues(&$fields, &$index, &$total, &$taxes)
     {
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            $shipping_cost_wt = $this->context->cart->getOrderShippingCost();
-        } else {
-            $shipping_cost_wt = $this->context->cart->getTotalShippingCost();
-        }
+        $shippingCostTaxIncl = $this->context->cart->getTotalShippingCost();
 
         if ((bool) Configuration::get('PAYPAL_CAPTURE')) {
             $fields['PAYMENTREQUEST_0_PAYMENTACTION'] = 'Authorization';
@@ -481,18 +479,18 @@ class PaypalExpressCheckout extends Paypal
             $carrier = new Carrier($this->context->cart->id_carrier);
             $fields['L_PAYMENTREQUEST_0_NUMBER'.++$index] = $carrier->id_reference;
             $fields['L_PAYMENTREQUEST_0_NAME'.$index] = $carrier->name;
-            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = Tools::ps_round($shipping_cost_wt, $this->decimals);
+            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = Tools::ps_round($shippingCostTaxIncl, $this->decimals);
             $fields['L_PAYMENTREQUEST_0_QTY'.$index] = 1;
 
-            $fields['PAYMENTREQUEST_0_ITEMAMT'] = Tools::ps_round($total, $this->decimals) + Tools::ps_round($shipping_cost_wt, $this->decimals);
-            $fields['PAYMENTREQUEST_0_AMT'] = $total + Tools::ps_round($shipping_cost_wt, $this->decimals);
+            $fields['PAYMENTREQUEST_0_ITEMAMT'] = Tools::ps_round($total, $this->decimals) + Tools::ps_round($shippingCostTaxIncl, $this->decimals);
+            $fields['PAYMENTREQUEST_0_AMT'] = $total + Tools::ps_round($shippingCostTaxIncl, $this->decimals);
         } else {
             if ($currency->iso_code == 'HUF') {
-                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = round($shipping_cost_wt);
+                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = round($shippingCostTaxIncl);
                 $fields['PAYMENTREQUEST_0_ITEMAMT'] = Tools::ps_round($total, $this->decimals);
                 $fields['PAYMENTREQUEST_0_AMT'] = sprintf('%.2f', ($total + $fields['PAYMENTREQUEST_0_SHIPPINGAMT']));
             } else {
-                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = sprintf('%.2f', $shipping_cost_wt);
+                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = sprintf('%.2f', $shippingCostTaxIncl);
                 $fields['PAYMENTREQUEST_0_ITEMAMT'] = Tools::ps_round($total, $this->decimals);
                 $fields['PAYMENTREQUEST_0_AMT'] = sprintf('%.2f', ($total + $fields['PAYMENTREQUEST_0_SHIPPINGAMT']));
             }
@@ -530,7 +528,7 @@ class PaypalExpressCheckout extends Paypal
     {
         $total = 0.00;
 
-        foreach ($this->product_list as $product) {
+        foreach ($this->productList as $product) {
             $price = Tools::ps_round($product['price_wt'], $this->decimals);
             $quantity = Tools::ps_round($product['quantity'], $this->decimals);
             $total = Tools::ps_round($total + ($price * $quantity), $this->decimals);
@@ -563,7 +561,7 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _storeToken()
+    protected function storeToken()
     {
         if (is_array($this->result) && isset($this->result['TOKEN'])) {
             $this->token = (string) $this->result['TOKEN'];
@@ -577,15 +575,15 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _storeCookieInfo()
+    protected function storeCookieInfo()
     {
         $tab = array();
 
-        foreach ($this->cookie_key as $key) {
+        foreach ($this->cookieKey as $key) {
             $tab[$key] = $this->{$key};
         }
 
-        $this->context->cookie->{self::$cookie_name} = serialize($tab);
+        $this->context->cookie->{self::$cookieName} = serialize($tab);
     }
 
     /**
@@ -596,7 +594,7 @@ class PaypalExpressCheckout extends Paypal
     public function displayPaypalInContextCheckout()
     {
         $this->secure_key = $this->getSecureKey();
-        $this->_storeCookieInfo();
+        $this->storeCookieInfo();
         echo $this->token;
         die;
     }
@@ -628,20 +626,20 @@ class PaypalExpressCheckout extends Paypal
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function getSecureKey()
+    protected function getSecureKey()
     {
-        if (!count($this->product_list)) {
+        if (!count($this->productList)) {
             $this->initParameters();
         }
 
         $key = array();
 
-        foreach ($this->product_list as $product) {
-            $id_product = $product['id_product'];
-            $id_product_attribute = $product['id_product_attribute'];
+        foreach ($this->productList as $product) {
+            $idProduct = $product['id_product'];
+            $idProductAttribute = $product['id_product_attribute'];
             $quantity = $product['quantity'];
 
-            $key[] = $id_product.$id_product_attribute.$quantity._COOKIE_KEY_;
+            $key[] = $idProduct.$idProductAttribute.$quantity._COOKIE_KEY_;
         }
 
         return md5(serialize($key));
@@ -670,10 +668,12 @@ class PaypalExpressCheckout extends Paypal
      */
     public function setExpressCheckoutType($type)
     {
-        if (in_array($type, $this->available_type)) {
+        if (in_array($type, $this->availableTypes)) {
             $this->type = $type;
+
             return true;
         }
+
         return false;
     }
 
@@ -685,7 +685,7 @@ class PaypalExpressCheckout extends Paypal
     public function redirectToAPI()
     {
         $this->secure_key = $this->getSecureKey();
-        $this->_storeCookieInfo();
+        $this->storeCookieInfo();
 
         if ($this->useMobile()) {
             $url = '/cgi-bin/webscr?cmd=_express-checkout-mobile';
@@ -712,7 +712,7 @@ class PaypalExpressCheckout extends Paypal
     public function redirectToCheckout($customer, $redirect = false)
     {
         $this->ready = true;
-        $this->_storeCookieInfo();
+        $this->storeCookieInfo();
 
         $this->context->cookie->id_customer = (int) $customer->id;
         $this->context->cookie->customer_lastname = $customer->lastname;

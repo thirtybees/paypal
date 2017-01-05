@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,19 +15,21 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-include_once _PS_MODULE_DIR_.'paypal/api/paypal_connect.php';
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 define('PAYPAL_API_VERSION', '106.0');
 
 class PaypalLib
 {
-    private $enable_log = false;
-    private $_logs = array();
+    protected $enableLog = false;
+    protected $logs = array();
     protected $paypal = null;
 
     /**
@@ -51,15 +53,15 @@ class PaypalLib
      */
     public function getLogs()
     {
-        return $this->_logs;
+        return $this->logs;
     }
 
     /**
      * @param        $host
      * @param        $script
-     * @param        $method_name
+     * @param        $methodName
      * @param        $data
-     * @param string $method_version
+     * @param string $methodVersion
      *
      * @return array
      *
@@ -67,14 +69,14 @@ class PaypalLib
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function makeCall($host, $script, $method_name, $data, $method_version = '')
+    public function makeCall($host, $script, $methodName, $data, $methodVersion = '')
     {
         // Making request string
-        $method_version = (!empty($method_version)) ? $method_version : PAYPAL_API_VERSION;
+        $methodVersion = (!empty($methodVersion)) ? $methodVersion : PAYPAL_API_VERSION;
 
         $params = array(
-            'METHOD' => $method_name,
-            'VERSION' => $method_version,
+            'METHOD' => $methodName,
+            'VERSION' => $methodVersion,
             'PWD' => Configuration::get('PAYPAL_API_PASSWORD'),
             'USER' => Configuration::get('PAYPAL_API_USER'),
             'SIGNATURE' => Configuration::get('PAYPAL_API_SIGNATURE'),
@@ -86,15 +88,15 @@ class PaypalLib
         // Making connection
         $result = $this->makeSimpleCall($host, $script, $request, true);
         $response = explode('&', $result);
-        $logs_request = $this->_logs;
+        $logsRequest = $this->logs;
         $return = array();
 
-        if ($this->enable_log === true) {
+        if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
             fwrite($handle, 'Host : '.print_r($host, true)."\r\n");
             fwrite($handle, 'Request : '.print_r($request, true)."\r\n");
             fwrite($handle, 'Result : '.print_r($result, true)."\r\n");
-            fwrite($handle, 'Logs : '.print_r($this->_logs, true."\r\n"));
+            fwrite($handle, 'Logs : '.print_r($this->logs, true."\r\n"));
             fclose($handle);
         }
 
@@ -104,22 +106,22 @@ class PaypalLib
         }
 
         if (!Configuration::get('PAYPAL_DEBUG_MODE')) {
-            $this->_logs = array();
+            $this->logs = array();
         }
 
-        $to_exclude = array('TOKEN', 'SUCCESSPAGEREDIRECTREQUESTED', 'VERSION', 'BUILD', 'ACK', 'CORRELATIONID');
-        $this->_logs[] = '<b>'.$this->paypal->l('PayPal response:').'</b>';
+        $toExclude = array('TOKEN', 'SUCCESSPAGEREDIRECTREQUESTED', 'VERSION', 'BUILD', 'ACK', 'CORRELATIONID');
+        $this->logs[] = $this->paypal->l('PayPal response:');
 
         foreach ($return as $key => $value) {
-            if (!Configuration::get('PAYPAL_DEBUG_MODE') && in_array($key, $to_exclude)) {
+            if (!Configuration::get('PAYPAL_DEBUG_MODE') && in_array($key, $toExclude)) {
                 continue;
             }
 
-            $this->_logs[] = $key.' -> '.$value;
+            $this->logs[] = $key.' -> '.$value;
         }
 
-        if (count($this->_logs) <= 2) {
-            $this->_logs = array_merge($this->_logs, $logs_request);
+        if (count($this->logs) <= 2) {
+            $this->logs = array_merge($this->logs, $logsRequest);
         }
 
         return $return;
@@ -129,7 +131,7 @@ class PaypalLib
      * @param      $host
      * @param      $script
      * @param      $request
-     * @param bool $simple_mode
+     * @param bool $simpleMode
      *
      * @return bool|mixed|string
      *
@@ -137,13 +139,13 @@ class PaypalLib
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function makeSimpleCall($host, $script, $request, $simple_mode = false)
+    public function makeSimpleCall($host, $script, $request, $simpleMode = false)
     {
         // Making connection
-        $paypal_connect = new PayPalConnect();
+        $payPalConnect = new PayPalConnect();
 
-        $result = $paypal_connect->makeConnection($host, $script, $request, $simple_mode);
-        $this->_logs = $paypal_connect->getLogs();
+        $result = $payPalConnect->makeConnection($host, $script, $request, $simpleMode);
+        $this->logs = $payPalConnect->getLogs();
 
         return $result;
     }

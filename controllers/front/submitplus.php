@@ -1,7 +1,7 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
- * 2007 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -15,23 +15,25 @@
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2007-2016 PrestaShop SA
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-/**
- * @since 1.5.0
- */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
+require_once dirname(__FILE__).'/../../paypal.php';
+
 class PayPalSubmitplusModuleFrontController extends ModuleFrontController
 {
     public $display_column_left = false;
     public $display_column_right = false;
     public $ssl = true;
 
-    /*public function init(){
-    $this->page_name = 'Confirm Payment';
-    }*/
+    /** @var PayPal $module */
+    public $module;
 
     /**
      * PayPalSubmitplusModuleFrontController constructor.
@@ -61,23 +63,18 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
      */
     public function initContent()
     {
-
         parent::initContent();
 
-        $paypal = new PayPal();
-
         $this->id_module = (int) Tools::getValue('id_module');
-        $this->id_cart = Tools::getValue('id_cart');
+        $this->idCart = Tools::getValue('id_cart');
         $this->paymentId = Tools::getValue('paymentId');
         $this->token = Tools::getValue('token');
 
         if (!empty($this->id_cart) && !empty($this->paymentId) && !empty($this->token)) {
-
-            $CallApiPaypalPlus = new CallApiPaypalPlus();
-            $payment = Tools::jsonDecode($CallApiPaypalPlus->lookUpPayment($this->paymentId));
+            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $payment = Tools::jsonDecode($callApiPaypalPlus->lookUpPayment($this->paymentId));
 
             if (isset($payment->state)) {
-
                 $this->context->smarty->assign('state', $payment->state);
 
                 $transaction = array(
@@ -106,7 +103,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
 
                     case 'canceled':
                         /* LookUp cancel */
-                        $paypal->validateOrder(
+                        $this->module->validateOrder(
                             $this->id_cart,
                             $this->getOrderStatus('order_canceled'),
                             $payment->transactions[0]->amount->total,
@@ -118,7 +115,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
 
                     default:
                         /* Erreur de payment */
-                        $paypal->validateOrder(
+                        $this->module->validateOrder(
                             $this->id_cart,
                             $this->getOrderStatus('payment_error'),
                             $payment->transactions[0]->amount->total,
@@ -195,23 +192,19 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
             die();
         }
 
-        $id_cart = Tools::getValue('id_cart');
+        $idCart = Tools::getValue('id_cart');
         $payerID = Tools::getValue('payerID');
         $paymentId = Tools::getValue('paymentId');
         $submit = Tools::getValue('submit');
 
-        if (
-            (!empty($id_cart) && $this->context->cart->id == $id_cart) &&
+        if ((!empty($idCart) && $this->context->cart->id == $idCart) &&
             !empty($payerID) &&
             !empty($paymentId) &&
-            !empty($submit)
-        ) {
-
-            $CallApiPaypalPlus = new CallApiPaypalPlus();
-            $payment = Tools::jsonDecode($CallApiPaypalPlus->executePayment($payerID, $paymentId));
+            !empty($submit)) {
+            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $payment = Tools::jsonDecode($callApiPaypalPlus->executePayment($payerID, $paymentId));
 
             if (isset($payment->state)) {
-
                 $paypal = new PayPal();
 
                 $transaction = array(
@@ -225,9 +218,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                 );
 
                 if ($submit == 'confirmPayment') {
-
                     if ($payment->state == 'approved') {
-
                         $paypal->validateOrder(
                             $this->id_cart,
                             $this->getOrderStatus('payment'),
@@ -238,7 +229,6 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                         );
                         $return['success'][] = $this->module->l('Your payment has been taken into account');
                     } else {
-
                         $paypal->validateOrder(
                             $this->id_cart,
                             $this->getOrderStatus('payment_error'),
@@ -247,10 +237,9 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                             null,
                             $transaction
                         );
-                        $return['error'][] = $this->module->l('An error occured during the payment');
+                        $return['error'][] = $this->module->l('An error occurred during the payment');
                     }
                 } elseif ($submit == 'confirmCancel') {
-
                     $paypal->validateOrder(
                         $this->id_cart,
                         $this->getOrderStatus('order_canceled'),
@@ -261,15 +250,15 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                     );
                     $return['success'][] = $this->module->l('Your order has been canceled');
                 } else {
-                    $return['error'][] = $this->module->l('An error occured during the payment');
+                    $return['error'][] = $this->module->l('An error occurred during the payment');
                 }
 
             } else {
-                $return['error'][] = $this->module->l('An error occured during the payment');
+                $return['error'][] = $this->module->l('An error occurred during the payment');
             }
 
         } else {
-            $return['error'][] = $this->module->l('An error occured during the payment');
+            $return['error'][] = $this->module->l('An error occurred during the payment');
         }
 
         echo Tools::jsonEncode($return);
@@ -288,7 +277,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
         $params = $this->displayHook();
 
         if ($params && is_array($params)) {
-            return Hook::exec('displayPaymentReturn', $params, (int) $this->id_module);
+            return Hook::exec('displayPaymentReturn', $params, (int) $this->module->id);
         }
 
         return false;
@@ -316,19 +305,15 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
      * @param $template
      *
      * @return false|null|string
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getOrderStatus($template)
     {
-        /*
-         * payment
-         * payment_error
-         * order_canceled
-         * refund
-         */
-        return Db::getInstance()->getValue('SELECT id_order_state FROM '._DB_PREFIX_.'order_state_lang WHERE template = "'.pSQL($template).'" AND id_lang = "'.(int) $this->context->language->id.'"');
+        $sql = new DbQuery();
+        $sql->select('`id_order_state`');
+        $sql->from('order_state_lang');
+        $sql->where('`template` = \''.pSQL($template).'\'');
+        $sql->where('`id_lang` = '.(int) $this->context->language->id);
+
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
     }
 }
