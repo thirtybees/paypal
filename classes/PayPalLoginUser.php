@@ -28,6 +28,7 @@ if (!defined('_PS_VERSION_')) {
 
 class PayPalLoginUser extends PayPalObjectModel
 {
+    // @codingStandardsIgnoreStart
     /** @var int $id_customer */
     public $id_customer;
 
@@ -60,6 +61,7 @@ class PayPalLoginUser extends PayPalObjectModel
 
     /** @var string $age_range */
     public $age_range;
+    // @codingStandardsIgnoreEnd
 
     /**
      * @see ObjectModel::$definition
@@ -95,22 +97,20 @@ class PayPalLoginUser extends PayPalObjectModel
      */
     public static function getPaypalLoginUsers($idPaypalLoginUser = false, $idCustomer = false, $refreshToken = false)
     {
-        $sql = "
-			SELECT `id_paypal_login_user`
-			FROM `"._DB_PREFIX_."paypal_login_user`
-			WHERE 1
-		";
+        $sql = new \DbQuery();
+        $sql->select(bqSQL(self::$definition['primary']));
+        $sql->from(bqSQL(self::$definition['table']));
 
         if ($idPaypalLoginUser && \Validate::isInt($idPaypalLoginUser)) {
-            $sql .= " AND `id_paypal_login_user` = '".(int) $idPaypalLoginUser."' ";
+            $sql->where('`'.bqSQL(self::$definition['primary']).'` = '.(int) $idPaypalLoginUser);
         }
 
         if ($idCustomer && \Validate::isInt($idCustomer)) {
-            $sql .= " AND `id_customer` = '".(int) $idCustomer."' ";
+            $sql->where('`id_customer` = '.(int) $idCustomer);
         }
 
         if ($refreshToken) {
-            $sql .= " AND `refresh_token` = '".$refreshToken."' ";
+            $sql->where('`refresh_token` = '.$refreshToken);
         }
 
         $results = \Db::getInstance()->executeS($sql);
@@ -127,7 +127,7 @@ class PayPalLoginUser extends PayPalObjectModel
     }
 
     /**
-     * @param $idCustomer
+     * @param int $idCustomer
      *
      * @return array|bool|mixed
      *

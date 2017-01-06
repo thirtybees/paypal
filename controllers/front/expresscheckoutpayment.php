@@ -81,8 +81,6 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
         $idProductAttribute = Tools::getValue('id_product_attribute');
 
         if (($idProduct > 0) && $idProductAttribute !== false && ($productQuantity > 0)) {
-            $this->setContextData($ppec);
-
             if (!$this->context->cart->add()) {
                 $ppec->logs[] = $this->module->l('Cannot create new cart');
 
@@ -291,29 +289,6 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
     }
 
     /**
-     * @param PayPalExpressCheckout $ppec
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function setContextData($ppec)
-    {
-        // Create new Cart to avoid any refresh or other bad manipulations
-        $this->context->cart = new Cart();
-        $this->context->cart->id_currency = (int) $this->context->currency->id;
-        $this->context->cart->id_lang = (int) $this->context->language->id;
-
-        // Customer settings
-        $this->context->cart->id_guest = (int) $this->context->cookie->id_guest;
-        $this->context->cart->id_customer = (int) $this->context->customer->id;
-
-        // Secure key information
-        $secureKey = isset($this->context->customer) ? $this->context->customer->secure_key : null;
-        $this->context->cart->secure_key = $secureKey;
-    }
-
-    /**
      * Set customer information
      * Used to create user account with PayPal account information
      *
@@ -450,7 +425,6 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
                 if (isset($ppec->result['PAYMENTINFO_0_PAYMENTSTATUS'])) {
                     $paymentStatus = $ppec->result['PAYMENTINFO_0_PAYMENTSTATUS'];
                 } else {
-                    $paymentType = (int) Configuration::get('PS_OS_ERROR');
                     $paymentStatus = 'Error';
                 }
 

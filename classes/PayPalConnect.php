@@ -26,9 +26,14 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalConnect
+ *
+ * @package PayPalModule
+ */
 class PayPalConnect
 {
-    protected $_logs = array();
+    protected $logs = array();
     protected $paypal = null;
 
     /**
@@ -47,22 +52,31 @@ class PayPalConnect
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     *
+     * @param string $host
+     * @param string $script
+     * @param string $body
+     * @param bool   $simpleMode
+     * @param bool   $httpHeader
+     * @param bool   $identify
+     *
+     * @return bool|mixed|string
      */
-    public function makeConnection($host, $script, $body, $simple_mode = false, $http_header = false, $identify = false)
+    public function makeConnection($host, $script, $body, $simpleMode = false, $httpHeader = false, $identify = false)
     {
-        $this->_logs[] = $this->paypal->l('Making new connection to').' \''.$host.$script.'\'';
+        $this->logs[] = $this->paypal->l('Making new connection to').' \''.$host.$script.'\'';
 
         if (function_exists('curl_exec')) {
-            $return = $this->_connectByCURL($host.$script, $body, $http_header, $identify);
+            $return = $this->connectWithCurl($host.$script, $body, $httpHeader, $identify);
         }
 
         if (isset($return) && $return) {
             return $return;
         }
 
-        $tmp = $this->_connectByFSOCK($host, $script, $body);
+        $tmp = $this->connectWithFsock($host, $script, $body);
 
-        if (!$simple_mode || !preg_match('/[A-Z]+=/', $tmp, $result)) {
+        if (!$simpleMode || !preg_match('/[A-Z]+=/', $tmp, $result)) {
             return $tmp;
         }
 
@@ -78,7 +92,7 @@ class PayPalConnect
      */
     public function getLogs()
     {
-        return $this->_logs;
+        return $this->logs;
     }
 
     /************************************************************/
@@ -96,16 +110,16 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function _connectByCURL($url, $body, $httpHeader = false, $identify = false)
+    protected function connectWithCurl($url, $body, $httpHeader = false, $identify = false)
     {
         $ch = @curl_init();
 
         if (!$ch) {
-            $this->_logs[] = $this->paypal->l('Connect failed with CURL method');
+            $this->logs[] = $this->paypal->l('Connect failed with CURL method');
         } else {
-            $this->_logs[] = $this->paypal->l('Connect with CURL method successful');
-            $this->_logs[] = '<b>'.$this->paypal->l('Sending this params:').'</b>';
-            $this->_logs[] = $body;
+            $this->logs[] = $this->paypal->l('Connect with CURL method successful');
+            $this->logs[] = '<b>'.$this->paypal->l('Sending this params:').'</b>';
+            $this->logs[] = $body;
 
             @curl_setopt($ch, CURLOPT_URL, 'https://'.$url);
 
@@ -133,18 +147,19 @@ class PayPalConnect
             $result = @curl_exec($ch);
 
             if (!$result) {
-                $this->_logs[] = $this->paypal->l('Send with CURL method failed ! Error:').' '.curl_error($ch);
+                $this->logs[] = $this->paypal->l('Send with CURL method failed ! Error:').' '.curl_error($ch);
                 if (curl_errno($ch)) {
-                    $this->_logPaypal(curl_error($ch));
+                    $this->logPayPal(curl_error($ch));
                 }
 
             } else {
-                $this->_logs[] = $this->paypal->l('Send with CURL method successful');
+                $this->logs[] = $this->paypal->l('Send with CURL method successful');
             }
 
             @curl_close($ch);
         }
-        return $result ? $result : false;
+
+        return (isset($result) && $result) ? $result : false;
     }
 
     /**
@@ -158,15 +173,15 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function _connectByFSOCK($host, $script, $body)
+    protected function connectWithFsock($host, $script, $body)
     {
         $fp = @fsockopen('tls://'.$host, 443, $errno, $errstr, 4);
-        
+
         if (!$fp) {
-            $this->_logs[] = $this->paypal->l('Connect failed with fsockopen method');
+            $this->logs[] = $this->paypal->l('Connect failed with fsockopen method');
         } else {
-            $header = $this->_makeHeader($host, $script, \Tools::strlen($body));
-            $this->_logs[] = $this->paypal->l('Sending this params:').' '.$header.$body;
+            $header = $this->createHeader($host, $script, \Tools::strlen($body));
+            $this->logs[] = $this->paypal->l('Sending this params:').' '.$header.$body;
 
             @fputs($fp, $header.$body);
 
@@ -178,12 +193,12 @@ class PayPalConnect
             fclose($fp);
 
             if (!isset($tmp) || $tmp == false) {
-                $this->_logs[] = $this->paypal->l('Send with fsockopen method failed !');
+                $this->logs[] = $this->paypal->l('Send with fsockopen method failed !');
             } else {
-                $this->_logs[] = $this->paypal->l('Send with fsockopen method successful');
+                $this->logs[] = $this->paypal->l('Send with fsockopen method successful');
             }
-
         }
+
         return isset($tmp) ? $tmp : false;
     }
 
@@ -198,7 +213,7 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function _makeHeader($host, $script, $lenght)
+    protected function createHeader($host, $script, $lenght)
     {
         return 'POST '.(string) $script.' HTTP/1.1'."\r\n".
         'Host: '.(string) $host."\r\n".
@@ -216,7 +231,8 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function _logPaypal($message){
+    protected function logPayPal($message)
+    {
         try {
             $date = date('Ymd');
             $path = _PS_MODULE_DIR_.'paypal/log/';
@@ -242,5 +258,7 @@ class PayPalConnect
         } catch (\Exception $e) {
             return false;
         }
+
+        return true;
     }
 }

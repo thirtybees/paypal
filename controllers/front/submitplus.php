@@ -37,6 +37,15 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
     /** @var PayPal $module */
     public $module;
 
+    /** @var int $id_module */
+    public $id_module;
+
+    /** @var int $id_order */
+    public $id_order;
+
+    /** @var int $id_cart */
+    public $id_cart;
+
     /**
      * PayPalSubmitplusModuleFrontController constructor.
      *
@@ -47,15 +56,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
     public function __construct()
     {
         parent::__construct();
-
-        if (class_exists('Context')) {
-            $this->context = Context::getContext();
-        } else {
-            global $smarty, $cookie;
-            $this->context = new StdClass();
-            $this->context->smarty = $smarty;
-            $this->context->cookie = $cookie;
-        }
+        $this->context = Context::getContext();
     }
 
     /**
@@ -74,7 +75,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
 
         if (!empty($this->id_cart) && !empty($this->paymentId) && !empty($this->token)) {
             $callApiPaypalPlus = new CallApiPayPalPlus();
-            $payment = Tools::jsonDecode($callApiPaypalPlus->lookUpPayment($this->paymentId));
+            $payment = json_decode($callApiPaypalPlus->lookUpPayment($this->paymentId));
 
             if (isset($payment->state)) {
                 $this->context->smarty->assign('state', $payment->state);
@@ -190,7 +191,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
         $return = array();
         if (!$ajax) {
             $return['error'][] = $this->module->l('An error occured during the payment');
-            echo Tools::jsonEncode($return);
+            echo json_encode($return);
             die();
         }
 
@@ -204,7 +205,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
             !empty($paymentId) &&
             !empty($submit)) {
             $callApiPaypalPlus = new CallApiPayPalPlus();
-            $payment = Tools::jsonDecode($callApiPaypalPlus->executePayment($payerID, $paymentId));
+            $payment = json_decode($callApiPaypalPlus->executePayment($payerID, $paymentId));
 
             if (isset($payment->state)) {
                 $paypal = new PayPal();
@@ -263,7 +264,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
             $return['error'][] = $this->module->l('An error occurred during the payment');
         }
 
-        echo Tools::jsonEncode($return);
+        echo json_encode($return);
         die();
     }
 

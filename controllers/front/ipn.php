@@ -35,7 +35,7 @@ class PayPalIpnModuleFrontController extends ModuleFrontController
         if (Tools::getValue('receiver_email') == Configuration::get('PAYPAL_BUSINESS_ACCOUNT')) {
             if (Tools::getIsset('custom')) {
                 $ipn = new PayPalIpn();
-                $custom = Tools::jsonDecode(Tools::getValue('custom'), true);
+                $custom = json_decode(Tools::getValue('custom'), true);
                 $ipn->confirmOrder($custom);
             }
         }

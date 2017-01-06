@@ -67,7 +67,7 @@ class CallApiPayPalPlus extends ApiPayPalPlus
 
         if ($accessToken != false) {
 
-            $result = \Tools::jsonDecode($this->createPayment($this->customer, $this->cart, $accessToken));
+            $result = json_decode($this->createPayment($this->customer, $this->cart, $accessToken));
 
             if (isset($result->links)) {
 
@@ -134,7 +134,7 @@ class CallApiPayPalPlus extends ApiPayPalPlus
 
         $data = array('payer_id' => $payer_id);
 
-        return $this->sendByCURL(URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', \Tools::jsonEncode($data), $header);
+        return $this->sendByCURL(URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header);
     }
 
     /**
@@ -161,6 +161,6 @@ class CallApiPayPalPlus extends ApiPayPalPlus
             'Authorization:Bearer '.$accessToken,
         );
 
-        return $this->sendByCURL(URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', \Tools::jsonEncode($data), $header);
+        return $this->sendByCURL(URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
     }
 }

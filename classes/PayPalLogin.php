@@ -28,10 +28,10 @@ if (!defined('_PS_VERSION_')) {
 
 class PayPalLogin
 {
-    protected $_logs = array();
-    protected $enable_log = false;
+    protected $logs = array();
+    protected $enableLog = false;
 
-    protected $paypal_connect = null;
+    protected $paypalConnect = null;
 
     /**
      * PayPalLogin constructor.
@@ -42,7 +42,7 @@ class PayPalLogin
      */
     public function __construct()
     {
-        $this->paypal_connect = new PayPalConnect();
+        $this->paypalConnect = new PayPalConnect();
     }
 
     /**
@@ -114,12 +114,12 @@ class PayPalLogin
      */
     public function getAuthorizationCode()
     {
-        unset($this->_logs);
+        unset($this->logs);
 
         $context = \Context::getContext();
-        $is_logged = (method_exists($context->customer, 'isLogged') ? $context->customer->isLogged() : $context->cookie->isLogged());
+        $isLogged = (method_exists($context->customer, 'isLogged') ? $context->customer->isLogged() : $context->cookie->isLogged());
 
-        if ($is_logged) {
+        if ($isLogged) {
             return $this->getRefreshToken();
         }
 
@@ -130,20 +130,19 @@ class PayPalLogin
         );
 
         $request = http_build_query($params, '', '&');
-        $result = $this->paypal_connect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
+        $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
 
-        if ($this->enable_log === true) {
+        if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
             fwrite($handle, "Request => ".print_r($request, true)."\r\n");
             fwrite($handle, "Result => ".print_r($result, true)."\r\n");
-            fwrite($handle, "Journal => ".print_r($this->_logs, true."\r\n"));
+            fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
             fclose($handle);
         }
 
-        $result = \Tools::jsonDecode($result);
+        $result = json_decode($result);
 
         if ($result) {
-
             $login = new PayPalLoginUser();
 
             $customer = $this->getUserInformations($result->access_token, $login);
@@ -169,6 +168,8 @@ class PayPalLogin
 
             return $login;
         }
+
+        return false;
     }
 
     /**
@@ -180,7 +181,7 @@ class PayPalLogin
      */
     public function getRefreshToken()
     {
-        unset($this->_logs);
+        unset($this->logs);
         $login = PayPalLoginUser::getByIdCustomer((int) \Context::getContext()->customer->id);
 
         if (!is_object($login)) {
@@ -193,17 +194,17 @@ class PayPalLogin
         );
 
         $request = http_build_query($params, '', '&');
-        $result = $this->paypal_connect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
+        $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
 
-        if ($this->enable_log === true) {
+        if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
             fwrite($handle, "Request => ".print_r($request, true)."\r\n");
             fwrite($handle, "Result => ".print_r($result, true)."\r\n");
-            fwrite($handle, "Journal => ".print_r($this->_logs, true."\r\n"));
+            fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
             fclose($handle);
         }
 
-        $result = \Tools::jsonDecode($result);
+        $result = json_decode($result);
 
         if ($result) {
             $login->access_token = $result->access_token;
@@ -217,7 +218,7 @@ class PayPalLogin
     }
 
     /**
-     * @param $access_token
+     * @param $accessToken
      * @param $login
      *
      * @return bool|\Customer
@@ -226,12 +227,12 @@ class PayPalLogin
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function getUserInformations($access_token, &$login)
+    protected function getUserInformations($accessToken, &$login)
     {
-        unset($this->_logs);
+        unset($this->logs);
         $headers = array(
             // 'Content-Type:application/json',
-            'Authorization: Bearer '.$access_token,
+            'Authorization: Bearer '.$accessToken,
         );
 
         $params = array(
@@ -239,18 +240,18 @@ class PayPalLogin
         );
 
         $request = http_build_query($params, '', '&');
-        $result = $this->paypal_connect->makeConnection($this->getIdentityAPIURL(), $this->getUserInfoEndpoint(), $request, false, $headers, true);
+        $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getUserInfoEndpoint(), $request, false, $headers, true);
 
-        if ($this->enable_log === true) {
+        if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
             fwrite($handle, "Request => ".print_r($request, true)."\r\n");
             fwrite($handle, "Result => ".print_r($result, true)."\r\n");
             fwrite($handle, "Headers => ".print_r($headers, true)."\r\n");
-            fwrite($handle, "Journal => ".print_r($this->_logs, true."\r\n"));
+            fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
             fclose($handle);
         }
 
-        $result = \Tools::jsonDecode($result);
+        $result = json_decode($result);
 
         if ($result) {
             $customer = new \Customer();

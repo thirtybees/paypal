@@ -26,7 +26,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class TLSVerificator
+class TlsVerifier
 {
     /** @var float $tlsVersion */
     protected $tlsVersion;
@@ -81,12 +81,14 @@ class TLSVerificator
             return false;
         }
 
-        $tlsCheck = \Tools::jsonDecode($tlsCheck);
+        $tlsCheck = json_decode($tlsCheck);
         if ($tlsCheck->tls_version == 'TLS 1.2') {
             $this->tlsVersion = 1.2;
         } else {
             $this->tlsVersion = 1;
         }
+
+        return true;
 
     }
 

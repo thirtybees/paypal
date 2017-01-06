@@ -44,7 +44,7 @@ class PayPalExpressCheckout
     /** @var int $decimals Used to set prices precision **/
     public $decimals;
 
-    /** @var string $result Contains the last request result **/
+    /** @var array $result Contains the last request result **/
     public $result;
 
     /** @var string $token Contains the last token **/
@@ -225,6 +225,8 @@ class PayPalExpressCheckout
 
         $this->callAPI($fields);
         $this->storeToken();
+
+        return false;
     }
 
     /**
@@ -331,16 +333,16 @@ class PayPalExpressCheckout
         $fields['BUTTONSOURCE'] = $this->module->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD'));
 
         // Products
-        $taxes = $total = 0;
+//        $taxes = $total = 0;
         $index = -1;
 
         // Set cart products list
-        $this->setProductsList($fields, $index, $total, $taxes);
-        $this->setDiscountsList($fields, $index, $total, $taxes);
+        $this->setProductsList($fields, $index, $total /* , $taxes */);
+        $this->setDiscountsList($fields, $index, $total /* , $taxes */);
         $this->setGiftWrapping($fields, $index, $total);
 
         // Payment values
-        $this->setPaymentValues($fields, $index, $total, $taxes);
+        $this->setPaymentValues($fields, $index, $total /* , $taxes */);
 
         $idAddress = (int) $this->context->cart->id_address_delivery;
         if (($idAddress == 0) && ($this->context->customer)) {
@@ -493,7 +495,7 @@ class PayPalExpressCheckout
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function setPaymentValues(&$fields, &$index, &$total, &$taxes)
+    protected function setPaymentValues(&$fields, &$index, &$total /* , &$taxes */)
     {
         $shippingCostTaxIncl = $this->context->cart->getTotalShippingCost();
 

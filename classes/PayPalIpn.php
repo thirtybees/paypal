@@ -26,14 +26,21 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-/*
+/**
  * Instant payment notification class.
  * (wait for PayPal payment confirmation, then validate order)
  */
 class PayPalIpn extends \PayPal
 {
     /**
-     * @param $result
+     * Amount of decimals for rounding
+     *
+     * @var int $decimals
+     */
+    public $decimals;
+
+    /**
+     * @param array $result
      *
      * @return array
      */
@@ -93,7 +100,7 @@ class PayPalIpn extends \PayPal
         \Context::getContext()->language = new \Language((int) \Context::getContext()->cart->id_lang);
         \Context::getContext()->currency = new \Currency((int) \Context::getContext()->cart->id_currency);
 
-        if (isset(Context::getContext()->cart->id_shop)) {
+        if (isset(\Context::getContext()->cart->id_shop)) {
             \Context::getContext()->shop = new \Shop(\Context::getContext()->cart->id_shop);
         }
 
@@ -164,7 +171,7 @@ class PayPalIpn extends \PayPal
 
         $cartDetails = \Context::getContext()->cart->getSummaryDetails(null, true);
         $cartHash = sha1(serialize(\Context::getContext()->cart->nbProducts()));
-        $custom = \Tools::jsonDecode(\Tools::getValue('custom'), true);
+        $custom = json_decode(\Tools::getValue('custom'), true);
 
         $shipping = $cartDetails['total_shipping_tax_exc'];
         $subtotal = $cartDetails['total_price_without_tax'] - $cartDetails['total_shipping_tax_exc'];

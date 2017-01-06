@@ -68,7 +68,6 @@ class ApiPayPalPlus
         $ch = curl_init();
 
         if ($ch) {
-
             if ((int) \Configuration::get('PAYPAL_SANDBOX') == 1) {
                 curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
             } else {
@@ -105,7 +104,7 @@ class ApiPayPalPlus
             curl_close($ch);
         }
 
-        return $result;
+        return isset($result) ? $result : false;
     }
 
     /**
@@ -125,7 +124,7 @@ class ApiPayPalPlus
         /*
          * Init variable
          */
-        $oPayPalToken = \Tools::jsonDecode($result);
+        $oPayPalToken = json_decode($result);
 
         if (isset($oPayPalToken->error)) {
             return false;
@@ -188,7 +187,6 @@ class ApiPayPalPlus
         $accessToken = $this->getToken(URL_PPP_CREATE_TOKEN, array('grant_type' => 'client_credentials'));
 
         if ($accessToken) {
-
             $data = $this->createWebProfile();
 
             $header = array(
@@ -196,12 +194,11 @@ class ApiPayPalPlus
                 'Authorization:Bearer '.$accessToken,
             );
 
-            $result = \Tools::jsonDecode($this->sendByCURL(URL_PPP_WEBPROFILE, \Tools::jsonEncode($data), $header));
+            $result = json_decode($this->sendByCURL(URL_PPP_WEBPROFILE, json_encode($data), $header));
 
             if (isset($result->id)) {
                 return $result->id;
             } else {
-
                 $results = $this->getListProfile();
 
                 foreach ($results as $result) {
@@ -213,6 +210,8 @@ class ApiPayPalPlus
                 return false;
             }
         }
+
+        return false;
     }
 
     /**
@@ -224,18 +223,18 @@ class ApiPayPalPlus
      */
     public function getListProfile()
     {
-
         $accessToken = $this->getToken(URL_PPP_CREATE_TOKEN, array('grant_type' => 'client_credentials'));
 
         if ($accessToken) {
-
             $header = array(
                 'Content-Type:application/json',
                 'Authorization:Bearer '.$accessToken,
             );
 
-            return \Tools::jsonDecode($this->sendByCURL(URL_PPP_WEBPROFILE, false, $header));
+            return json_decode($this->sendByCURL(URL_PPP_WEBPROFILE, false, $header));
         }
+
+        return array();
     }
 
     /**
@@ -264,7 +263,7 @@ class ApiPayPalPlus
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function _createObjectPayment($customer, $cart)
+    protected function createPaymentObject(\Customer $customer, \Cart $cart)
     {
         /*
          * Init Variable
@@ -273,23 +272,20 @@ class ApiPayPalPlus
         $address = new \Address((int) $cart->id_address_invoice);
 
         $country = new \Country((int) $address->id_country);
-        $iso_code = $country->iso_code;
+        $isoCode = $country->iso_code;
 
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            $totalShippingCostWithoutTax = $cart->getOrderShippingCost(null, false);
-        } else {
-            $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
-        }
+        $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
+
 
         $totalCartWithTax = $cart->getOrderTotal(true);
         $totalCartWithoutTax = $cart->getOrderTotal(false);
-        $total_tax = $totalCartWithTax - $totalCartWithoutTax;
+        $totalTax = $totalCartWithTax - $totalCartWithoutTax;
 
         if ($cart->gift) {
             if (version_compare(_PS_VERSION_, '1.5.3.0', '>=')) {
                 $giftWithoutTax = $cart->getGiftWrappingPrice(false);
             } else {
-                $giftWithoutTax = (float) (Configuration::get('PS_GIFT_WRAPPING_PRICE'));
+                $giftWithoutTax = (float) (\Configuration::get('PS_GIFT_WRAPPING_PRICE'));
             }
 
         } else {
@@ -298,30 +294,30 @@ class ApiPayPalPlus
 
         $cartItems = $cart->getProducts();
 
-        $shop_url = \PayPal::getShopDomainSsl(true, true);
+        $shopUrl = \PayPal::getShopDomainSsl(true, true);
 
         /*
          * Création de l'obj à envoyer à Paypal
          */
 
         $state = new \State($address->id_state);
-        $shipping_address = new \stdClass();
-        $shipping_address->recipient_name = $address->alias;
-        $shipping_address->type = 'residential';
-        $shipping_address->line1 = $address->address1;
-        $shipping_address->line2 = $address->address2;
-        $shipping_address->city = $address->city;
-        $shipping_address->country_code = $iso_code;
-        $shipping_address->postal_code = $address->postcode;
-        $shipping_address->state = ($state->iso_code == null) ? '' : $state->iso_code;
-        $shipping_address->phone = $address->phone;
+        $shippingAddress = new \stdClass();
+        $shippingAddress->recipient_name = $address->alias;
+        $shippingAddress->type = 'residential';
+        $shippingAddress->line1 = $address->address1;
+        $shippingAddress->line2 = $address->address2;
+        $shippingAddress->city = $address->city;
+        $shippingAddress->country_code = $isoCode;
+        $shippingAddress->postal_code = $address->postcode;
+        $shippingAddress->state = ($state->iso_code == null) ? '' : $state->iso_code;
+        $shippingAddress->phone = $address->phone;
 
-        $payer_info = new \stdClass();
-        $payer_info->email = '"'.$customer->email.'"';
-        $payer_info->first_name = $address->firstname;
-        $payer_info->last_name = $address->lastname;
-        $payer_info->country_code = '"'.$iso_code.'"';
-        $payer_info->shipping_address = array($shipping_address);
+        $payerInfo = new \stdClass();
+        $payerInfo->email = '"'.$customer->email.'"';
+        $payerInfo->first_name = $address->firstname;
+        $payerInfo->last_name = $address->lastname;
+        $payerInfo->country_code = '"'.$isoCode.'"';
+        $payerInfo->shipping_address = array($shippingAddress);
 
         $payer = new \stdClass();
         $payer->payment_method = "paypal";
@@ -330,7 +326,6 @@ class ApiPayPalPlus
         $aItems = array();
         /* Item */
         foreach ($cartItems as $cartItem) {
-
             $item = new \stdClass();
             $item->name = $cartItem['name'];
             $item->currency = $oCurrency->iso_code;
@@ -348,7 +343,7 @@ class ApiPayPalPlus
         /* Detail */
         $details = new \stdClass();
         $details->shipping = number_format($totalShippingCostWithoutTax, 2);
-        $details->tax = number_format($total_tax, 2);
+        $details->tax = number_format($totalTax, 2);
         $details->handling_fee = number_format($giftWithoutTax, 2);
         $details->subtotal = number_format($totalCartWithoutTax - $totalShippingCostWithoutTax - $giftWithoutTax, 2);
 
@@ -367,8 +362,8 @@ class ApiPayPalPlus
         /* Redirecte Url */
 
         $redirectUrls = new \stdClass();
-        $redirectUrls->cancel_url = $shop_url._MODULE_DIR_.'paypal/paypal_plus/submit.php?id_cart='.(int) $cart->id;
-        $redirectUrls->return_url = $shop_url._MODULE_DIR_.'paypal/paypal_plus/submit.php?id_cart='.(int) $cart->id;
+        $redirectUrls->cancel_url = $shopUrl._MODULE_DIR_.'paypal/paypal_plus/submit.php?id_cart='.(int) $cart->id;
+        $redirectUrls->return_url = $shopUrl._MODULE_DIR_.'paypal/paypal_plus/submit.php?id_cart='.(int) $cart->id;
 
         /* Payment */
         $payment = new \stdClass();
@@ -397,14 +392,14 @@ class ApiPayPalPlus
     protected function createPayment($customer, $cart, $accessToken)
     {
 
-        $data = $this->_createObjectPayment($customer, $cart);
+        $data = $this->createPaymentObject($customer, $cart);
 
         $header = array(
             'Content-Type:application/json',
             'Authorization:Bearer '.$accessToken,
         );
 
-        $result = $this->sendByCURL(URL_PPP_CREATE_PAYMENT, \Tools::jsonEncode($data), $header);
+        $result = $this->sendByCURL(URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
 
         return $result;
     }

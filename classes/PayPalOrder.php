@@ -26,6 +26,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalOrder
+ *
+ * @package PayPalModule
+ */
 class PayPalOrder extends PayPalObjectModel
 {
     //PayPal notification fields
@@ -39,6 +44,7 @@ class PayPalOrder extends PayPalObjectModel
     const SHIPPING = 'shipping';
     const VERIFY_SIGN = 'verify_sign';
 
+    // @codingStandardsIgnoreStart
     /** @var int $id_order */
     public $id_order;
 
@@ -68,6 +74,7 @@ class PayPalOrder extends PayPalObjectModel
 
     /** @var string $payment_status */
     public $payment_status;
+    // @codingStandardsIgnoreEnd
 
     /**
      * @see ObjectModel::$definition
@@ -104,15 +111,16 @@ class PayPalOrder extends PayPalObjectModel
      */
 
     /**
-     * @param bool $ppec
-     * @param bool $paymentStatus
+     * @param PayPalExpressCheckout|null $ppec
+     * @param bool                       $paymentStatus
      *
      * @return array
      */
-    public static function getTransactionDetails($ppec = false, $paymentStatus = false)
+    public static function getTransactionDetails(PayPalExpressCheckout $ppec = null, $paymentStatus = false)
     {
         if ($ppec && $paymentStatus) {
             $transactionId = pSQL($ppec->result['PAYMENTINFO_0_TRANSACTIONID']);
+
             return array(
                 'currency' => pSQL($ppec->result['PAYMENTINFO_0_CURRENCYCODE']),
                 'id_invoice' => null,
@@ -125,6 +133,7 @@ class PayPalOrder extends PayPalObjectModel
             );
         } else {
             $transactionId = pSQL(\Tools::getValue(self::ID_TRANSACTION));
+
             return array(
                 'currency' => pSQL(\Tools::getValue(self::CURRENCY)),
                 'id_invoice' => pSQL(\Tools::getValue(self::ID_INVOICE)),
@@ -139,7 +148,7 @@ class PayPalOrder extends PayPalObjectModel
     }
 
     /**
-     * @param $idOrder
+     * @param int $idOrder
      *
      * @return array|bool|null|object
      *
@@ -158,17 +167,17 @@ class PayPalOrder extends PayPalObjectModel
     }
 
     /**
-     * @param $idTransaction
+     * @param string $idTransaction
      *
      * @return int
      */
     public static function getIdOrderByTransactionId($idTransaction)
     {
-        $sql = 'SELECT `id_order`
-			FROM `'._DB_PREFIX_.'paypal_order`
-			WHERE `id_transaction` = \''.pSQL($idTransaction).'\'';
-
-        $result = \Db::getInstance()->getRow($sql);
+        $sql = new \DbQuery();
+        $sql->select('po.`id_order`');
+        $sql->from('paypal_order', 'po');
+        $sql->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'');
+        $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
 
         if ($result != false) {
             return (int) $result['id_order'];
@@ -178,29 +187,31 @@ class PayPalOrder extends PayPalObjectModel
     }
 
     /**
-     * @param $idOrder
-     * @param $transaction
+     * @param int    $idOrder
+     * @param string $transaction
      */
     public static function saveOrder($idOrder, $transaction)
     {
-        $order = new \Order((int) $idOrder);
-        $total_paid = (float) $transaction['total_paid'];
+        $totalPaid = (float) $transaction['total_paid'];
 
         if (!isset($transaction['payment_status']) || !$transaction['payment_status']) {
             $transaction['payment_status'] = 'NULL';
         }
 
-        \Db::getInstance()->Execute(
-            'INSERT INTO `'._DB_PREFIX_.'paypal_order`
-			(`id_order`, `id_transaction`, `id_invoice`, `currency`, `total_paid`, `shipping`, `capture`, `payment_date`, `payment_method`, `payment_status`)
-			VALUES ('.(int) $idOrder.', \''.pSQL($transaction['id_transaction']).'\', \''.pSQL($transaction['id_invoice']).'\',
-				\''.pSQL($transaction['currency']).'\',
-				\''.$total_paid.'\',
-				\''.(float) $transaction['shipping'].'\',
-				\''.(int) \Configuration::get('PAYPAL_CAPTURE').'\',
-				\''.pSQL($transaction['payment_date']).'\',
-				\''.(int) \Configuration::get('PAYPAL_PAYMENT_METHOD').'\',
-				\''.pSQL($transaction['payment_status']).'\')'
+        \Db::getInstance()->insert(
+            bqSQL(self::$definition['table']),
+            array(
+                'id_order' => (int) $idOrder,
+                'id_transaction' => pSQL($transaction['id_transaction']),
+                'id_invoice' => pSQL($transaction['id_invoice']),
+                'currency' => pSQL($transaction['currency']),
+                'total_paid' => $totalPaid,
+                'shipping' => (float) $transaction['shipping'],
+                'capture' => (int) \Configuration::get('PAYPAL_CAPTURE'),
+                'payment_date' => pSQL($transaction['payment_date']),
+                'payment_method' => (int) \Configuration::get('PAYPAL_PAYMENT_METHOD'),
+                'payment_status' => pSQL($transaction['payment_status']),
+            )
         );
     }
 
@@ -210,8 +221,6 @@ class PayPalOrder extends PayPalObjectModel
      */
     public static function updateOrder($idOrder, $transaction)
     {
-        $totalPaid = (float) $transaction['total_paid'];
-
         if (!isset($transaction['payment_status']) || !$transaction['payment_status']) {
             $transaction['payment_status'] = 'NULL';
         }

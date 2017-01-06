@@ -66,8 +66,8 @@ class PayPalObjectModel extends \ObjectModel
         $sql .= ')';
 
         try {
-            $success &= Db::getInstance()->execute($sql);
-        } catch (\Thirty BeesDatabaseException $exception) {
+            $success &= \Db::getInstance()->execute($sql);
+        } catch (\PrestaShopDatabaseException $exception) {
             self::dropDatabase($className);
 
             return false;
@@ -101,7 +101,7 @@ class PayPalObjectModel extends \ObjectModel
 
             try {
                 $success &= \Db::getInstance()->execute($sql);
-            } catch (\Thirty BeesDatabaseException $exception) {
+            } catch (\PrestaShopDatabaseException $exception) {
                 self::dropDatabase($className);
 
                 return false;
@@ -136,7 +136,7 @@ class PayPalObjectModel extends \ObjectModel
 
             try {
                 $success &= \Db::getInstance()->execute($sql);
-            } catch (\Thirty BeesDatabaseException $exception) {
+            } catch (\PrestaShopDatabaseException $exception) {
                 self::dropDatabase($className);
 
                 return false;
@@ -182,7 +182,7 @@ class PayPalObjectModel extends \ObjectModel
      *
      * @param string|null $className Class name
      *
-     * @return array|false|mysqli_result|null|PDOStatement|resource
+     * @return array|false|\mysqli_result|null|\PDOStatement|resource
      */
     public static function getDatabaseColumns($className = null)
     {
@@ -191,6 +191,7 @@ class PayPalObjectModel extends \ObjectModel
         }
 
         $definition = \ObjectModel::getDefinition($className);
+
         $sql = 'SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=\''._DB_NAME_.'\' AND TABLE_NAME=\''._DB_PREFIX_.pSQL($definition['table']).'\'';
 
         return \Db::getInstance()->executeS($sql);

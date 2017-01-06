@@ -28,11 +28,14 @@ if (!defined('_PS_VERSION_')) {
 
 class PayPalCustomer extends PayPalObjectModel
 {
+
+    // @codingStandardsIgnoreStart
     /** @var int $id_customer */
     public $id_customer;
 
     /** @var string $paypal_email */
     public $paypal_email;
+    // @codingStandardsIgnoreEnd
 
     /**
      * @see ObjectModel::$definition

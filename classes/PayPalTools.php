@@ -26,6 +26,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalTools
+ *
+ * @package PayPalModule
+ */
 class PayPalTools
 {
     protected $name = null;
@@ -33,19 +38,19 @@ class PayPalTools
     /**
      * PayPalTools constructor.
      *
-     * @param $module_name
+     * @param string $moduleName
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function __construct($module_name)
+    public function __construct($moduleName)
     {
-        $this->name = $module_name;
+        $this->name = $moduleName;
     }
 
     /**
-     * @param $position
+     * @param int $position
      *
      * @return bool
      *
@@ -69,7 +74,7 @@ class PayPalTools
     }
 
     /**
-     * @param $position
+     * @param int $position
      *
      * @return bool
      *

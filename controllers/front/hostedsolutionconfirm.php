@@ -26,6 +26,9 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
+/**
+ * Class PayPalHostedsolutionconfirmModuleFrontController
+ */
 class PayPalHostedsolutionconfirmModuleFrontController extends ModuleFrontController
 {
     public function initContent()
