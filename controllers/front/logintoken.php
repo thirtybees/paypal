@@ -50,8 +50,8 @@ class PayPalLogintokenModuleFrontController extends ModuleFrontController
             $context->cookie->write();
         }
 
-        header('Content-Type: text/javascript');
-        echo '<script type="text/javascript">window.opener.location.reload(false);window.close();</script>';
+        header('Content-Type: text/html');
+        echo '<!doctype html><html><body><script type="text/javascript">window.opener.location.reload(false);window.close();</script></body></html>';
         die();
     }
 }

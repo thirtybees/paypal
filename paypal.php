@@ -548,7 +548,7 @@ class PayPal extends \PaymentModule
 
         $this->getTranslations();
 
-        $output = $this->fetchTemplate('/views/templates/admin/back_office.tpl');
+        $output = $this->display(__FILE__, 'views/templates/admin/back_office.tpl');
 
         if ($this->active == false) {
             return $output.$this->hookBackOfficeHeader();
@@ -578,9 +578,9 @@ class PayPal extends \PaymentModule
             'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', array(), \Tools::usingSecureMode()),
         ));
 
-        $process = $this->fetchTemplate('views/templates/front/paypaljs.tpl');
+        $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
         if ($this->useInContextCheckout()) {
-            $process .= '<script async defer src="//www.paypalobjects.com/api/checkout.js"></script>';
+            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
         }
 
         if ((
@@ -596,8 +596,10 @@ class PayPal extends \PaymentModule
                 'PAYPAL_LOGIN_TPL' => \Configuration::get(self::LOGIN_TPL),
                 'PAYPAL_RETURN_LINK' => PayPalLogin::getReturnLink(),
             ));
-            $process .= '
-                    <script src="https://www.paypalobjects.com/js/external/api.js"></script>'.$this->fetchTemplate('views/js/paypal_login.js');
+
+            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
+            $process .= '<script async defer type="text/javascript" src="'.Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
+            $process .= $this->display(__FILE__, 'views/templates/front/paypal_loginjs.tpl');
         }
 
         if (\Configuration::get(self::PAYMENT_METHOD) == self::PPP) {
@@ -811,7 +813,7 @@ class PayPal extends \PaymentModule
             ));
             $this->getTranslations();
 
-            return $this->fetchTemplate('integral_evolution_payment.tpl');
+            return $this->display(__FILE__, 'integral_evolution_payment.tpl');
         } elseif ($method == self::WPS || $method == self::ECS) {
             $this->getTranslations();
             $this->context->smarty->assign(array(
@@ -826,7 +828,7 @@ class PayPal extends \PaymentModule
                 'PayPal_in_context_checkout_merchant_id' => \Configuration::get('PAYPAL_IN_CONTEXT_CHECKOUT_M_ID'),
             ));
 
-            return $this->fetchTemplate('express_checkout_payment.tpl');
+            return $this->display(__FILE__, 'express_checkout_payment.tpl');
         } elseif ($method == self::PPP) {
             $callApiPaypalPlus = new CallApiPayPalPlus();
             $callApiPaypalPlus->setParams($params);
@@ -843,7 +845,7 @@ class PayPal extends \PaymentModule
                 )
             );
 
-            return $this->fetchTemplate('paypal_plus_payment.tpl');
+            return $this->display(__FILE__, 'paypal_plus_payment.tpl');
         }
 
         return null;
@@ -894,13 +896,13 @@ class PayPal extends \PaymentModule
             return array(
                 'cta_text' => $this->l('Paypal'),
                 'logo' => $logo,
-                'form' => $this->fetchTemplate('integral_evolution_payment_eu.tpl'),
+                'form' => $this->display(__FILE__, 'integral_evolution_payment_eu.tpl'),
             );
         } elseif ($method == self::WPS || $method == self::ECS) {
             return array(
                 'cta_text' => $this->l('Paypal'),
                 'logo' => $logo,
-                'form' => $this->fetchTemplate('express_checkout_payment_eu.tpl'),
+                'form' => $this->display(__FILE__, 'express_checkout_payment_eu.tpl'),
             );
         }
 
@@ -937,7 +939,7 @@ class PayPal extends \PaymentModule
             'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', array(), \Tools::usingSecureMode()),
         ));
 
-        return $this->fetchTemplate('express_checkout_shortcut_button.tpl');
+        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
     }
 
     /**
@@ -949,7 +951,7 @@ class PayPal extends \PaymentModule
             return null;
         }
 
-        return $this->fetchTemplate('confirmation.tpl');
+        return $this->display(__FILE__, 'confirmation.tpl');
     }
 
     /**
@@ -959,7 +961,7 @@ class PayPal extends \PaymentModule
     {
         $this->context->smarty->assign('logo', $this->paypalLogos->getCardsLogo(true));
 
-        return $this->fetchTemplate('column.tpl');
+        return $this->display(__FILE__, 'column.tpl');
     }
 
     /**
@@ -1075,7 +1077,7 @@ class PayPal extends \PaymentModule
             );
 
             foreach ($adminTemplates as $adminTemplate) {
-                $this->html .= $this->fetchTemplate('/views/templates/admin/admin_order/'.$adminTemplate.'.tpl');
+                $this->html .= $this->display(__FILE__, 'views/templates/admin/admin_order/'.$adminTemplate.'.tpl');
                 $this->postProcess();
                 $this->html .= '</fieldset>';
             }
@@ -1151,7 +1153,7 @@ class PayPal extends \PaymentModule
                 'PayPal_PPP' => (int) self::PPP,
             ));
 
-            return (isset($output) ? $output : null).$this->fetchTemplate('/views/templates/admin/header.tpl');
+            return (isset($output) ? $output : null).$this->display(__FILE__, 'views/templates/admin/header.tpl');
         }
 
         return null;
@@ -1191,7 +1193,7 @@ class PayPal extends \PaymentModule
             'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', array(), \Tools::usingSecureMode()),
         ));
 
-        return $this->fetchTemplate('express_checkout_shortcut_button.tpl');
+        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
     }
 
     /**
@@ -1225,7 +1227,7 @@ class PayPal extends \PaymentModule
             'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', array(), \Tools::usingSecureMode()),
         ));
 
-        return $this->fetchTemplate('express_checkout_shortcut_form.tpl');
+        return $this->display(__FILE__, 'express_checkout_shortcut_form.tpl');
     }
 
     /**
@@ -1455,7 +1457,7 @@ class PayPal extends \PaymentModule
             );
         }
 
-        return $this->fetchTemplate('error.tpl');
+        return $this->display(__FILE__, 'error.tpl');
     }
 
     /**
@@ -1910,11 +1912,6 @@ class PayPal extends \PaymentModule
         \Tools::redirect($_SERVER['HTTP_REFERER']);
 
         return null;
-    }
-
-    public function fetchTemplate($name)
-    {
-        return $this->display(__FILE__, $name);
     }
 
     /**
