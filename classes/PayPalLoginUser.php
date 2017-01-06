@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -99,11 +101,11 @@ class PayPalLoginUser extends PayPalObjectModel
 			WHERE 1
 		";
 
-        if ($idPaypalLoginUser && Validate::isInt($idPaypalLoginUser)) {
+        if ($idPaypalLoginUser && \Validate::isInt($idPaypalLoginUser)) {
             $sql .= " AND `id_paypal_login_user` = '".(int) $idPaypalLoginUser."' ";
         }
 
-        if ($idCustomer && Validate::isInt($idCustomer)) {
+        if ($idCustomer && \Validate::isInt($idCustomer)) {
             $sql .= " AND `id_customer` = '".(int) $idCustomer."' ";
         }
 
@@ -111,7 +113,7 @@ class PayPalLoginUser extends PayPalObjectModel
             $sql .= " AND `refresh_token` = '".$refreshToken."' ";
         }
 
-        $results = DB::getInstance()->executeS($sql);
+        $results = \Db::getInstance()->executeS($sql);
         $logins = array();
 
         if ($results && count($results)) {

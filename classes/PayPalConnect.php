@@ -20,14 +20,16 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
 class PayPalConnect
 {
-    private $_logs = array();
-    private $paypal = null;
+    protected $_logs = array();
+    protected $paypal = null;
 
     /**
      * PayPalConnect constructor.
@@ -38,7 +40,7 @@ class PayPalConnect
      */
     public function __construct()
     {
-        $this->paypal = new PayPal();
+        $this->paypal = new \PayPal();
     }
 
     /**
@@ -64,7 +66,7 @@ class PayPalConnect
             return $tmp;
         }
 
-        return Tools::substr($tmp, strpos($tmp, $result[0]));
+        return \Tools::substr($tmp, strpos($tmp, $result[0]));
     }
 
     /**
@@ -85,7 +87,7 @@ class PayPalConnect
     /**
      * @param      $url
      * @param      $body
-     * @param bool $http_header
+     * @param bool $httpHeader
      * @param bool $identify
      *
      * @return bool|mixed
@@ -94,7 +96,7 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _connectByCURL($url, $body, $http_header = false, $identify = false)
+    protected function _connectByCURL($url, $body, $httpHeader = false, $identify = false)
     {
         $ch = @curl_init();
 
@@ -108,7 +110,7 @@ class PayPalConnect
             @curl_setopt($ch, CURLOPT_URL, 'https://'.$url);
 
             if ($identify) {
-                @curl_setopt($ch, CURLOPT_USERPWD, Configuration::get('PAYPAL_LOGIN_CLIENT_ID').':'.Configuration::get('PAYPAL_LOGIN_SECRET'));
+                @curl_setopt($ch, CURLOPT_USERPWD, \Configuration::get('PAYPAL_LOGIN_CLIENT_ID').':'.\Configuration::get('PAYPAL_LOGIN_SECRET'));
             }
 
             @curl_setopt($ch, CURLOPT_POST, true);
@@ -124,16 +126,15 @@ class PayPalConnect
             //@curl_setopt($ch, CURLOPT_SSLVERSION, Configuration::get('PAYPAL_VERSION_TLS_CHECKED') == '1.2' ? 6 : 1);
 
             @curl_setopt($ch, CURLOPT_VERBOSE, false);
-            if ($http_header) {
-                @curl_setopt($ch, CURLOPT_HTTPHEADER, $http_header);
+            if ($httpHeader) {
+                @curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
             }
 
             $result = @curl_exec($ch);
 
             if (!$result) {
                 $this->_logs[] = $this->paypal->l('Send with CURL method failed ! Error:').' '.curl_error($ch);
-                if(curl_errno($ch))
-                {
+                if (curl_errno($ch)) {
                     $this->_logPaypal(curl_error($ch));
                 }
 
@@ -157,14 +158,14 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _connectByFSOCK($host, $script, $body)
+    protected function _connectByFSOCK($host, $script, $body)
     {
         $fp = @fsockopen('tls://'.$host, 443, $errno, $errstr, 4);
         
         if (!$fp) {
             $this->_logs[] = $this->paypal->l('Connect failed with fsockopen method');
         } else {
-            $header = $this->_makeHeader($host, $script, Tools::strlen($body));
+            $header = $this->_makeHeader($host, $script, \Tools::strlen($body));
             $this->_logs[] = $this->paypal->l('Sending this params:').' '.$header.$body;
 
             @fputs($fp, $header.$body);
@@ -197,7 +198,7 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _makeHeader($host, $script, $lenght)
+    protected function _makeHeader($host, $script, $lenght)
     {
         return 'POST '.(string) $script.' HTTP/1.1'."\r\n".
         'Host: '.(string) $host."\r\n".
@@ -215,34 +216,30 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _logPaypal($message){
-        try{
+    protected function _logPaypal($message){
+        try {
             $date = date('Ymd');
             $path = _PS_MODULE_DIR_.'paypal/log/';
-            $context = Context::getContext();
-            file_put_contents($path.$date.'_paypal_curl.log',date('d/m/Y H:i:s').' cart : '.$context->cart->id.' => '.$message.PHP_EOL,FILE_APPEND);
-            $date_last_purge = Configuration::get('PAYPAL_PURGE_LOG_DATE');
+            $context = \Context::getContext();
+            file_put_contents($path.$date.'_paypal_curl.log', date('d/m/Y H:i:s').' cart : '.$context->cart->id.' => '.$message.PHP_EOL, FILE_APPEND);
+            $dateLastPurge = \Configuration::get('PAYPAL_PURGE_LOG_DATE');
             // if date not set : set at yesterday
-            if(!$date_last_purge)
-            {
-                $date_last_purge = date('Ymd',strtotime('yesterday'));
+            if (!$dateLastPurge) {
+                $dateLastPurge = date('Ymd', strtotime('yesterday'));
             }
-            if($date_last_purge < $date)
-            {
-                $date_limit_purge = date('Ymd',strtotime('-1 month'));
+            if ($dateLastPurge < $date) {
+                $dateLimitPurge = date('Ymd', strtotime('-1 month'));
                 $dir = opendir($path);
-                while($file = readdir($dir))
-                {
-                    $date_file = Tools::substr($file,0,8);
-                    if($file !='.' && $file != '..' && $date_file <= $date_limit_purge)
-                    {
+                while ($file = readdir($dir)) {
+                    $dateFile = \Tools::substr($file, 0, 8);
+                    if ($file != '.' && $file != '..' && $dateFile <= $dateLimitPurge) {
                         unlink($path.$file);
                     }
                 }
-                Configuration::updateValue('PAYPAL_PURGE_LOG_DATE',$date);
+                \Configuration::updateValue('PAYPAL_PURGE_LOG_DATE', $date);
             }
 
-        } catch (Exception $e){
+        } catch (\Exception $e) {
             return false;
         }
     }

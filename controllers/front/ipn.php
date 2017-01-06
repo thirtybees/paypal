@@ -24,6 +24,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use PayPalModule\PayPalIpn;
+
 require_once dirname(__FILE__).'/../../paypal.php';
 
 class PayPalIpnModuleFrontController extends ModuleFrontController

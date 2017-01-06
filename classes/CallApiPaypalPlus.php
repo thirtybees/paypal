@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -45,8 +47,8 @@ class CallApiPayPalPlus extends ApiPayPalPlus
      */
     public function setParams($params)
     {
-        $this->cart = new Cart($params['cart']->id);
-        $this->customer = new Customer($params['cookie']->id_customer);
+        $this->cart = new \Cart($params['cart']->id);
+        $this->customer = new \Customer($params['cookie']->id_customer);
     }
 
     /**
@@ -65,7 +67,7 @@ class CallApiPayPalPlus extends ApiPayPalPlus
 
         if ($accessToken != false) {
 
-            $result = Tools::jsonDecode($this->createPayment($this->customer, $this->cart, $accessToken));
+            $result = \Tools::jsonDecode($this->createPayment($this->customer, $this->cart, $accessToken));
 
             if (isset($result->links)) {
 
@@ -132,7 +134,7 @@ class CallApiPayPalPlus extends ApiPayPalPlus
 
         $data = array('payer_id' => $payer_id);
 
-        return $this->sendByCURL(URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', Tools::jsonEncode($data), $header);
+        return $this->sendByCURL(URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', \Tools::jsonEncode($data), $header);
     }
 
     /**
@@ -159,6 +161,6 @@ class CallApiPayPalPlus extends ApiPayPalPlus
             'Authorization:Bearer '.$accessToken,
         );
 
-        return $this->sendByCURL(URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', Tools::jsonEncode($data), $header);
+        return $this->sendByCURL(URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', \Tools::jsonEncode($data), $header);
     }
 }

@@ -20,6 +20,7 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -27,21 +28,25 @@ if (!defined('_PS_VERSION_')) {
 
 class TLSVerificator
 {
-    private $tls_version;
-    private $url;
-    private $paypal;
+    /** @var float $tlsVersion */
+    protected $tlsVersion;
+
+    /** @var string $url */
+    protected $url;
+
+    /** @var \PayPal $paypal */
+    protected $paypal;
+
+    /** @var array $logs */
+    protected $logs;
 
     /**
      * TLSVerificator constructor.
      *
      * @param $check
-     * @param $paypal
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @param \PayPal $paypal
      */
-    public function __construct($check, $paypal)
+    public function __construct($check, \PayPal $paypal)
     {
         $this->url = 'https://www.howsmyssl.com/a/check';
         $this->paypal = $paypal;
@@ -53,44 +58,34 @@ class TLSVerificator
 
     /**
      * @return mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getVersion()
     {
-        return $this->tls_version;
+        return $this->tlsVersion;
     }
 
     /**
      * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function makeCheck()
     {
-
         if (function_exists('curl_exec')) {
-            $tls_check = $this->_connectByCURL($this->url);
-        }
-        else
-        {
-            $tls_check = file_get_contents($this->url);
+            $tlsCheck = $this->connectWithCurl($this->url);
+        } else {
+            $tlsCheck = file_get_contents($this->url);
         }
 
-        if ($tls_check == false) {
-            $this->tls_version = false; // Not detectable
+        if ($tlsCheck == false) {
+            $this->tlsVersion = false; // Not detectable
+
             return false;
         }
 
-        $tls_check = Tools::jsonDecode($tls_check);
-        if ($tls_check->tls_version == 'TLS 1.2') {
-            $this->tls_version = 1.2;
+        $tlsCheck = \Tools::jsonDecode($tlsCheck);
+        if ($tlsCheck->tls_version == 'TLS 1.2') {
+            $this->tlsVersion = 1.2;
         } else {
-            $this->tls_version = 1;
+            $this->tlsVersion = 1;
         }
 
     }
@@ -100,7 +95,7 @@ class TLSVerificator
     /************************************************************/
     /**
      * @param      $url
-     * @param bool $http_header
+     * @param bool $httpHeader
      *
      * @return bool|mixed
      *
@@ -108,16 +103,16 @@ class TLSVerificator
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function _connectByCURL($url, $http_header = false)
+    protected function connectWithCurl($url, $httpHeader = false)
     {
         $ch = @curl_init();
 
         if (!$ch) {
-            $this->_logs[] = $this->paypal->l('Connect failed with CURL method');
+            $this->logs[] = $this->paypal->l('Connect failed with CURL method');
         } else {
-            $this->_logs[] = $this->paypal->l('Connect with CURL method successful');
-            $this->_logs[] = '<b>'.$this->paypal->l('Sending this params:').'</b>';
-            $this->_logs[] = '<b>'.$url.'</b>';
+            $this->logs[] = $this->paypal->l('Connect with CURL method successful');
+            $this->logs[] = '<b>'.$this->paypal->l('Sending this params:').'</b>';
+            $this->logs[] = '<b>'.$url.'</b>';
 
             @curl_setopt($ch, CURLOPT_URL, $url);
 
@@ -127,20 +122,21 @@ class TLSVerificator
             @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             @curl_setopt($ch, CURLOPT_VERBOSE, false);
-            if ($http_header) {
-                @curl_setopt($ch, CURLOPT_HTTPHEADER, $http_header);
+            if ($httpHeader) {
+                @curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
             }
 
             $result = @curl_exec($ch);
 
             if (!$result) {
-                $this->_logs[] = $this->paypal->l('Send with CURL method failed ! Error:').' '.curl_error($ch);
+                $this->logs[] = $this->paypal->l('Send with CURL method failed ! Error:').' '.curl_error($ch);
             } else {
-                $this->_logs[] = $this->paypal->l('Send with CURL method successful');
+                $this->logs[] = $this->paypal->l('Send with CURL method successful');
             }
 
             @curl_close($ch);
         }
-        return $result ? $result : false;
+
+        return (isset($result) && $result) ? $result : false;
     }
 }

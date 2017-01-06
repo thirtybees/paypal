@@ -20,16 +20,18 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
 class PayPalLogin
 {
-    private $_logs = array();
-    private $enable_log = false;
+    protected $_logs = array();
+    protected $enable_log = false;
 
-    private $paypal_connect = null;
+    protected $paypal_connect = null;
 
     /**
      * PayPalLogin constructor.
@@ -52,7 +54,7 @@ class PayPalLogin
      */
     public function getIdentityAPIURL()
     {
-        if (Configuration::get('PAYPAL_SANDBOX')) {
+        if (\Configuration::get('PAYPAL_SANDBOX')) {
             //return 'www.sandbox.paypal.com';
             return 'api.sandbox.paypal.com';
         } else {
@@ -70,7 +72,7 @@ class PayPalLogin
      */
     public function getTokenServiceEndpoint()
     {
-        if (Configuration::get('PAYPAL_SANDBOX')) {
+        if (\Configuration::get('PAYPAL_SANDBOX')) {
             // return '/webapps/auth/protocol/openidconnect/v1/tokenservice';
             return '/v1/identity/openidconnect/tokenservice';
         } else {
@@ -100,7 +102,7 @@ class PayPalLogin
      */
     public static function getReturnLink()
     {
-        return Context::getContext()->link->getModuleLink('paypal', 'logintoken', array(), Tools::usingSecureMode());
+        return \Context::getContext()->link->getModuleLink('paypal', 'logintoken', array(), \Tools::usingSecureMode());
     }
 
     /**
@@ -114,7 +116,7 @@ class PayPalLogin
     {
         unset($this->_logs);
 
-        $context = Context::getContext();
+        $context = \Context::getContext();
         $is_logged = (method_exists($context->customer, 'isLogged') ? $context->customer->isLogged() : $context->cookie->isLogged());
 
         if ($is_logged) {
@@ -123,7 +125,7 @@ class PayPalLogin
 
         $params = array(
             'grant_type' => 'authorization_code',
-            'code' => Tools::getValue('code'),
+            'code' => \Tools::getValue('code'),
             'redirect_url' => PayPalLogin::getReturnLink(),
         );
 
@@ -138,7 +140,7 @@ class PayPalLogin
             fclose($handle);
         }
 
-        $result = Tools::jsonDecode($result);
+        $result = \Tools::jsonDecode($result);
 
         if ($result) {
 
@@ -179,7 +181,7 @@ class PayPalLogin
     public function getRefreshToken()
     {
         unset($this->_logs);
-        $login = PayPalLoginUser::getByIdCustomer((int) Context::getContext()->customer->id);
+        $login = PayPalLoginUser::getByIdCustomer((int) \Context::getContext()->customer->id);
 
         if (!is_object($login)) {
             return false;
@@ -201,12 +203,13 @@ class PayPalLogin
             fclose($handle);
         }
 
-        $result = Tools::jsonDecode($result);
+        $result = \Tools::jsonDecode($result);
 
         if ($result) {
             $login->access_token = $result->access_token;
             $login->expires_in = (string) (time() + $result->expires_in);
             $login->save();
+
             return $login;
         }
 
@@ -217,13 +220,13 @@ class PayPalLogin
      * @param $access_token
      * @param $login
      *
-     * @return bool|Customer
+     * @return bool|\Customer
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function getUserInformations($access_token, &$login)
+    protected function getUserInformations($access_token, &$login)
     {
         unset($this->_logs);
         $headers = array(
@@ -247,10 +250,10 @@ class PayPalLogin
             fclose($handle);
         }
 
-        $result = Tools::jsonDecode($result);
+        $result = \Tools::jsonDecode($result);
 
         if ($result) {
-            $customer = new Customer();
+            $customer = new \Customer();
             $customer = $customer->getByEmail($result->email);
 
             if (!$customer) {
@@ -272,31 +275,31 @@ class PayPalLogin
     /**
      * @param $result
      *
-     * @return Customer
+     * @return \Customer
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function setCustomer($result)
+    protected function setCustomer($result)
     {
-        $customer = new Customer();
+        $customer = new \Customer();
         $customer->firstname = $result->given_name;
         $customer->lastname = $result->family_name;
         if (version_compare(_PS_VERSION_, '1.5.3.1', '>')) {
-            $customer->id_lang = Language::getIdByIso(strstr($result->language, '_', true));
+            $customer->id_lang = \Language::getIdByIso(strstr($result->language, '_', true));
         }
 
         $customer->birthday = $result->birthday;
         $customer->email = $result->email;
-        $customer->passwd = Tools::encrypt(Tools::passwdGen());
+        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
         $customer->save();
 
         $resultAddress = $result->address;
 
-        $address = new Address();
+        $address = new \Address();
         $address->id_customer = $customer->id;
-        $address->id_country = Country::getByIso($resultAddress->country);
+        $address->id_country = \Country::getByIso($resultAddress->country);
         $address->alias = 'My address';
         $address->lastname = $customer->lastname;
         $address->firstname = $customer->firstname;

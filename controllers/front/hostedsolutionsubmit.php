@@ -24,6 +24,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use PayPalModule\PayPalOrder;
+
 require_once dirname(__FILE__).'/../../paypal.php';
 
 class PayPalHostedsolutionsubmitModuleFrontController extends ModuleFrontController
@@ -45,22 +47,14 @@ class PayPalHostedsolutionsubmitModuleFrontController extends ModuleFrontControl
 
     public function initContent()
     {
-        $id_cart = Tools::getValue('id_cart');
-        $id_module = Tools::getValue('id_module');
-        $id_order = Tools::getValue('id_order');
-        $key = Tools::getValue('key');
+        $idCart = Tools::getValue('id_cart');
 
-        if ($id_module && $id_order && $id_cart && $key) {
-            if (version_compare(_PS_VERSION_, '1.5', '<')) {
-                $integral_evolution_submit = new PayPalIntegralEvolutionSubmit();
-                $integral_evolution_submit->run();
-            }
-        } elseif ($id_cart) {
+        if ($idCart) {
             // Redirection
             $values = array(
-                'id_cart' => (int) $id_cart,
+                'id_cart' => (int) $idCart,
                 'id_module' => (int) Module::getInstanceByName('paypal')->id,
-                'id_order' => (int) Order::getOrderByCartId((int) $id_cart),
+                'id_order' => (int) Order::getOrderByCartId((int) $idCart),
             );
 
             if (version_compare(_PS_VERSION_, '1.5', '<')) {

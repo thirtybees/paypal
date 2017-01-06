@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -34,14 +36,10 @@ class PaypalLib
 
     /**
      * PaypalLib constructor.
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function __construct()
     {
-        $this->paypal = new PayPal();
+        $this->paypal = \Module::getInstanceByName('paypal');
     }
 
     /**
@@ -77,9 +75,9 @@ class PaypalLib
         $params = array(
             'METHOD' => $methodName,
             'VERSION' => $methodVersion,
-            'PWD' => Configuration::get('PAYPAL_API_PASSWORD'),
-            'USER' => Configuration::get('PAYPAL_API_USER'),
-            'SIGNATURE' => Configuration::get('PAYPAL_API_SIGNATURE'),
+            'PWD' => \Configuration::get('PAYPAL_API_PASSWORD'),
+            'USER' => \Configuration::get('PAYPAL_API_USER'),
+            'SIGNATURE' => \Configuration::get('PAYPAL_API_SIGNATURE'),
         );
 
         $request = http_build_query($params, '', '&');
@@ -105,7 +103,7 @@ class PaypalLib
             $return[$tmp[0]] = urldecode(!isset($tmp[1]) ? $tmp[0] : $tmp[1]);
         }
 
-        if (!Configuration::get('PAYPAL_DEBUG_MODE')) {
+        if (!\Configuration::get('PAYPAL_DEBUG_MODE')) {
             $this->logs = array();
         }
 
@@ -113,7 +111,7 @@ class PaypalLib
         $this->logs[] = $this->paypal->l('PayPal response:');
 
         foreach ($return as $key => $value) {
-            if (!Configuration::get('PAYPAL_DEBUG_MODE') && in_array($key, $toExclude)) {
+            if (!\Configuration::get('PAYPAL_DEBUG_MODE') && in_array($key, $toExclude)) {
                 continue;
             }
 

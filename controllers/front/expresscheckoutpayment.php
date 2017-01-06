@@ -24,6 +24,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use PayPalModule\PayPalExpressCheckout;
+use PayPalModule\PayPalLogin;
+use PayPalModule\PayPalLoginUser;
+use PayPalModule\PayPalOrder;
+
 require_once dirname(__FILE__).'/../../paypal.php';
 
 class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontController
@@ -37,228 +42,171 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
 
     public $payPalKey;
 
-    /** @var string $requestType */
-    public $requestType;
+    /** @var PayPal $module */
+    public $module;
 
+    /**
+     * Initialize content
+     */
     public function initContent()
     {
         parent::initContent();
 
-        return $this->processPayment();
+        $this->payPalExpressCheckout = new PayPalExpressCheckout(Tools::getValue('express_checkout'));
+
+        if (Tools::isSubmit('token') && Tools::isSubmit('PayerID')) {
+            return $this->processPayment();
+        }
+
+        return $this->preparePayment();
     }
 
     public function processPayment()
     {
-        /* Normal payment process */
-        $this->requestType = Tools::getValue('express_checkout');
-
-        $this->payPalExpressCheckout = new PayPalExpressCheckout($this->requestType);
         $this->payPalExpressCheckout->idCart = Context::getContext()->cart->id;
-
-        if (Tools::isSubmit('id_order')) {
-            $this->idOrder = Tools::getValue('id_order');
-        }
-
-        if (Tools::isSubmit('key')) {
-            $this->payPalKey = Tools::getValue('key');
-        }
-
-        if (Tools::isSubmit('token')) {
-            $this->payPalExpressCheckout->token = Tools::getValue('token');
-        }
-
-        if (Tools::isSubmit('PayerID')) {
-            $this->payPalExpressCheckout->payerId = Tools::getValue('PayerID');
-        }
+        $this->payPalExpressCheckout->token = Tools::getValue('token');
+        $this->payPalExpressCheckout->payerId = Tools::getValue('PayerID');
 
         $ppec = $this->payPalExpressCheckout;
-        if ($this->requestType && $ppec->type) {
-            $idProduct = (int) Tools::getValue('id_product');
-            $productQuantity = (int) Tools::getValue('quantity');
-            $idProductAttribute = Tools::getValue('id_product_attribute');
 
-            if (($idProduct > 0) && $idProductAttribute !== false && ($productQuantity > 0)) {
-                $this->setContextData($ppec);
+        //If a token exist with payer_id, then we are back from the PayPal API
+        /* Get payment infos from paypal */
+        $ppec->getExpressCheckout();
 
-                if (!$ppec->context->cart->add()) {
-                    $ppec->logs[] = $ppec->l('Cannot create new cart');
+        if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
+            $address = $customer = null;
+            $email = $ppec->result['EMAIL'];
 
-                    $ppec->context->smarty->assign(
-                        array(
-                            'logs' => $ppec->logs,
-                            'message' => $ppec->l('Error occurred:'),
-                            'use_mobile' => (bool) $ppec->useMobile(),
-                        )
-                    );
-                } else {
-                    $ppec->context->cookie->id_cart = (int) $this->context->cart->id;
+            /* Create Customer if not exist with address etc */
+            if ($this->context->cookie->logged) {
+                $idCustomer = Paypal::getPayPalCustomerIdByEmail($email);
+                if (!$idCustomer) {
+                    PayPal::addPayPalCustomer($this->context->customer->id, $email);
                 }
 
-                $this->context->cart->updateQty((int) $productQuantity, (int) $idProduct, (int) $idProductAttribute);
-                $this->context->cart->update();
-            }
-
-            $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
-
-            if ($loginUser && $loginUser->expires_in <= time()) {
-                $obj = new PayPalLogin();
-                $loginUser = $obj->getRefreshToken();
-            }
-
-            /* Set details for a payment */
-            $ppec->setExpressCheckout(($loginUser ? $loginUser->access_token : false));
-
-            if (Tools::getValue('ajax') && $ppec->useInContextCheckout()) {
-                $ppec->displayPaypalInContextCheckout();
-            }
-            if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
-                $ppec->redirectToAPI();
+                $customer = $this->context->customer;
+            } elseif ($idCustomer = Customer::customerExists($email, true)) {
+                $customer = new Customer($idCustomer);
             } else {
-                // Display Error and die with this method
-                $ppec->displayPayPalAPIError($ppec->l('Error during the preparation of the Express Checkout payment'), $ppec->logs);
+                $customer = $this->setCustomerInformation($ppec, $email);
+                $customer->add();
+
+                PayPal::addPayPalCustomer($customer->id, $email);
             }
-        } elseif ($ppec->token) {
-            //If a token exist with payer_id, then we are back from the PayPal API
-            /* Get payment infos from paypal */
-            $ppec->getExpressCheckout();
 
-            if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
-                $address = $customer = null;
-                $email = $ppec->result['EMAIL'];
+            if (!$customer->id) {
+                $ppec->errors[] = $this->module->l('Cannot create customer');
+            }
 
-                /* Create Customer if not exist with address etc */
-                if ($ppec->context->cookie->logged) {
-                    $idCustomer = Paypal::getPayPalCustomerIdByEmail($email);
-                    if (!$idCustomer) {
-                        PayPal::addPayPalCustomer($ppec->context->customer->id, $email);
-                    }
+            if (!isset($ppec->result['PAYMENTREQUEST_0_SHIPTOSTREET']) || !isset($ppec->result['PAYMENTREQUEST_0_SHIPTOCITY'])
+                || !isset($ppec->result['SHIPTOZIP']) || !isset($ppec->result['COUNTRYCODE'])
+            ) {
+                $ppec->redirectToCheckout($customer, ($ppec->type != 'payment_cart'));
+            }
 
-                    $customer = $ppec->context->customer;
-                } elseif ($idCustomer = Customer::customerExists($email, true)) {
-                    $customer = new Customer($idCustomer);
-                } else {
-                    $customer = $this->setCustomerInformation($ppec, $email);
-                    $customer->add();
-
-                    PayPal::addPayPalCustomer($customer->id, $email);
-                }
-
-                if (!$customer->id) {
-                    $ppec->logs[] = $ppec->l('Cannot create customer');
-                }
-
-                if (!isset($ppec->result['PAYMENTREQUEST_0_SHIPTOSTREET']) || !isset($ppec->result['PAYMENTREQUEST_0_SHIPTOCITY'])
-                    || !isset($ppec->result['SHIPTOZIP']) || !isset($ppec->result['COUNTRYCODE'])
-                ) {
-                    $ppec->redirectToCheckout($customer, ($ppec->type != 'payment_cart'));
-                }
-
-                $addresses = $customer->getAddresses($ppec->context->language->id);
-                foreach ($addresses as $address) {
-                    if ($address['alias'] == 'Paypal_Address') {
-                        //If address has already been created
-                        $address = new Address($address['id_address']);
-                        break;
-                    }
-                }
-
-                /* Create address */
-                if (is_array($address) && isset($address['id_address'])) {
+            $addresses = $customer->getAddresses($this->context->language->id);
+            foreach ($addresses as $address) {
+                if ($address['alias'] == 'Paypal_Address') {
+                    //If address has already been created
                     $address = new Address($address['id_address']);
+                    break;
                 }
+            }
 
-                if ((!$address || !$address->id) && $customer->id) {
-                    //If address does not exists, we create it
-                    $address = $this->setCustomerAddress($ppec, $customer);
-                    $address->add();
-                } else {
-                    if ($ppec->type != 'payment_cart') {
-                        //We used Express Checkout Shortcut => we override address
-                        $address = $this->checkAndModifyAddress($ppec, $customer);
-                    }
+            /* Create address */
+            if (is_array($address) && isset($address['id_address'])) {
+                $address = new Address($address['id_address']);
+            }
+
+            if ((!$address || !$address->id) && $customer->id) {
+                //If address does not exists, we create it
+                $address = $this->setCustomerAddress($ppec, $customer);
+                $address->add();
+            } else {
+                if ($ppec->type != 'payment_cart') {
+                    //We used Express Checkout Shortcut => we override address
+                    $address = $this->checkAndModifyAddress($ppec, $customer);
                 }
+            }
 
-                if ($customer->id && !$address->id) {
-                    $ppec->logs[] = $ppec->l('Cannot create Address');
-                }
+            if ($customer->id && !$address->id) {
+                $ppec->errors[] = $this->module->l('Cannot create Address');
+            }
 
-                /* Create Order */
-                if ($customer->id && $address->id) {
-                    $ppec->context->cart->id_customer = $customer->id;
-                    $ppec->context->cart->id_address_delivery = $address->id;
-                    $ppec->context->cart->id_address_invoice = $address->id;
-                    $ppec->context->cart->id_guest = $ppec->context->cookie->id_guest;
+            /* Create Order */
+            if ($customer->id && $address->id) {
+                $this->context->cart->id_customer = $customer->id;
+                $this->context->cart->id_address_delivery = $address->id;
+                $this->context->cart->id_address_invoice = $address->id;
+                $this->context->cart->id_guest = $this->context->cookie->id_guest;
 
-                    if (!$ppec->context->cart->update()) {
-                        $ppec->logs[] = $ppec->l('Cannot update existing cart');
-                    } else {
-                        $paymentCart = (bool) ($ppec->type != 'payment_cart');
-                        $ppec->redirectToCheckout($customer, $paymentCart);
-                    }
+                if (!$this->context->cart->update()) {
+                    $ppec->errors[] = $this->module->l('Cannot update existing cart');
                 }
             }
         }
 
-        /* If Previous steps succeed, ready (means 'ready to pay') will be set to true */
-        if ($ppec->ready && !empty($ppec->token) && (Tools::isSubmit('confirmation') || $ppec->type == 'payment_cart')) {
+        // if previous steps succeed, the errors array should be empty
+        if (empty($ppec->errors) && $ppec->token && $ppec->payerId) {
             /* Check modification on the product cart / quantity */
-            if ($ppec->isProductsListStillRight()) {
-                $cart = $ppec->context->cart;
-                $customer = new Customer((int) $cart->id_customer);
+            // FIXME: broken, find a better way
+//            if ($ppec->isProductsListStillRight()) {
+            $cart = $this->context->cart;
+            $customer = new Customer((int) $cart->id_customer);
 
-                // When all information are checked before, we can validate the payment to paypal
-                // and create the prestashop order
-                $ppec->doExpressCheckout();
+            // When all information are checked before, we can validate the payment to paypal
+            // and create the prestashop order
+            $ppec->doExpressCheckout();
 
-                if (isset($ppec->result['RedirectRequired']) && $ppec->result['RedirectRequired'] == 'true') {
-                    $ppec->redirectToAPI();
-                }
-
-                $this->validateOrder($customer, $cart, $ppec);
-
-                unset($ppec->context->cookie->{PayPalExpressCheckout::$cookieName});
-
-                if (!$ppec->currentOrder) {
-                    $ppec->logs[] = $ppec->l('Cannot create order');
-                } else {
-                    $idOrder = (int) $ppec->currentOrder;
-                    $order = new Order($idOrder);
-                }
-
-                /* Check payment details to display the appropriate content */
-                if (isset($order) && ($ppec->result['ACK'] != 'Failure')) {
-                    $values = array(
-                        'key' => $customer->secure_key,
-                        'id_module' => (int) $ppec->id,
-                        'id_cart' => (int) $cart->id,
-                        'id_order' => (int) $ppec->currentOrder,
-                    );
-
-                    $link = $ppec->context->link->getModuleLink('paypal', 'submit', $values);
-                    Tools::redirect($link);
-                } elseif ($ppec->result['ACK'] != 'Failure') {
-                    $ppec->context->smarty->assign(array(
-                        'logs' => $ppec->logs,
-                        'message' => $ppec->l('Error occurred:'),
-                    ));
-
-                    $this->setTemplate('error.tpl');
-                }
-            } else {
-                /* If Cart changed, no need to keep the paypal data */
-                unset($ppec->context->cookie->{PayPalExpressCheckout::$cookieName});
-                $ppec->logs[] = $ppec->l('Cart changed since the last checkout express, please make a new Paypal checkout payment');
+            if (isset($ppec->result['RedirectRequired']) && $ppec->result['RedirectRequired'] == 'true') {
+                $ppec->redirectToAPI();
             }
+
+            $this->validateOrder($customer, $cart, $ppec);
+
+            unset($this->context->cookie->{PayPalExpressCheckout::$cookieName});
+
+            if (!$this->module->currentOrder) {
+                $ppec->errors[] = $this->module->l('Cannot create order');
+            } else {
+                $idOrder = (int) $this->module->currentOrder;
+                $order = new Order($idOrder);
+            }
+
+            /* Check payment details to display the appropriate content */
+            if (isset($order) && ($ppec->result['ACK'] != 'Failure')) {
+                $values = array(
+                    'key' => $customer->secure_key,
+                    'id_module' => (int) $this->module->id,
+                    'id_cart' => (int) $cart->id,
+                    'id_order' => (int) $this->module->currentOrder,
+                );
+
+                $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
+                Tools::redirect($link);
+            } elseif ($ppec->result['ACK'] != 'Failure') {
+                $this->context->smarty->assign(array(
+                    'logs' => $ppec->errors,
+                    'message' => $this->module->l('Error occurred:'),
+                ));
+
+                $this->setTemplate('error.tpl');
+            }
+//            } else {
+//                /* If Cart changed, no need to keep the paypal data */
+//                unset($this->context->cookie->{PayPalExpressCheckout::$cookieName});
+//                $ppec->errors[] = $this->module->l('Cart changed since the last checkout express, please make a new Paypal checkout payment');
+//            }
         }
 
         /* Display result if error occurred */
         if (!$this->context->cart->id) {
             $this->context->cart->delete();
-            $ppec->logs[] = $ppec->l('Your cart is empty.');
+            $ppec->errors[] = $this->module->l('Your cart is empty.');
         }
-        $ppec->context->smarty->assign(array(
-            'logs' => $ppec->logs,
-            'message' => $ppec->l('Error occurred:'),
+        $this->context->smarty->assign(array(
+            'logs' => $ppec->errors,
+            'message' => $this->module->l('Error occurred:'),
         ));
 
         $template = 'error.tpl';
@@ -269,10 +217,65 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
          * Check the 'ps_mobile_site' parameter.
          */
         $this->context->smarty->assign(array(
-            'use_mobile' => (bool) $ppec->useMobile(),
+            'use_mobile' => (bool) $this->context->getMobileDevice(),
         ));
 
         $this->setTemplate($template);
+    }
+
+    public function preparePayment()
+    {
+        /* Normal payment process */
+        if (Tools::isSubmit('key')) {
+            $this->payPalKey = Tools::getValue('key');
+        }
+
+        $ppec = $this->payPalExpressCheckout;
+
+        $idProduct = (int) Tools::getValue('id_product');
+        $productQuantity = (int) Tools::getValue('quantity');
+        $idProductAttribute = Tools::getValue('id_product_attribute');
+
+        if (($idProduct > 0) && $idProductAttribute !== false && ($productQuantity > 0)) {
+            $this->setContextData($ppec);
+
+            if (!$this->context->cart->add()) {
+                $ppec->errors[] = $this->module->l('Cannot create new cart');
+
+                $this->context->smarty->assign(
+                    array(
+                        'logs' => $ppec->errors,
+                        'message' => $this->module->l('Error occurred:'),
+                        'use_mobile' => (bool) $this->context->getMobileDevice(),
+                    )
+                );
+            } else {
+                $this->context->cookie->id_cart = (int) $this->context->cart->id;
+            }
+
+            $this->context->cart->updateQty((int) $productQuantity, (int) $idProduct, (int) $idProductAttribute);
+            $this->context->cart->update();
+        }
+
+        $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
+
+        if ($loginUser && $loginUser->expires_in <= time()) {
+            $obj = new PayPalLogin();
+            $loginUser = $obj->getRefreshToken();
+        }
+
+        /* Set details for a payment */
+        $ppec->setExpressCheckout(($loginUser ? $loginUser->access_token : false));
+
+        if (Tools::getValue('ajax') && $this->module->useInContextCheckout()) {
+            $ppec->displayPaypalInContextCheckout();
+        }
+        if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
+            $ppec->redirectToAPI();
+        } else {
+            // Display Error and die with this method
+            $this->module->displayPayPalAPIError($this->module->l('Error during the preparation of the Express Checkout payment'), $ppec->errors);
+        }
     }
 
     /**
@@ -285,17 +288,17 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
     protected function setContextData($ppec)
     {
         // Create new Cart to avoid any refresh or other bad manipulations
-        $ppec->context->cart = new Cart();
-        $ppec->context->cart->id_currency = (int) $ppec->context->currency->id;
-        $ppec->context->cart->id_lang = (int) $ppec->context->language->id;
+        $this->context->cart = new Cart();
+        $this->context->cart->id_currency = (int) $this->context->currency->id;
+        $this->context->cart->id_lang = (int) $this->context->language->id;
 
         // Customer settings
-        $ppec->context->cart->id_guest = (int) $ppec->context->cookie->id_guest;
-        $ppec->context->cart->id_customer = (int) $ppec->context->customer->id;
+        $this->context->cart->id_guest = (int) $this->context->cookie->id_guest;
+        $this->context->cart->id_customer = (int) $this->context->customer->id;
 
         // Secure key information
-        $secureKey = isset($ppec->context->customer) ? $ppec->context->customer->secure_key : null;
-        $ppec->context->cart->secure_key = $secureKey;
+        $secureKey = isset($this->context->customer) ? $this->context->customer->secure_key : null;
+        $this->context->cart->secure_key = $secureKey;
     }
 
     /**
@@ -367,8 +370,8 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
     }
 
     /**
-     * @param $payPalExpressCheckout
-     * @param $customer
+     * @param PayPalExpressCheckout $payPalExpressCheckout
+     * @param Customer              $customer
      *
      * @return Address|bool
      *
@@ -430,23 +433,27 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             if ((bool) Configuration::get('PAYPAL_CAPTURE')) {
                 $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                 $paymentStatus = 'Pending_capture';
-                $message = $ppec->l('Pending payment capture.').'<br />';
+                $message = $this->module->l('Pending payment capture.').'<br />';
             } else {
                 if (isset($ppec->result['PAYMENTINFO_0_PAYMENTSTATUS'])) {
                     $paymentStatus = $ppec->result['PAYMENTINFO_0_PAYMENTSTATUS'];
                 } else {
+                    $paymentType = (int) Configuration::get('PS_OS_ERROR');
                     $paymentStatus = 'Error';
                 }
 
                 if ((strcasecmp($paymentStatus, 'Completed') === 0) || (strcasecmp($paymentStatus, 'Completed_Funds_Held') === 0)) {
                     $paymentType = (int) Configuration::get('PS_OS_PAYMENT');
-                    $message = $ppec->l('Payment accepted.').'<br />';
+                    $message = $this->module->l('Payment accepted.').'<br />';
                 } elseif (Tools::getValue('banktxnpendingurl') && Tools::getValue('banktxnpendingurl') == 'true') {
                     $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
-                    $message = $ppec->l('eCheck').'<br />';
+                    $message = $this->module->l('eCheck').'<br />';
                 } elseif (strcasecmp($paymentStatus, 'Pending') === 0) {
                     $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
-                    $message = $ppec->l('Pending payment confirmation.').'<br />';
+                    $message = $this->module->l('Pending payment confirmation.').'<br />';
+                } else {
+                    $paymentType = (int) Configuration::get('PS_OS_ERROR');
+                    $message = implode('<br />', $ppec->errors).'<br />';
                 }
             }
         } else {
@@ -460,27 +467,27 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             $paymentType = (int) Configuration::get('PS_OS_ERROR');
 
             if ($amountMatch) {
-                $message = implode('<br />', $ppec->logs).'<br />';
+                $message = implode('<br />', $ppec->errors).'<br />';
             } else {
-                $message = $ppec->l('Price paid on paypal is not the same that on PrestaShop.').'<br />';
+                $message = $this->module->l('Price paid on paypal is not the same that on PrestaShop.').'<br />';
             }
 
         }
 
         $transaction = PayPalOrder::getTransactionDetails($ppec, $paymentStatus);
-        $ppec->context->cookie->id_cart = $cart->id;
+        $this->context->cookie->id_cart = $cart->id;
 
-        $ppec->validateOrder(
+        $this->module->validateOrder(
             (int) $cart->id,
             $paymentType,
             $orderTotal,
-            $ppec->displayName,
+            'PayPal',
             $message,
             $transaction,
             (int) $cart->id_currency,
             false,
             $customer->secure_key,
-            $ppec->context->shop
+            $this->context->shop
         );
     }
 }

@@ -24,6 +24,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use PayPalModule\PayPalLogin;
+
 require_once dirname(__FILE__).'/../../paypal.php';
 
 class PayPalLogintokenModuleFrontController extends ModuleFrontController

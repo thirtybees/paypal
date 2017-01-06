@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -53,26 +55,17 @@ class PayPalTools
      */
     public function moveTopPayments($position)
     {
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            $hook_payment = (int) Hook::get('payment');
-        } else {
-            $hook_payment = (int) Hook::getIdByName('payment');
+        $hookPayment = (int) \Hook::getIdByName('payment');
+        $moduleInstance = \Module::getInstanceByName($this->name);
+        $moduleInfo = \Hook::getModulesFromHook($hookPayment, $moduleInstance->id);
+
+
+        if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
+            (isset($moduleInfo['m.position']) && (int) $moduleInfo['m.position'] > (int) $position)) {
+            return $moduleInstance->updatePosition($hookPayment, 0, (int) $position);
         }
 
-        $module_instance = Module::getInstanceByName($this->name);
-
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            $module_info = Hook::getModuleFromHook($hook_payment, $module_instance->id);
-        } else {
-            $module_info = Hook::getModulesFromHook($hook_payment, $module_instance->id);
-        }
-
-        if ((isset($module_info['position']) && (int) $module_info['position'] > (int) $position) ||
-            (isset($module_info['m.position']) && (int) $module_info['m.position'] > (int) $position)) {
-            return $module_instance->updatePosition($hook_payment, 0, (int) $position);
-        }
-
-        return $module_instance->updatePosition($hook_payment, 1, (int) $position);
+        return $moduleInstance->updatePosition($hookPayment, 1, (int) $position);
     }
 
     /**
@@ -86,25 +79,16 @@ class PayPalTools
      */
     public function moveRightColumn($position)
     {
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            $hook_right = (int) Hook::get('rightColumn');
-        } else {
-            $hook_right = (int) Hook::getIdByName('rightColumn');
+        $hookRight = (int) \Hook::getIdByName('rightColumn');
+        $moduleInstance = \Module::getInstanceByName($this->name);
+        $moduleInfo = \Hook::getModulesFromHook($hookRight, $moduleInstance->id);
+
+
+        if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
+            (isset($moduleInfo['m.position']) && (int) $moduleInfo['m.position'] > (int) $position)) {
+            return $moduleInstance->updatePosition($hookRight, 0, (int) $position);
         }
 
-        $module_instance = Module::getInstanceByName($this->name);
-
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            $module_info = Hook::getModuleFromHook($hook_right, $module_instance->id);
-        } else {
-            $module_info = Hook::getModulesFromHook($hook_right, $module_instance->id);
-        }
-
-        if ((isset($module_info['position']) && (int) $module_info['position'] > (int) $position) ||
-            (isset($module_info['m.position']) && (int) $module_info['m.position'] > (int) $position)) {
-            return $module_instance->updatePosition($hook_right, 0, (int) $position);
-        }
-
-        return $module_instance->updatePosition($hook_right, 1, (int) $position);
+        return $moduleInstance->updatePosition($hookRight, 1, (int) $position);
     }
 }

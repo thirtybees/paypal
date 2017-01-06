@@ -20,13 +20,15 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
 class PayPalLogos
 {
-    private $iso_code = null;
+    protected $isoCode = null;
 
     const LOCAL = 'Local';
     const HORIZONTAL = 'Horizontal';
@@ -35,15 +37,15 @@ class PayPalLogos
     /**
      * PayPalLogos constructor.
      *
-     * @param $iso_code
+     * @param $isoCode
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function __construct($iso_code)
+    public function __construct($isoCode)
     {
-        $this->iso_code = $iso_code;
+        $this->isoCode = $isoCode;
     }
 
     /**
@@ -70,10 +72,10 @@ class PayPalLogos
                 $logos[$tmpIsoCode] = (array) $item;
             }
 
-            if (!isset($logos[$this->iso_code])) {
+            if (!isset($logos[$this->isoCode])) {
                 $result = $this->getLocalLogos($logos['default'], 'default');
             } else {
-                $result = $this->getLocalLogos($logos[$this->iso_code], $this->iso_code);
+                $result = $this->getLocalLogos($logos[$this->isoCode], $this->isoCode);
             }
 
             $result['default'] = $this->getLocalLogos($logos['default'], 'default');
@@ -142,8 +144,8 @@ class PayPalLogos
                     $values['Local'.$key] = _MODULE_DIR_.$destination;
 
                     // Load back office cards path
-                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png')) {
-                        $values['BackOfficeCards'] = _MODULE_DIR_._PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png';
+                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.\Tools::strtoupper($isoCode).'_bo_cards.png')) {
+                        $values['BackOfficeCards'] = _MODULE_DIR_._PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.\Tools::strtoupper($isoCode).'_bo_cards.png';
                     } elseif (file_exists(dirname(__FILE__).'/views/img/bo-cards/default.png')) {
                         $values['BackOfficeCards'] = _MODULE_DIR_._PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/default.png';
                     }
@@ -170,13 +172,13 @@ class PayPalLogos
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function updatePictures($source, $destination, $force = false)
+    protected function updatePictures($source, $destination, $force = false)
     {
         $wrappers = stream_get_wrappers();
 
         // 604800 => One week timestamp
         if (!file_exists(_PS_MODULE_DIR_.$destination) || ((time() - filemtime(_PS_MODULE_DIR_.$destination)) > 604800) || $force) {
-            $picture = Tools::file_get_contents($source);
+            $picture = \Tools::file_get_contents($source);
             if ((bool) $picture !== false) {
                 if ($handle = @fopen(_PS_MODULE_DIR_.$destination, 'w+')) {
                     $size = fwrite($handle, $picture);

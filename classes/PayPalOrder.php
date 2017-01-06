@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -122,15 +124,15 @@ class PayPalOrder extends PayPalObjectModel
                 'payment_status' => pSQL($paymentStatus),
             );
         } else {
-            $transactionId = pSQL(Tools::getValue(self::ID_TRANSACTION));
+            $transactionId = pSQL(\Tools::getValue(self::ID_TRANSACTION));
             return array(
-                'currency' => pSQL(Tools::getValue(self::CURRENCY)),
-                'id_invoice' => pSQL(Tools::getValue(self::ID_INVOICE)),
+                'currency' => pSQL(\Tools::getValue(self::CURRENCY)),
+                'id_invoice' => pSQL(\Tools::getValue(self::ID_INVOICE)),
                 'id_transaction' => $transactionId,
                 'transaction_id' => $transactionId,
-                'total_paid' => (float) Tools::getValue(self::TOTAL_PAID),
-                'shipping' => (float) Tools::getValue(self::SHIPPING),
-                'payment_date' => pSQL(Tools::getValue(self::PAYMENT_DATE)),
+                'total_paid' => (float) \Tools::getValue(self::TOTAL_PAID),
+                'shipping' => (float) \Tools::getValue(self::SHIPPING),
+                'payment_date' => pSQL(\Tools::getValue(self::PAYMENT_DATE)),
                 'payment_status' => pSQL($paymentStatus),
             );
         }
@@ -147,12 +149,12 @@ class PayPalOrder extends PayPalObjectModel
      */
     public static function getOrderById($idOrder)
     {
-        $sql = new DbQuery();
+        $sql = new \DbQuery();
         $sql->select('*');
         $sql->from(bqSQL(self::$definition['table']));
         $sql->where('`id_order` = '.(int) $idOrder);
 
-        return Db::getInstance()->getRow($sql);
+        return \Db::getInstance()->getRow($sql);
     }
 
     /**
@@ -166,7 +168,7 @@ class PayPalOrder extends PayPalObjectModel
 			FROM `'._DB_PREFIX_.'paypal_order`
 			WHERE `id_transaction` = \''.pSQL($idTransaction).'\'';
 
-        $result = Db::getInstance()->getRow($sql);
+        $result = \Db::getInstance()->getRow($sql);
 
         if ($result != false) {
             return (int) $result['id_order'];
@@ -181,23 +183,23 @@ class PayPalOrder extends PayPalObjectModel
      */
     public static function saveOrder($idOrder, $transaction)
     {
-        $order = new Order((int) $idOrder);
+        $order = new \Order((int) $idOrder);
         $total_paid = (float) $transaction['total_paid'];
 
         if (!isset($transaction['payment_status']) || !$transaction['payment_status']) {
             $transaction['payment_status'] = 'NULL';
         }
 
-        Db::getInstance()->Execute(
+        \Db::getInstance()->Execute(
             'INSERT INTO `'._DB_PREFIX_.'paypal_order`
 			(`id_order`, `id_transaction`, `id_invoice`, `currency`, `total_paid`, `shipping`, `capture`, `payment_date`, `payment_method`, `payment_status`)
 			VALUES ('.(int) $idOrder.', \''.pSQL($transaction['id_transaction']).'\', \''.pSQL($transaction['id_invoice']).'\',
 				\''.pSQL($transaction['currency']).'\',
 				\''.$total_paid.'\',
 				\''.(float) $transaction['shipping'].'\',
-				\''.(int) Configuration::get('PAYPAL_CAPTURE').'\',
+				\''.(int) \Configuration::get('PAYPAL_CAPTURE').'\',
 				\''.pSQL($transaction['payment_date']).'\',
-				\''.(int) Configuration::get('PAYPAL_PAYMENT_METHOD').'\',
+				\''.(int) \Configuration::get('PAYPAL_PAYMENT_METHOD').'\',
 				\''.pSQL($transaction['payment_status']).'\')'
         );
     }
@@ -219,11 +221,11 @@ class PayPalOrder extends PayPalObjectModel
 			WHERE `id_order` = \''.(int) $idOrder.'\'
 				AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\'
 				AND `currency` = \''.pSQL($transaction['currency']).'\'';
-        if (!Configuration::get('PAYPAL_SANDBOX')) {
+        if (!\Configuration::get('PAYPAL_SANDBOX')) {
             $sql .= 'AND `total_paid` = \''.$transaction['total_paid'].'\'
 				AND `shipping` = \''.(float) $transaction['shipping'].'\';';
         }
 
-        Db::getInstance()->execute($sql);
+        \Db::getInstance()->execute($sql);
     }
 }

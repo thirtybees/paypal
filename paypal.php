@@ -28,6 +28,19 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use PayPalModule\ApiPayPalPlus;
+use PayPalModule\AuthenticatePaymentMethods;
+use PayPalModule\CallApiPayPalPlus;
+use PayPalModule\PayPalCapture;
+use PayPalModule\PayPalCustomer;
+use PayPalModule\PaypalLib;
+use PayPalModule\PayPalLogin;
+use PayPalModule\PayPalLoginUser;
+use PayPalModule\PayPalLogos;
+use PayPalModule\PayPalOrder;
+use PayPalModule\PayPalTools;
+use PayPalModule\TLSVerificator;
+
 require_once dirname(__FILE__).'/classes/autoload.php';
 
 define('WPS', 1); //Paypal Integral
@@ -318,7 +331,7 @@ class PayPal extends PaymentModule
         }
     }
 
-    private function compatibilityCheck()
+    protected function compatibilityCheck()
     {
         if (file_exists(_PS_MODULE_DIR_.'paypalapi/paypalapi.php') && $this->active) {
             $this->warning = $this->l('All features of Paypal API module are included in the new Paypal module. In order to do not have any conflict, please do not use and remove PayPalAPI module.').'<br />';
@@ -1250,11 +1263,17 @@ class PayPal extends PaymentModule
         return false;
     }
 
+    /**
+     * @return string PayPal base URL
+     */
     public function getPayPalURL()
     {
         return 'www'.(Configuration::get('PAYPAL_SANDBOX') ? '.sandbox' : '').'.paypal.com';
     }
 
+    /**
+     * @return string PayPal Hosted Solution URL
+     */
     public function getPaypalIntegralEvolutionUrl()
     {
         if (Configuration::get('PAYPAL_SANDBOX')) {
@@ -1264,16 +1283,29 @@ class PayPal extends PaymentModule
         return 'https://securepayments.paypal.com/acquiringweb?cmd=_hosted-payment';
     }
 
+    /**
+     * @return string PayPal Website Payments Standard or Express Checkout URL
+     */
     public function getPaypalStandardUrl()
     {
         return 'https://'.$this->getPayPalURL().'/cgi-bin/webscr';
     }
 
+    /**
+     * Get PayPal API URL
+     *
+     * @return string
+     */
     public function getAPIURL()
     {
         return 'api-3t'.(Configuration::get('PAYPAL_SANDBOX') ? '.sandbox' : '').'.paypal.com';
     }
 
+    /**
+     * Get API Script
+     *
+     * @return string API Script
+     */
     public function getAPIScript()
     {
         return '/nvp';
@@ -1352,7 +1384,7 @@ class PayPal extends PaymentModule
         return $this->fetchTemplate('error.tpl');
     }
 
-    private function canRefund($idOrder)
+    protected function canRefund($idOrder)
     {
         if (!(bool) $idOrder) {
             return false;
@@ -1367,7 +1399,7 @@ class PayPal extends PaymentModule
             == 'approved') && $paypalOrder['capture'] == 0;
     }
 
-    private function needsValidation($idOrder)
+    protected function needsValidation($idOrder)
     {
         if (!(int) $idOrder) {
             return false;
@@ -1382,7 +1414,7 @@ class PayPal extends PaymentModule
             == 'Pending_validation';
     }
 
-    private function needsCapture($idOrder)
+    protected function needsCapture($idOrder)
     {
         if (!(int) $idOrder) {
             return false;
@@ -1397,7 +1429,7 @@ class PayPal extends PaymentModule
             == 'Pending_capture';
     }
 
-    private function preProcess()
+    protected function preProcess()
     {
         if (Tools::isSubmit('submitPaypal')) {
             $business = Tools::getValue('business') !== false ? (int) Tools::getValue('business') : false;
@@ -1430,7 +1462,7 @@ class PayPal extends PaymentModule
         return !count($this->errors);
     }
 
-    private function postProcess()
+    protected function postProcess()
     {
         if (Tools::getValue('old_partners')) {
             Configuration::updateValue(self::UPDATED_COUNTRIES_OK,1);
@@ -1513,7 +1545,7 @@ class PayPal extends PaymentModule
         return $this->loadLangDefault();
     }
 
-    private function doRefund($idTransaction, $idOrder, $amt = false)
+    protected function doRefund($idTransaction, $idOrder, $amt = false)
     {
         if (!$this->isPayPalAPIAvailable()) {
             die(Tools::displayError('Fatal Error: no API Credentials are available'));
@@ -1592,7 +1624,7 @@ class PayPal extends PaymentModule
         return $newMessage->add();
     }
 
-    private function doFullRefund($idOrder)
+    protected function doFullRefund($idOrder)
     {
         $paypalOrder = PayPalOrder::getOrderById((int) $idOrder);
         if (!$this->isPayPalAPIAvailable() || !$paypalOrder) {
@@ -1662,7 +1694,7 @@ class PayPal extends PaymentModule
         Tools::redirect($_SERVER['HTTP_REFERER']);
     }
 
-    private function doCapture($idOrder, $captureAmount = false, $isComplete = false)
+    protected function doCapture($idOrder, $captureAmount = false, $isComplete = false)
     {
         $paypalOrder = PayPalOrder::getOrderById((int) $idOrder);
         if (!$this->isPayPalAPIAvailable() || !$paypalOrder) {
@@ -1778,7 +1810,7 @@ class PayPal extends PaymentModule
         return false;
     }
 
-    private function warningsCheck()
+    protected function warningsCheck()
     {
         if (Configuration::get(self::PAYMENT_METHOD) == HSS && Configuration::get(self::BUSINESS_ACCOUNT) == 'paypal@thirtybees.com') {
             $this->warning = $this->l('You are currently using the default PayPal e-mail address, please enter your own e-mail address.').'<br />';
@@ -1795,7 +1827,7 @@ class PayPal extends PaymentModule
 
     }
 
-    private function loadLangDefault()
+    protected function loadLangDefault()
     {
         if (Configuration::get(self::UPDATED_COUNTRIES_OK)) {
             $this->iso_code = Tools::strtoupper($this->context->language->iso_code);
@@ -1821,7 +1853,7 @@ class PayPal extends PaymentModule
 
     }
 
-    private function checkCurrency($cart)
+    protected function checkCurrency($cart)
     {
         $currencyModule = $this->getCurrency((int) $cart->id_currency);
 

@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+use PayPalModule\CallApiPayPalPlus;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -157,7 +159,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    private function displayHook()
+    protected function displayHook()
     {
         if (Validate::isUnsignedId($this->id_order) && Validate::isUnsignedId($this->id_module)) {
             $order = new Order((int) $this->id_order);

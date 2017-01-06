@@ -20,6 +20,8 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+namespace PayPalModule;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -27,7 +29,7 @@ if (!defined('_PS_VERSION_')) {
 /**
  * Class PayPalObjectModel
  */
-class PayPalObjectModel extends ObjectModel
+class PayPalObjectModel extends \ObjectModel
 {
     /**
      *  Create the database table with its columns. Similar to the createColumn() method.
@@ -65,7 +67,7 @@ class PayPalObjectModel extends ObjectModel
 
         try {
             $success &= Db::getInstance()->execute($sql);
-        } catch (PrestaShopDatabaseException $exception) {
+        } catch (\PrestaShopDatabaseException $exception) {
             self::dropDatabase($className);
 
             return false;
@@ -98,8 +100,8 @@ class PayPalObjectModel extends ObjectModel
             $sql .= ')';
 
             try {
-                $success &= Db::getInstance()->execute($sql);
-            } catch (PrestaShopDatabaseException $exception) {
+                $success &= \Db::getInstance()->execute($sql);
+            } catch (\PrestaShopDatabaseException $exception) {
                 self::dropDatabase($className);
 
                 return false;
@@ -133,8 +135,8 @@ class PayPalObjectModel extends ObjectModel
             $sql .= ')';
 
             try {
-                $success &= Db::getInstance()->execute($sql);
-            } catch (PrestaShopDatabaseException $exception) {
+                $success &= \Db::getInstance()->execute($sql);
+            } catch (\PrestaShopDatabaseException $exception) {
                 self::dropDatabase($className);
 
                 return false;
@@ -158,18 +160,18 @@ class PayPalObjectModel extends ObjectModel
             $className = get_called_class();
         }
 
-        $definition = ObjectModel::getDefinition($className);
+        $definition = \ObjectModel::getDefinition($className);
 
-        $success &= Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.bqSQL($definition['table']).'`');
+        $success &= \Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.bqSQL($definition['table']).'`');
 
         if (isset($definition['multilang']) && $definition['multilang']
             || isset($definition['multilang_shop']) && $definition['multilang_shop']) {
-            $success &= Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.bqSQL($definition['table']).'_lang`');
+            $success &= \Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.bqSQL($definition['table']).'_lang`');
         }
 
         if (isset($definition['multishop']) && $definition['multishop']
             || isset($definition['multilang_shop']) && $definition['multilang_shop']) {
-            $success &= Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.bqSQL($definition['table']).'_shop`');
+            $success &= \Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.bqSQL($definition['table']).'_shop`');
         }
 
         return $success;
@@ -188,10 +190,10 @@ class PayPalObjectModel extends ObjectModel
             $className = get_called_class();
         }
 
-        $definition = ObjectModel::getDefinition($className);
+        $definition = \ObjectModel::getDefinition($className);
         $sql = 'SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=\''._DB_NAME_.'\' AND TABLE_NAME=\''._DB_PREFIX_.pSQL($definition['table']).'\'';
 
-        return Db::getInstance()->executeS($sql);
+        return \Db::getInstance()->executeS($sql);
     }
 
     /**
@@ -241,7 +243,7 @@ class PayPalObjectModel extends ObjectModel
             }
         }
 
-        return (bool) Db::getInstance()->execute($sql);
+        return (bool) \Db::getInstance()->execute($sql);
     }
 
     /**
