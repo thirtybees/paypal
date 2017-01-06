@@ -174,7 +174,7 @@ class PayPalIpn extends \PayPal
 
         if (($newOrder == true) && (bccomp($mcGross, $totalPrice, 2) !== 0)) {
             $paymentType = (int) \Configuration::get('PS_OS_ERROR');
-            $message = $this->l('Price paid on paypal is not the same that on PrestaShop.').'<br />';
+            $message = $this->l('Price paid on paypal is not the same that on Thirty Bees.').'<br />';
         } elseif (($newOrder == true) && ($custom['hash'] != $cartHash)) {
             $paymentType = (int) \Configuration::get('PS_OS_ERROR');
             $message = $this->l('Cart changed, please retry.').'<br />';

@@ -2,7 +2,7 @@
 
 global $_MODULE;
 $_MODULE = array();
-$_MODULE['<{paypal}default-bootstrap>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Price paid on paypal is not the same that on PrestaShop.';
+$_MODULE['<{paypal}default-bootstrap>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Price paid on paypal is not the same that on Thirty Bees.';
 $_MODULE['<{paypal}default-bootstrap>ipn_572f9af7615560af2cba038cc1948287'] = 'Cart changed, please retry.';
 $_MODULE['<{paypal}default-bootstrap>ipn_ada2b5d5bbf3065de283d61526141780'] = 'Pending payment capture.';
 $_MODULE['<{paypal}default-bootstrap>ipn_36ec50c0e914dd2fb48a1b27540512ce'] = 'Payment accepted.';
@@ -59,13 +59,13 @@ $_MODULE['<{paypal}default-bootstrap>payment_ada2b5d5bbf3065de283d61526141780'] 
 $_MODULE['<{paypal}default-bootstrap>payment_36ec50c0e914dd2fb48a1b27540512ce'] = 'Payment accepted.';
 $_MODULE['<{paypal}default-bootstrap>payment_719073527bcc898d5e7cc63fd6d16ce4'] = 'eCheck';
 $_MODULE['<{paypal}default-bootstrap>payment_c8a31175ee6991be6a0d7a6d32ca4268'] = 'Pending payment confirmation.';
-$_MODULE['<{paypal}default-bootstrap>payment_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Price paid on paypal is not the same that on PrestaShop.';
+$_MODULE['<{paypal}default-bootstrap>payment_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Price paid on paypal is not the same that on Thirty Bees.';
 $_MODULE['<{paypal}default-bootstrap>payment_98825385aadb1d0dd0fd133ef8acd23d'] = 'Cannot create order';
 $_MODULE['<{paypal}default-bootstrap>payment_085b78e060c3ef4cc37bd25abd06ff66'] = 'Cart changed since the last checkout express, please make a new Paypal checkout payment';
 $_MODULE['<{paypal}default-bootstrap>payment_572da7ef1411f2a12409e752f3eb2f7a'] = 'Your cart is empty.';
 $_MODULE['<{paypal}default-bootstrap>process_ee9dc1e678d54c517f481583c3fb2db8'] = ' Not a valid currency';
 $_MODULE['<{paypal}default-bootstrap>process_484f5a79672cebe198ebdde45a1d672f'] = 'Gift wrapping';
-$_MODULE['<{paypal}default-bootstrap>notifier_8a34d4a5b0c3928059f6f92ead9e8aa6'] = ' Price paid on paypal is not the same that on PrestaShop.';
+$_MODULE['<{paypal}default-bootstrap>notifier_8a34d4a5b0c3928059f6f92ead9e8aa6'] = ' Price paid on paypal is not the same that on Thirty Bees.';
 $_MODULE['<{paypal}default-bootstrap>notifier_572f9af7615560af2cba038cc1948287'] = 'Cart changed, please retry.';
 $_MODULE['<{paypal}default-bootstrap>notifier_36ec50c0e914dd2fb48a1b27540512ce'] = 'Payment accepted.';
 $_MODULE['<{paypal}default-bootstrap>submit_795199051a09267451a5896d157e9490'] = 'Your payment has been taken into account';
@@ -86,7 +86,7 @@ $_MODULE['<{paypal}default-bootstrap>back_office_432cfbdc035243b5a1ef9f95c3cf807
 $_MODULE['<{paypal}default-bootstrap>back_office_071c77a3ce64ef511e953b5edd4f0207'] = 'Your configuration use version 1.0 to communicate with PayPal.From July, all payments will be blocked.Thank you to approach your hosting company to enable the TLS version 1.2';
 $_MODULE['<{paypal}default-bootstrap>back_office_ae3cebe661e92cdfd12516419fef4f2d'] = 'Download the';
 $_MODULE['<{paypal}default-bootstrap>back_office_e73756d0d2306110f29ccf28cb69c412'] = 'Paypal Integration Guide';
-$_MODULE['<{paypal}default-bootstrap>back_office_6506302a6e11077ecbc04b5932a65c4c'] = 'on PrestaShop and follow the configuration step by step';
+$_MODULE['<{paypal}default-bootstrap>back_office_6506302a6e11077ecbc04b5932a65c4c'] = 'on Thirty Bees and follow the configuration step by step';
 $_MODULE['<{paypal}default-bootstrap>back_office_516710946f5fb35af6496ad0b7582980'] = 'Getting started with PayPal only takes 5 minutes';
 $_MODULE['<{paypal}default-bootstrap>back_office_56564e0a106b0e0e2dc57b5a105ed639'] = 'Your country';
 $_MODULE['<{paypal}default-bootstrap>back_office_eb399bcaca686f8609137153307eecf1'] = 'change';
@@ -118,14 +118,14 @@ $_MODULE['<{paypal}default-bootstrap>back_office_5c57ba1861701e5a630dd5006acb30e
 $_MODULE['<{paypal}default-bootstrap>back_office_ff7e05b87636d641663fb2f590d9f2bd'] = 'Click on the SAVE button only when PayPal has approved your subscription for this product, otherwise you won\'t be able to process payment. This process can take up to 3-5 days.';
 $_MODULE['<{paypal}default-bootstrap>back_office_78ba94e61abed0cbb6349b37ec9ed59e'] = 'If your application for Website Payments Pro has already been approved by PayPal, please go directly to step 3';
 $_MODULE['<{paypal}default-bootstrap>back_office_5b0e8271bd4b23a6bd7a7f49725ed926'] = 'Process payments on your online shop';
-$_MODULE['<{paypal}default-bootstrap>back_office_b4e69ef9df8f20b984309ee73f78953b'] = 'Communicate your PayPal identification info to PrestaShop';
+$_MODULE['<{paypal}default-bootstrap>back_office_b4e69ef9df8f20b984309ee73f78953b'] = 'Communicate your PayPal identification info to Thirty Bees';
 $_MODULE['<{paypal}default-bootstrap>back_office_2ffe0ef69fd047d0884f98faa52c1bd3'] = 'Get my PayPal identification info';
 $_MODULE['<{paypal}default-bootstrap>back_office_36461ebc9ebcd269f3909fa49a4b0a57'] = 'fter clicking on the “Get my PayPal identification info” button, enter your login and password in the pop up, copy your PayPal identification info from the pop up and paste them is the below fields.';
 $_MODULE['<{paypal}default-bootstrap>back_office_266ba5df48aed68af0cce5f735035291'] = 'API username';
 $_MODULE['<{paypal}default-bootstrap>back_office_37e31370e4ab230ff6fba12cc6390aff'] = 'API password';
 $_MODULE['<{paypal}default-bootstrap>back_office_195ca49498f0b30d3a8967eff22fa9b3'] = 'API signature';
 $_MODULE['<{paypal}default-bootstrap>back_office_74cec07ee40362f7605816fdcfbf194d'] = 'Please check once more that you pasted all the characters.';
-$_MODULE['<{paypal}default-bootstrap>back_office_94ae34a9c107a078c63df4be1394e49d'] = 'Provide your PayPal API credentials to PrestaShop';
+$_MODULE['<{paypal}default-bootstrap>back_office_94ae34a9c107a078c63df4be1394e49d'] = 'Provide your PayPal API credentials to Thirty Bees';
 $_MODULE['<{paypal}default-bootstrap>back_office_76525f0f34b48475e5ca33f71d296f3b'] = 'Client ID';
 $_MODULE['<{paypal}default-bootstrap>back_office_1e6947ac7fb3a9529a9726eb692c8cc5'] = 'Secret';
 $_MODULE['<{paypal}default-bootstrap>back_office_90912596e1deb86b1f39bb30013e2f8b'] = 'Use personnalisation (uses your logo and your shop name on Paypal) :';

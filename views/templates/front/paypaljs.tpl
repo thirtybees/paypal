@@ -19,56 +19,6 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *}
 <script type="text/javascript">
-	{if $use_paypal_in_context}
-	window.paypalCheckoutReady = function () {
-		window.paypal.checkout.setup('{$PayPal_in_context_checkout_merchant_id|escape:'javascript':'UTF-8'}', {
-			environment: {if $PAYPAL_SANDBOX}'sandbox'{else}'production'{/if},
-			click: function (event) {
-				event.preventDefault();
-
-				window.paypal.checkout.initXO();
-				updateFormDatas();
-				var str = '';
-				if ($('#paypal_payment_form input[name="id_product"]').length > 0) {
-					str += '&id_product=' + $('#paypal_payment_form input[name="id_product"]').val();
-				}
-				if ($('#paypal_payment_form input[name="quantity"]').length > 0) {
-					str += '&quantity=' + $('#paypal_payment_form input[name="quantity"]').val();
-				}
-				if ($('#paypal_payment_form input[name="id_product_attribute"]').length > 0) {
-					str += '&id_product_attribute=' + $('#paypal_payment_form input[name="id_product_attribute"]').val();
-				}
-
-				$.support.cors = true;
-
-				$.ajax({
-					url: '{$express_checkout_payment_link|escape:'javascript':'UTF-8'}',
-					type: 'GET',
-					data: {
-						ajax: 1,
-						onlytoken: 1,
-						express_checkout: $('input[name="express_checkout"]').val(),
-						current_shop_url: $('input[name="current_shop_url"]').val(),
-						bn: $('input[name="bn"]').val() + str,
-					},
-					async: true,
-					crossDomain: true,
-					success: function (token) {
-						var url = window.paypal.checkout.urlPrefix + token;
-						window.paypal.checkout.startFlow(url);
-					},
-					error: function (responseData, textStatus, errorThrown) {
-						alert("Error in ajax post" + responseData.statusText);
-
-						window.paypal.checkout.closeFlow();
-					}
-				});
-			},
-			button: ['paypal_process_payment', 'payment_paypal_express_checkout']
-		});
-	};
-	{/if}
-
 	(function () {
 		function initPayPalJs() {
 			if (typeof $ === 'undefined' || !$('#payment_paypal_express_checkout').length) {
@@ -85,6 +35,57 @@
 			}
 
 			$('body').on('submit', "#paypal_payment_form", updateFormDatas);
+
+			{if $use_paypal_in_context}
+			window.paypalCheckoutReady = function () {
+				window.paypal.checkout.setup('{$PayPal_in_context_checkout_merchant_id|escape:'javascript':'UTF-8'}', {
+					environment: {if $PAYPAL_SANDBOX}'sandbox'{else}'production'{/if},
+					click: function (event) {
+						event.preventDefault();
+
+						window.paypal.checkout.initXO();
+						updateFormDatas();
+						var str = '';
+						if ($('#paypal_payment_form input[name="id_product"]').length > 0) {
+							str += '&id_product=' + $('#paypal_payment_form input[name="id_product"]').val();
+						}
+						if ($('#paypal_payment_form input[name="quantity"]').length > 0) {
+							str += '&quantity=' + $('#paypal_payment_form input[name="quantity"]').val();
+						}
+						if ($('#paypal_payment_form input[name="id_product_attribute"]').length > 0) {
+							str += '&id_product_attribute=' + $('#paypal_payment_form input[name="id_product_attribute"]').val();
+						}
+
+						$.support.cors = true;
+
+						$.ajax({
+							url: '{$express_checkout_payment_link|escape:'javascript':'UTF-8'}',
+							type: 'GET',
+							data: {
+								ajax: 1,
+								onlytoken: 1,
+								express_checkout: $('input[name="express_checkout"]').val(),
+								current_shop_url: $('input[name="current_shop_url"]').val(),
+								bn: $('input[name="bn"]').val() + str,
+							},
+							async: true,
+							crossDomain: true,
+							success: function (token) {
+								var url = window.paypal.checkout.urlPrefix + token;
+								window.paypal.checkout.startFlow(url);
+								console.log('token: '+ token);
+							},
+							error: function (responseData, textStatus, errorThrown) {
+								alert("Error in ajax post" + responseData.statusText);
+
+								window.paypal.checkout.closeFlow();
+							}
+						});
+					},
+					button: ['paypal_process_payment', 'payment_paypal_express_checkout']
+				});
+			};
+			{/if}
 
 			{if !$use_paypal_in_context}
 			$('#payment_paypal_express_checkout').click(function () {

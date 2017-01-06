@@ -67,7 +67,7 @@ class PayPalObjectModel extends \ObjectModel
 
         try {
             $success &= Db::getInstance()->execute($sql);
-        } catch (\PrestaShopDatabaseException $exception) {
+        } catch (\Thirty BeesDatabaseException $exception) {
             self::dropDatabase($className);
 
             return false;
@@ -101,7 +101,7 @@ class PayPalObjectModel extends \ObjectModel
 
             try {
                 $success &= \Db::getInstance()->execute($sql);
-            } catch (\PrestaShopDatabaseException $exception) {
+            } catch (\Thirty BeesDatabaseException $exception) {
                 self::dropDatabase($className);
 
                 return false;
@@ -136,7 +136,7 @@ class PayPalObjectModel extends \ObjectModel
 
             try {
                 $success &= \Db::getInstance()->execute($sql);
-            } catch (\PrestaShopDatabaseException $exception) {
+            } catch (\Thirty BeesDatabaseException $exception) {
                 self::dropDatabase($className);
 
                 return false;

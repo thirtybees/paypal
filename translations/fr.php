@@ -2,7 +2,7 @@
 
 global $_MODULE;
 $_MODULE = array();
-$_MODULE['<{paypal}prestashop>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Le prix payé sur PayPal n\'est le même que sur PrestaShop';
+$_MODULE['<{paypal}prestashop>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Le prix payé sur PayPal n\'est le même que sur Thirty Bees';
 $_MODULE['<{paypal}prestashop>ipn_572f9af7615560af2cba038cc1948287'] = 'Le panier a été modifié, merci de réessayer';
 $_MODULE['<{paypal}prestashop>ipn_ada2b5d5bbf3065de283d61526141780'] = 'En attente de capture';
 $_MODULE['<{paypal}prestashop>ipn_36ec50c0e914dd2fb48a1b27540512ce'] = 'Paiement accepté';
@@ -72,7 +72,7 @@ $_MODULE['<{paypal}prestashop>back_office_3a73e92a81de06fba19ab722bd500675'] = '
 $_MODULE['<{paypal}prestashop>back_office_421fe69f8b38a3c361835747e6215227'] = 'Acceptez les principaux moyens de paiements';
 $_MODULE['<{paypal}prestashop>back_office_ae3cebe661e92cdfd12516419fef4f2d'] = 'Télécharger le';
 $_MODULE['<{paypal}prestashop>back_office_e73756d0d2306110f29ccf28cb69c412'] = 'Guide d\'intégration de PayPal';
-$_MODULE['<{paypal}prestashop>back_office_6506302a6e11077ecbc04b5932a65c4c'] = 'sur PrestaShop et suivez les étapes pas à pas';
+$_MODULE['<{paypal}prestashop>back_office_6506302a6e11077ecbc04b5932a65c4c'] = 'sur Thirty Bees et suivez les étapes pas à pas';
 $_MODULE['<{paypal}prestashop>back_office_516710946f5fb35af6496ad0b7582980'] = 'Commencer avec PayPal ne prend que 5 minutes';
 $_MODULE['<{paypal}prestashop>back_office_56564e0a106b0e0e2dc57b5a105ed639'] = 'Votre pays';
 $_MODULE['<{paypal}prestashop>back_office_eb399bcaca686f8609137153307eecf1'] = 'change';
@@ -102,7 +102,7 @@ $_MODULE['<{paypal}prestashop>back_office_b26917587d98330d93f87808fc9d7267'] = '
 $_MODULE['<{paypal}prestashop>back_office_5c57ba1861701e5a630dd5006acb30e2'] = 'Une fois votre compte créé, revenez sur cette page pour compléter l\'étape 3';
 $_MODULE['<{paypal}prestashop>back_office_ff7e05b87636d641663fb2f590d9f2bd'] = 'PayPal Integral Evolution est soumis à conditions et la validation de votre inscription peut prendre 3 à 5 jours ouvrés. Veuillez ne cliquer sur le bouton \"Sauvegardez\" en bas de la page qu\'une fois votre inscription validée par PayPal';
 $_MODULE['<{paypal}prestashop>back_office_78ba94e61abed0cbb6349b37ec9ed59e'] = 'Si votre souscription à PayPal Intégral Evolution a déjà été validée par PayPal, merci d\'aller directement à l\'étape 3';
-$_MODULE['<{paypal}prestashop>back_office_b4e69ef9df8f20b984309ee73f78953b'] = 'Communiquez vos informations d\'identification PayPal à PrestaShop';
+$_MODULE['<{paypal}prestashop>back_office_b4e69ef9df8f20b984309ee73f78953b'] = 'Communiquez vos informations d\'identification PayPal à Thirty Bees';
 $_MODULE['<{paypal}prestashop>back_office_2ffe0ef69fd047d0884f98faa52c1bd3'] = 'Obtenir mes informations d\'identification PayPal';
 $_MODULE['<{paypal}prestashop>back_office_36461ebc9ebcd269f3909fa49a4b0a57'] = 'Après avoir cliqué sur le bouton \"Obtenir mes informations d\'identification PayPal\", entrez vos identifiant et mot de passe PayPal dans la fenêtre qui s\'affichera, copier les informations fournies par PayPal et collez les dans les champs ci-dessous';
 $_MODULE['<{paypal}prestashop>back_office_266ba5df48aed68af0cce5f735035291'] = 'Identifiant API';

@@ -68,13 +68,13 @@
 		{if $default_lang_iso == 'fr'}
 			<div class="paypal-clear"></div><hr />
 			<div class="box">
-			{l s='Download the ' mod='paypal'}<a href="http://altfarm.mediaplex.com/ad/ck/3484-197941-8030-54"> {l s='Paypal Integration Guide' mod='paypal'}</a> {l s='on PrestaShop and follow the configuration step by step' mod='paypal'}
+			{l s='Download the ' mod='paypal'}<a href="http://altfarm.mediaplex.com/ad/ck/3484-197941-8030-54"> {l s='Paypal Integration Guide' mod='paypal'}</a> {l s='on Thirty Bees and follow the configuration step by step' mod='paypal'}
 				
 			</div>
 		{else}
 			<div class="paypal-clear"></div><hr />
 			<div class="box">
-			{l s='Download the ' mod='paypal'}<a href="http://altfarm.mediaplex.com/ad/ck/3484-197941-8030-169"> {l s='Paypal Integration Guide' mod='paypal'}</a> {l s='on PrestaShop and follow the configuration step by step' mod='paypal'}
+			{l s='Download the ' mod='paypal'}<a href="http://altfarm.mediaplex.com/ad/ck/3484-197941-8030-169"> {l s='Paypal Integration Guide' mod='paypal'}</a> {l s='on Thirty Bees and follow the configuration step by step' mod='paypal'}
 				
 			</div>
 		{/if}
@@ -223,7 +223,7 @@
 					{* Credentials *}
 
 					<div id="standard-credentials">
-						<h4>{l s='Communicate your PayPal identification info to PrestaShop' mod='paypal'}</h4>
+						<h4>{l s='Communicate your PayPal identification info to Thirty Bees' mod='paypal'}</h4>
 
 						<br />
 
@@ -246,7 +246,7 @@
 					</div>
 
 									<div id="paypalplus-credentials">
-						<h4>{l s='Provide your PayPal API credentials to PrestaShop' mod='paypal'}</h4>
+						<h4>{l s='Provide your PayPal API credentials to Thirty Bees' mod='paypal'}</h4>
 
 						<br />
 

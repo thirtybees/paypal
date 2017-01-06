@@ -481,7 +481,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             if ($amountMatch) {
                 $message = implode('<br />', $ppec->logs).'<br />';
             } else {
-                $message = $this->module->l('Price paid on paypal is not the same that on PrestaShop.').'<br />';
+                $message = $this->module->l('Price paid on paypal is not the same that on Thirty Bees.').'<br />';
             }
 
         }

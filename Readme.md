@@ -7,7 +7,7 @@ Let customer pay with PayPal Express Checkout or PayPal Integral Evolution.
 
 ## Contributing
 
-PrestaShop modules are open-source extensions to the PrestaShop e-commerce solution. Everyone is welcome and even encouraged to contribute with their own improvements.
+Thirty Bees modules are open-source extensions to the Thirty Bees e-commerce solution. Everyone is welcome and even encouraged to contribute with their own improvements.
 
 ### Requirements
 
@@ -23,7 +23,7 @@ Contributors wishing to edit a module's files should follow the following proces
 
 1. Create your GitHub account, if you do not have one already.
 2. Fork the bankwire project to your GitHub account.
-3. Clone your fork to your local machine in the ```/modules``` directory of your PrestaShop installation.
+3. Clone your fork to your local machine in the ```/modules``` directory of your Thirty Bees installation.
 4. Create a branch in your local clone of the module for your changes.
 5. Change the files in your branch. Be sure to follow [the coding standards][1]!
 6. Push your changed branch to your fork in your GitHub account.

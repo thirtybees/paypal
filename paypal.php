@@ -149,7 +149,7 @@ class PayPal extends PaymentModule
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
         $this->version = '4.0.0';
-        $this->author = 'PrestaShop';
+        $this->author = 'Thirty Bees';
         $this->is_eu_compatible = 1;
 
         $this->currencies = true;
@@ -564,11 +564,12 @@ class PayPal extends PaymentModule
             'PayPal_in_context_checkout' => Configuration::get(self::IN_CONTEXT_CHECKOUT),
             'use_paypal_in_context' => (int) $this->useInContextCheckout(),
             'PayPal_in_context_checkout_merchant_id' => Configuration::get(self::IN_CONTEXT_CHECKOUT_M_ID),
+            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', array(), Tools::usingSecureMode()),
         ));
 
         $process = $this->fetchTemplate('views/templates/front/paypaljs.tpl');
         if ($this->useInContextCheckout()) {
-            $process .= '<script defer src="//www.paypalobjects.com/api/checkout.js"></script>';
+            $process .= '<script async defer src="//www.paypalobjects.com/api/checkout.js"></script>';
         }
 
         if ((
