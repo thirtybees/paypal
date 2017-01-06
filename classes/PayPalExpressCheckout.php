@@ -26,9 +26,9 @@ require_once dirname(__FILE__).'/../paypal.php';
 
 class PayPalExpressCheckout
 {
-    public $errors = array();
+    public $logs = array();
 
-    public $method_version = '106';
+    public $methodVersion = '106';
 
     public $method;
 
@@ -101,12 +101,12 @@ class PayPalExpressCheckout
     /** @var array $cookieKey */
     public $cookieKey = array(
         'token',
-        'id_product',
-        'id_prodcut_attrbute',
+        'idProduct',
+        'idProductAttribute',
         'quantity',
         'type',
-        'total_different_product',
-        'secure_key',
+        'totalDifferentProduct',
+        'secureKey',
         'ready',
         'payerId',
     );
@@ -139,7 +139,9 @@ class PayPalExpressCheckout
             $paypal = unserialize($this->context->cookie->{self::$cookieName});
 
             foreach ($this->cookieKey as $key) {
-                $this->{$key} = $paypal[$key];
+                if (isset($paypal[$key])) {
+                    $this->{$key} = $paypal[$key];
+                }
             }
         }
     }
@@ -305,11 +307,11 @@ class PayPalExpressCheckout
      */
     protected function callAPI($fields)
     {
-        $this->errors = array();
+        $this->logs = array();
         $paypalLib = new PaypalLib();
 
-        $this->result = $paypalLib->makeCall($this->module->getAPIURL(), $this->module->getAPIScript(), $this->method, $fields, $this->method_version);
-        $this->errors = array_merge($this->errors, $paypalLib->getLogs());
+        $this->result = $paypalLib->makeCall($this->module->getAPIURL(), $this->module->getAPIScript(), $this->method, $fields, $this->methodVersion);
+        $this->logs = array_merge($this->logs, $paypalLib->getLogs());
 
         $this->storeToken();
     }

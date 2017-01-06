@@ -19,48 +19,44 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *}
 <script type="text/javascript">
-	$(function () {
-		if ($("#create-account_form").length > 0)
-		{if $smarty.const._PS_VERSION_ >= 1.6}
-			$("#create-account_form").parent().before('<div id="buttonPaypalLogin1"></div>');
-		{else}
-		$("#create-account_form").before('<div id="buttonPaypalLogin1"></div>');
-		{/if}
-	}
-	else
-	{
-		{if $smarty.const._PS_VERSION_ >= 1.6}
-		$("#login_form").parent().before('<div id="buttonPaypalLogin1"></div>');
-		{else}
-		$("#login_form").before('<div id="buttonPaypalLogin1"></div>');
-		{/if}
-		$("#buttonPaypalLogin1").css({ldelim}
-			"clear": "both",
-			"margin-bottom": "13px"
-			{rdelim});
-		{rdelim}
+	(function () {
+		function initPayPalLoginJs() {
+			if (typeof window.paypal === 'undefined') {
+				setTimeout(initPayPalLoginJs, 100);
+				return;
+			}
 
-	$("#buttonPaypalLogin1").css({ldelim}
-		"clear": "both",
-		'margin-bottom': '10px',
-		{if $smarty.const._PS_VERSION_ >= 1.6}
-		'margin-left': '20px',
-		'width': '100%'
-		{/if}
-		{rdelim});
+			if ($("#create-account_form").length > 0) {
+				$("#create-account_form").parent().before('<div id="buttonPaypalLogin1"></div>');
+			} else {
+				$("#login_form").parent().before('<div id="buttonPaypalLogin1"></div>');
+				$("#buttonPaypalLogin1").css({
+					"clear": "both",
+					"margin-bottom": "13px"
+				});
+			}
+			$("#buttonPaypalLogin1").css({
+				"clear": "both",
+				'margin-bottom': '10px',
+				'margin-left': '20px',
+				'width': '100%'
+			});
 
-	paypal.use(["login"], function (login) {ldelim}
-		login.render({ldelim}
-			"appid": "{$PAYPAL_LOGIN_CLIENT_ID}",
-			{if $PAYPAL_SANDBOX == 1} "authend": "sandbox",{/if}
-			"scopes": "openid profile email address phone https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/expresscheckout",
-			"containerid": "buttonPaypalLogin1",
-			{if $PAYPAL_LOGIN_TPL == 2} "theme": "neutral", {/if}
-			"returnurl": "{$PAYPAL_RETURN_LINK}?{$page_name}",
-			'locale': '{$paypal_locale}',
-			{rdelim});
-		{rdelim});
-	{rdelim})
+			winwow.paypal.use(['login'], function (login) {
+				login.render({
+					appid: '{$PAYPAL_LOGIN_CLIENT_ID|escape:'javascript':'UTF-8'}',
+					authend: {if $PAYPAL_SANDBOX}'sandbox'{else}'production'{/if},
+					scopes: 'openid profile email address phone https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/expresscheckout',
+					containerid: 'buttonPaypalLogin1',
+					theme: {if $PAYPAL_LOGIN_TPL == 2}'neutral'{else}null{/if},
+					returnurl: '{$PAYPAL_RETURN_LINK|escape:'javascript':'UTF-8'}?{$page_name|escape:'javascript':'UTF-8'}',
+					locale: '{$paypal_locale|escape:'javascript':'UTF-8'}',
+				});
+			});
+		}
+
+		initPayPalLoginJs();
+	})();
 	;
 </script>
 

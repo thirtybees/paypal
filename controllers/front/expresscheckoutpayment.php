@@ -73,7 +73,8 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
         /* Get payment infos from paypal */
         $ppec->getExpressCheckout();
 
-        if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
+        if ($ppec->hasSucceedRequest() && $ppec->token) {
+            $ppec->ready = true;
             $address = $customer = null;
             $email = $ppec->result['EMAIL'];
 
@@ -95,7 +96,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             }
 
             if (!$customer->id) {
-                $ppec->errors[] = $this->module->l('Cannot create customer');
+                $ppec->logs[] = $this->module->l('Cannot create customer');
             }
 
             if (!isset($ppec->result['PAYMENTREQUEST_0_SHIPTOSTREET']) || !isset($ppec->result['PAYMENTREQUEST_0_SHIPTOCITY'])
@@ -130,7 +131,8 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             }
 
             if ($customer->id && !$address->id) {
-                $ppec->errors[] = $this->module->l('Cannot create Address');
+                $ppec->logs[] = $this->module->l('Cannot create Address');
+                $ppec->ready = false;
             }
 
             /* Create Order */
@@ -141,13 +143,14 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
                 $this->context->cart->id_guest = $this->context->cookie->id_guest;
 
                 if (!$this->context->cart->update()) {
-                    $ppec->errors[] = $this->module->l('Cannot update existing cart');
+                    $ppec->logs[] = $this->module->l('Cannot update existing cart');
+                    $ppec->ready = false;
                 }
             }
         }
 
         // if previous steps succeed, the errors array should be empty
-        if (empty($ppec->errors) && $ppec->token && $ppec->payerId) {
+        if ($ppec->ready && $ppec->token && $ppec->payerId) {
             /* Check modification on the product cart / quantity */
             // FIXME: broken, find a better way
 //            if ($ppec->isProductsListStillRight()) {
@@ -167,7 +170,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             unset($this->context->cookie->{PayPalExpressCheckout::$cookieName});
 
             if (!$this->module->currentOrder) {
-                $ppec->errors[] = $this->module->l('Cannot create order');
+                $ppec->logs[] = $this->module->l('Cannot create order');
             } else {
                 $idOrder = (int) $this->module->currentOrder;
                 $order = new Order($idOrder);
@@ -186,7 +189,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
                 Tools::redirect($link);
             } elseif ($ppec->result['ACK'] != 'Failure') {
                 $this->context->smarty->assign(array(
-                    'logs' => $ppec->errors,
+                    'logs' => $ppec->logs,
                     'message' => $this->module->l('Error occurred:'),
                 ));
 
@@ -202,10 +205,10 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
         /* Display result if error occurred */
         if (!$this->context->cart->id) {
             $this->context->cart->delete();
-            $ppec->errors[] = $this->module->l('Your cart is empty.');
+            $ppec->logs[] = $this->module->l('Your cart is empty.');
         }
         $this->context->smarty->assign(array(
-            'logs' => $ppec->errors,
+            'logs' => $ppec->logs,
             'message' => $this->module->l('Error occurred:'),
         ));
 
@@ -240,11 +243,11 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             $this->setContextData($ppec);
 
             if (!$this->context->cart->add()) {
-                $ppec->errors[] = $this->module->l('Cannot create new cart');
+                $ppec->logs[] = $this->module->l('Cannot create new cart');
 
                 $this->context->smarty->assign(
                     array(
-                        'logs' => $ppec->errors,
+                        'logs' => $ppec->logs,
                         'message' => $this->module->l('Error occurred:'),
                         'use_mobile' => (bool) $this->context->getMobileDevice(),
                     )
@@ -274,7 +277,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             $ppec->redirectToAPI();
         } else {
             // Display Error and die with this method
-            $this->module->displayPayPalAPIError($this->module->l('Error during the preparation of the Express Checkout payment'), $ppec->errors);
+            $this->module->displayPayPalAPIError($this->module->l('Error during the preparation of the Express Checkout payment'), $ppec->logs);
         }
     }
 
@@ -453,7 +456,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
                     $message = $this->module->l('Pending payment confirmation.').'<br />';
                 } else {
                     $paymentType = (int) Configuration::get('PS_OS_ERROR');
-                    $message = implode('<br />', $ppec->errors).'<br />';
+                    $message = implode('<br />', $ppec->logs).'<br />';
                 }
             }
         } else {
@@ -467,7 +470,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             $paymentType = (int) Configuration::get('PS_OS_ERROR');
 
             if ($amountMatch) {
-                $message = implode('<br />', $ppec->errors).'<br />';
+                $message = implode('<br />', $ppec->logs).'<br />';
             } else {
                 $message = $this->module->l('Price paid on paypal is not the same that on PrestaShop.').'<br />';
             }
