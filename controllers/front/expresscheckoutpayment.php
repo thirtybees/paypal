@@ -42,6 +42,8 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
 
     public function initContent()
     {
+        parent::initContent();
+
         return $this->processPayment();
     }
 
@@ -240,7 +242,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
                         'message' => $ppec->l('Error occurred:'),
                     ));
 
-                    $template = 'error.tpl';
+                    $this->setTemplate('error.tpl');
                 }
             } else {
                 /* If Cart changed, no need to keep the paypal data */
@@ -249,11 +251,9 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             }
         }
 
-        $display = new FrontController();
-
         /* Display result if error occurred */
-        if (!$ppec->context->cart->id) {
-            $ppec->context->cart->delete();
+        if (!$this->context->cart->id) {
+            $this->context->cart->delete();
             $ppec->logs[] = $ppec->l('Your cart is empty.');
         }
         $ppec->context->smarty->assign(array(
@@ -272,7 +272,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
             'use_mobile' => (bool) $ppec->useMobile(),
         ));
 
-        $this->setTemplate(_PS_MODULE_DIR_.'paypal/views/templates/front/'.$template);
+        $this->setTemplate($template);
     }
 
     /**

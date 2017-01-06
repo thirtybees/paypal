@@ -77,7 +77,7 @@ class PayPalExpressCheckout extends Paypal
         'total_different_product',
         'secure_key',
         'ready',
-        'payer_id',
+        'payerId',
     );
 
     /**
@@ -722,11 +722,7 @@ class PayPalExpressCheckout extends Paypal
         $this->context->cookie->is_guest = $customer->isGuest();
         $this->context->cookie->logged = 1;
 
-        if (version_compare(_PS_VERSION_, '1.5', '<')) {
-            Module::hookExec('authentication');
-        } else {
-            Hook::exec('authentication');
-        }
+        Hook::exec('authentication');
 
         if ($redirect) {
             $link = $this->context->link->getPageLink('order.php', false, null, array('step' => '1'));

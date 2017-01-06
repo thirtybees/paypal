@@ -28,9 +28,9 @@
 	<input type="hidden" name="quantity" value="1" />
 	{/if}
 	{if isset($id_product_attribute_ecs)}
-	<input type="hidden" name="id_p_attr" value="{$id_product_attribute_ecs|escape:'htmlall':'UTF-8'}" />
+	<input type="hidden" name="id_product_attribute" value="{$id_product_attribute_ecs|escape:'htmlall':'UTF-8'}" />
 	{else}
-	<input type="hidden" name="id_p_attr" value="" />
+	<input type="hidden" name="id_product_attribute" value="" />
 	{/if}
 	<input type="hidden" name="express_checkout" value="{$PayPal_payment_type|escape:'htmlall':'UTF-8'}"/>
 	<input type="hidden" name="current_shop_url" value="{$PayPal_current_page|escape:'htmlall':'UTF-8'}" />

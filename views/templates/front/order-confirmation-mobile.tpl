@@ -23,7 +23,7 @@
 	{include file="$tpl_dir./errors.tpl"}
 
 	<h2>{l s='Order confirmation' mod='paypal'}</h2>
-	
+
 	{assign var='current_step' value='payment'}
 
 	{include file="$tpl_dir./errors.tpl"}
@@ -31,11 +31,11 @@
 	{$HOOK_ORDER_CONFIRMATION}
 	{$HOOK_PAYMENT_RETURN}
 
-	<br />
+	<br/>
 
 	{if $order}
 		<p>{l s='Total of the transaction (taxes incl.) :' mod='paypal'} <span class="paypal-bold">{$price|escape:'htmlall':'UTF-8'}</span></p>
-		<p>{l s='Your order ID is :' mod='paypal'} 
+		<p>{l s='Your order ID is :' mod='paypal'}
 			<span class="paypal-bold">
 			{if $smarty.const._PS_VERSION_ >= 1.5}
 				{Order::getUniqReferenceOf($order.id_order)|escape:'htmlall':'UTF-8'}
@@ -46,9 +46,9 @@
 		</p>
 		<p>{l s='Your PayPal transaction ID is :' mod='paypal'} <span class="paypal-bold">{$order.id_transaction|escape:'htmlall':'UTF-8'}</span></p>
 	{/if}
-	
-	<br />
-	
+
+	<br/>
+
 	{if !$is_guest}
 		<a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}" data-role="button" data-theme="a" data-icon="back" data-ajax="false">{l s='Continue shopping' mod='paypal'}</a>
 	{else}
@@ -61,5 +61,5 @@
 			</li>
 		</ul>
 	{/if}
-	<br />
+	<br/>
 </div><!-- /content -->

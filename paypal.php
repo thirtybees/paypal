@@ -159,6 +159,7 @@ class PayPal extends PaymentModule
             'logintoken',
             'submit',
             'submitplus',
+            'ipn',
         );
 
         if (self::isInstalled($this->name)) {
@@ -552,7 +553,7 @@ class PayPal extends PaymentModule
             'PayPal_in_context_checkout_merchant_id' => Configuration::get(self::IN_CONTEXT_CHECKOUT_M_ID),
         ));
 
-        $process = '<script type="text/javascript">'.$this->fetchTemplate('views/js/paypal.js').'</script>';
+        $process = $this->fetchTemplate('views/templates/front/paypaljs.tpl');
         if ($this->useInContextCheckout()) {
             $process .= '<script defer src="//www.paypalobjects.com/api/checkout.js"></script>';
         }
@@ -571,8 +572,7 @@ class PayPal extends PaymentModule
                 'PAYPAL_RETURN_LINK' => PayPalLogin::getReturnLink(),
             ));
             $process .= '
-                    <script src="https://www.paypalobjects.com/js/external/api.js"></script>
-                    <script>'.$this->fetchTemplate('views/js/paypal_login.js').'</script>';
+                    <script src="https://www.paypalobjects.com/js/external/api.js"></script>'.$this->fetchTemplate('views/js/paypal_login.js');
         }
 
         if (Configuration::get(self::PAYMENT_METHOD) == PPP) {
@@ -779,8 +779,8 @@ class PayPal extends PaymentModule
                 'subtotal' => $cartDetails['total_price_without_tax'] - $cartDetails['total_shipping_tax_exc'],
                 'time' => time(),
                 'cancel_return' => $this->context->link->getPageLink('order.php'),
-                'notify_url' => $shopUrl._MODULE_DIR_.$this->name.'/ipn.php',
-                'return_url' => $shopUrl._MODULE_DIR_.$this->name.'/integral_evolution/submit.php?id_cart='.(int) $cart->id,
+                'notify_url' => $this->context->link->getModuleLink($this->name, 'hostedsolutionsubmit', array('id_cart' => (int) $cart->id), Tools::usingSecureMode()),
+                'return_url' => $this->context->link->getModuleLink($this->name, 'hostedsolutionsubmit', array('id_cart' => (int) $cart->id), Tools::usingSecureMode()),
                 'tracking_code' => $this->getTrackingCode($method),
                 'iso_code' => Tools::strtoupper($this->context->language->iso_code),
                 'payment_hss_solution' => Configuration::get('PAYPAL_HSS_SOLUTION'),
@@ -895,7 +895,9 @@ class PayPal extends PaymentModule
                 ? $values[$this->context->language->iso_code] : 'en_US'),
             'PayPal_tracking_code' => $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD')),
             'include_form' => true,
-            'template_dir' => dirname(__FILE__).'/views/templates/hook/'));
+            'template_dir' => dirname(__FILE__).'/views/templates/hook/',
+            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', array(), Tools::usingSecureMode()),
+        ));
 
         return $this->fetchTemplate('express_checkout_shortcut_button.tpl');
     }
@@ -1106,6 +1108,7 @@ class PayPal extends PaymentModule
             'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
             'PayPal_tracking_code' => $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD')),
             'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
+            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', array(), Tools::usingSecureMode()),
         ));
 
         return $this->fetchTemplate('express_checkout_shortcut_button.tpl');
