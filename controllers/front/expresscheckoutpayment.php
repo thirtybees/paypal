@@ -36,10 +36,13 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
     /** @var PayPalExpressCheckout $payPalExpressCheckout */
     public $payPalExpressCheckout;
 
+    /** @var int $idOrder */
     public $idOrder;
 
+    /** @var int $idModule */
     public $idModule;
 
+    /** @var string $payPalKey */
     public $payPalKey;
 
     /** @var PayPal $module */
@@ -61,6 +64,67 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
         return $this->preparePayment();
     }
 
+    /**
+     * Prepare to redirect visitor to PayPal website
+     */
+    public function preparePayment()
+    {
+        /* Normal payment process */
+        if (Tools::isSubmit('key')) {
+            $this->payPalKey = Tools::getValue('key');
+        }
+
+        $ppec = $this->payPalExpressCheckout;
+
+        $idProduct = (int) Tools::getValue('id_product');
+        $productQuantity = (int) Tools::getValue('quantity');
+        $idProductAttribute = Tools::getValue('id_product_attribute');
+
+        if (($idProduct > 0) && $idProductAttribute !== false && ($productQuantity > 0)) {
+            $this->setContextData($ppec);
+
+            if (!$this->context->cart->add()) {
+                $ppec->logs[] = $this->module->l('Cannot create new cart');
+
+                $this->context->smarty->assign(
+                    array(
+                        'logs' => $ppec->logs,
+                        'message' => $this->module->l('Error occurred:'),
+                        'use_mobile' => (bool) $this->context->getMobileDevice(),
+                    )
+                );
+            } else {
+                $this->context->cookie->id_cart = (int) $this->context->cart->id;
+            }
+
+            $this->context->cart->updateQty((int) $productQuantity, (int) $idProduct, (int) $idProductAttribute);
+            $this->context->cart->update();
+        }
+
+        $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
+
+        if ($loginUser && $loginUser->expires_in <= time()) {
+            $obj = new PayPalLogin();
+            $loginUser = $obj->getRefreshToken();
+        }
+
+        /* Set details for a payment */
+        $ppec->setExpressCheckout(($loginUser ? $loginUser->access_token : false));
+
+        if (Tools::getValue('ajax') && $this->module->useInContextCheckout()) {
+            $ppec->displayPaypalInContextCheckout();
+        }
+        if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
+            $ppec->redirectToAPI();
+        } else {
+            // Display Error and die with this method
+            $this->module->displayPayPalAPIError($this->module->l('Error during the preparation of the Express Checkout payment'), $ppec->logs);
+        }
+    }
+
+    /**
+     * Process PayPal payment
+     */
     public function processPayment()
     {
         $this->payPalExpressCheckout->idCart = Context::getContext()->cart->id;
@@ -224,61 +288,6 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends ModuleFrontContr
         ));
 
         $this->setTemplate($template);
-    }
-
-    public function preparePayment()
-    {
-        /* Normal payment process */
-        if (Tools::isSubmit('key')) {
-            $this->payPalKey = Tools::getValue('key');
-        }
-
-        $ppec = $this->payPalExpressCheckout;
-
-        $idProduct = (int) Tools::getValue('id_product');
-        $productQuantity = (int) Tools::getValue('quantity');
-        $idProductAttribute = Tools::getValue('id_product_attribute');
-
-        if (($idProduct > 0) && $idProductAttribute !== false && ($productQuantity > 0)) {
-            $this->setContextData($ppec);
-
-            if (!$this->context->cart->add()) {
-                $ppec->logs[] = $this->module->l('Cannot create new cart');
-
-                $this->context->smarty->assign(
-                    array(
-                        'logs' => $ppec->logs,
-                        'message' => $this->module->l('Error occurred:'),
-                        'use_mobile' => (bool) $this->context->getMobileDevice(),
-                    )
-                );
-            } else {
-                $this->context->cookie->id_cart = (int) $this->context->cart->id;
-            }
-
-            $this->context->cart->updateQty((int) $productQuantity, (int) $idProduct, (int) $idProductAttribute);
-            $this->context->cart->update();
-        }
-
-        $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
-
-        if ($loginUser && $loginUser->expires_in <= time()) {
-            $obj = new PayPalLogin();
-            $loginUser = $obj->getRefreshToken();
-        }
-
-        /* Set details for a payment */
-        $ppec->setExpressCheckout(($loginUser ? $loginUser->access_token : false));
-
-        if (Tools::getValue('ajax') && $this->module->useInContextCheckout()) {
-            $ppec->displayPaypalInContextCheckout();
-        }
-        if ($ppec->hasSucceedRequest() && !empty($ppec->token)) {
-            $ppec->redirectToAPI();
-        } else {
-            // Display Error and die with this method
-            $this->module->displayPayPalAPIError($this->module->l('Error during the preparation of the Express Checkout payment'), $ppec->logs);
-        }
     }
 
     /**
