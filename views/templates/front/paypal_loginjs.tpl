@@ -26,8 +26,6 @@
 				return;
 			}
 
-			console.log('login initialized');
-
 			if ($("#create-account_form").length > 0) {
 				$("#create-account_form").parent().before('<div id="buttonPaypalLogin1"></div>');
 			} else {
