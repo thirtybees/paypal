@@ -23,15 +23,13 @@
 
 {literal}
     <script type="application/javascript">
-    
         var ppp = PAYPAL.apps.PPP({
-            "approvalUrl": "{/literal}{$approval_url|escape:'htmlall':'UTF-8'}{literal}",
+            "approvalUrl": "{/literal}{$approval_url}{literal}",
             "placeholder": "ppplus",
             "mode": "{/literal}{$mode|escape:'htmlall':'UTF-8'}{literal}",
             "language": "{/literal}{$language|escape:'htmlall':'UTF-8'}{literal}",
             "country": "{/literal}{$country|escape:'htmlall':'UTF-8'}{literal}",
         });
-   
     </script>
 {/literal}
 

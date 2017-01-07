@@ -79,22 +79,22 @@ class PayPalOrder extends PayPalObjectModel
     /**
      * @see ObjectModel::$definition
      */
-    public static $definition = array(
+    public static $definition = [
         'table' => 'paypal_order',
         'primary' => 'id_paypal_order',
-        'fields' => array(
-            'id_order' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'),
-            'id_transaction' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'),
-            'id_invoice' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'),
-            'currency' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(10)'),
-            'total_paid' => array('type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'),
-            'shipping' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(50)'),
-            'capture' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2)'),
-            'payment_date' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'),
-            'payment_method' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2) UNSIGNED'),
-            'payment_status' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'),
-        ),
-    );
+        'fields' => [
+            'id_order' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
+            'id_transaction' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_invoice' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'currency' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(10)'],
+            'total_paid' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'],
+            'shipping' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(50)'],
+            'capture' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2)'],
+            'payment_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'],
+            'payment_method' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2) UNSIGNED'],
+            'payment_status' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+        ],
+    ];
 
     /*
      * Get PayPal order data
@@ -121,7 +121,7 @@ class PayPalOrder extends PayPalObjectModel
         if ($ppec && $paymentStatus) {
             $transactionId = pSQL($ppec->result['PAYMENTINFO_0_TRANSACTIONID']);
 
-            return array(
+            return [
                 'currency' => pSQL($ppec->result['PAYMENTINFO_0_CURRENCYCODE']),
                 'id_invoice' => null,
                 'id_transaction' => $transactionId,
@@ -130,11 +130,11 @@ class PayPalOrder extends PayPalObjectModel
                 'shipping' => (float) $ppec->result['PAYMENTREQUEST_0_SHIPPINGAMT'],
                 'payment_date' => pSQL($ppec->result['PAYMENTINFO_0_ORDERTIME']),
                 'payment_status' => pSQL($paymentStatus),
-            );
+            ];
         } else {
             $transactionId = pSQL(\Tools::getValue(self::ID_TRANSACTION));
 
-            return array(
+            return [
                 'currency' => pSQL(\Tools::getValue(self::CURRENCY)),
                 'id_invoice' => pSQL(\Tools::getValue(self::ID_INVOICE)),
                 'id_transaction' => $transactionId,
@@ -143,7 +143,7 @@ class PayPalOrder extends PayPalObjectModel
                 'shipping' => (float) \Tools::getValue(self::SHIPPING),
                 'payment_date' => pSQL(\Tools::getValue(self::PAYMENT_DATE)),
                 'payment_status' => pSQL($paymentStatus),
-            );
+            ];
         }
     }
 
@@ -200,7 +200,7 @@ class PayPalOrder extends PayPalObjectModel
 
         \Db::getInstance()->insert(
             bqSQL(self::$definition['table']),
-            array(
+            [
                 'id_order' => (int) $idOrder,
                 'id_transaction' => pSQL($transaction['id_transaction']),
                 'id_invoice' => pSQL($transaction['id_invoice']),
@@ -211,7 +211,7 @@ class PayPalOrder extends PayPalObjectModel
                 'payment_date' => pSQL($transaction['payment_date']),
                 'payment_method' => (int) \Configuration::get('PAYPAL_PAYMENT_METHOD'),
                 'payment_status' => pSQL($transaction['payment_status']),
-            )
+            ]
         );
     }
 

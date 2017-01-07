@@ -26,23 +26,26 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalExpresscheckoutajaxModuleFrontController extends ModuleFrontController
+class PayPalExpresscheckoutajaxModuleFrontController extends \ModuleFrontController
 {
+    /** @var bool $ssl */
+    public $ssl = true;
+
     public function initContent()
     {
         // Ajax query
-        $quantity = Tools::getValue('get_qty');
+        $quantity = \Tools::getValue('get_qty');
 
-        if (Configuration::get('PS_CATALOG_MODE') == 1) {
+        if (\Configuration::get('PS_CATALOG_MODE') == 1) {
             die('0');
         }
 
         if ($quantity && $quantity > 0) {
             /* Ajax response */
-            $idProduct = (int) Tools::getValue('id_product');
-            $idProductAttribute = (int) Tools::getValue('id_product_attribute');
-            $productQuantity = Product::getQuantity($idProduct, $idProductAttribute);
-            $product = new Product($idProduct);
+            $idProduct = (int) \Tools::getValue('id_product');
+            $idProductAttribute = (int) \Tools::getValue('id_product_attribute');
+            $productQuantity = \Product::getQuantity($idProduct, $idProductAttribute);
+            $product = new \Product($idProduct);
 
             if (!$product->available_for_order) {
                 die('0');

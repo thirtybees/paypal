@@ -74,11 +74,4 @@
         </p>
 
         
-<link rel="stylesheet" href="{$base_dir|escape:'htmlall':'UTF-8'}/modules/paypal/views/css/paypal-cart_summary.css">
-{if $useStyle14}
-    <link rel="stylesheet" href="{$base_dir|escape:'htmlall':'UTF-8'}/modules/paypal/views/css/paypal_1_4_paypal-cart_summary.css">
-{/if}
-
-{if $useStyle15}
-    <link rel="stylesheet" href="{$base_dir|escape:'htmlall':'UTF-8'}/modules/paypal/views/css/paypal_1_5_paypal-cart_summary.css">
-{/if}
+<link rel="stylesheet" href="{$module_dir|escape:'htmlall':'UTF-8'}views/css/paypal-cart-summary.css">

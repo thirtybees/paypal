@@ -28,23 +28,36 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalSubmitplusModuleFrontController extends ModuleFrontController
+class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
 {
+    // @codingStandardsIgnoreStart
+    /** @var bool $display_column_left */
     public $display_column_left = false;
-    public $display_column_right = false;
-    public $ssl = true;
 
-    /** @var PayPal $module */
+    /** @var bool $display_column_right */
+    public $display_column_right = false;
+    // @codingStandardsIgnoreEnd
+
+    /** @var int $idModule */
+    public $idModule;
+
+    /** @var int $idOrder */
+    public $idOrder;
+
+    /** @var int $idCart */
+    public $idCart;
+
+    /** @var string $paymentId */
+    public $paymentId;
+
+    /** @var \PayPal $module */
     public $module;
 
-    /** @var int $id_module */
-    public $id_module;
+    /** @var string $token */
+    public $token;
 
-    /** @var int $id_order */
-    public $id_order;
-
-    /** @var int $id_cart */
-    public $id_cart;
+    /** @var bool $ssl */
+    public $ssl = true;
 
     /**
      * PayPalSubmitplusModuleFrontController constructor.
@@ -56,7 +69,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
     public function __construct()
     {
         parent::__construct();
-        $this->context = Context::getContext();
+        $this->context = \Context::getContext();
     }
 
     /**
@@ -68,19 +81,19 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
     {
         parent::initContent();
 
-        $this->id_module = (int) Tools::getValue('id_module');
-        $this->idCart = Tools::getValue('id_cart');
-        $this->paymentId = Tools::getValue('paymentId');
-        $this->token = Tools::getValue('token');
+        $this->idModule = (int) \Tools::getValue('id_module');
+        $this->idCart = \Tools::getValue('id_cart');
+        $this->paymentId = \Tools::getValue('paymentId');
+        $this->token = \Tools::getValue('token');
 
-        if (!empty($this->id_cart) && !empty($this->paymentId) && !empty($this->token)) {
+        if ($this->idCart && $this->paymentId && $this->token) {
             $callApiPaypalPlus = new CallApiPayPalPlus();
             $payment = json_decode($callApiPaypalPlus->lookUpPayment($this->paymentId));
 
             if (isset($payment->state)) {
                 $this->context->smarty->assign('state', $payment->state);
 
-                $transaction = array(
+                $transaction = [
                     'id_transaction' => $payment->id,
                     'payment_status' => $payment->state,
                     'currency' => $payment->transactions[0]->amount->currency,
@@ -88,26 +101,25 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                     'total_paid' => $payment->transactions[0]->amount->total,
                     'id_invoice' => 0,
                     'shipping' => 0,
-                );
+                ];
 
                 switch ($payment->state) {
                     case 'created':
                         /* LookUp OK */
                         /* Affichage bouton confirmation */
 
-                        $this->context->smarty->assign(array(
+                        $this->context->smarty->assign([
                             'PayerID' => $payment->payer->payer_info->payer_id,
                             'paymentId' => $this->paymentId,
-                            'id_cart' => $this->id_cart,
-                            'totalAmount' => Tools::displayPrice(Cart::getTotalCart($this->id_cart)),
-                            'linkSubmitPlus' => $this->context->link->getModuleLink('paypal', 'submitplus'),
-                        ));
+                            'id_cart' => $this->idCart,
+                            'totalAmount' => \Tools::displayPrice(\Cart::getTotalCart($this->idCart)),
+                            'linkSubmitPlus' => $this->context->link->getModuleLink('paypal', 'plussubmit', [], \Tools::usingSecureMode()),
+                        ]);
                         break;
-
                     case 'canceled':
                         /* LookUp cancel */
                         $this->module->validateOrder(
-                            $this->id_cart,
+                            $this->idCart,
                             $this->getOrderStatus('order_canceled'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -115,11 +127,10 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                             $transaction
                         );
                         break;
-
                     default:
-                        /* Erreur de payment */
+                        /* Payment error */
                         $this->module->validateOrder(
-                            $this->id_cart,
+                            $this->idCart,
                             $this->getOrderStatus('payment_error'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -138,7 +149,6 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
         }
 
         if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-
             /* If guest we clear the cookie for security reason */
             $this->context->customer->mylogout();
         }
@@ -162,12 +172,12 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
      */
     protected function displayHook()
     {
-        if (Validate::isUnsignedId($this->id_order) && Validate::isUnsignedId($this->id_module)) {
-            $order = new Order((int) $this->id_order);
-            $currency = new Currency((int) $order->id_currency);
+        if (\Validate::isUnsignedId($this->idOrder) && \Validate::isUnsignedId($this->idModule)) {
+            $order = new \Order((int) $this->idOrder);
+            $currency = new \Currency((int) $order->id_currency);
 
-            if (Validate::isLoadedObject($order)) {
-                $params = array();
+            if (\Validate::isLoadedObject($order)) {
+                $params = [];
                 $params['objOrder'] = $order;
                 $params['currencyObj'] = $currency;
                 $params['currency'] = $currency->sign;
@@ -187,18 +197,18 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
      */
     public function displayAjax()
     {
-        $ajax = Tools::getValue('ajax');
-        $return = array();
+        $ajax = \Tools::getValue('ajax');
+        $return = [];
         if (!$ajax) {
             $return['error'][] = $this->module->l('An error occured during the payment');
             echo json_encode($return);
             die();
         }
 
-        $idCart = Tools::getValue('id_cart');
-        $payerID = Tools::getValue('payerID');
-        $paymentId = Tools::getValue('paymentId');
-        $submit = Tools::getValue('submit');
+        $idCart = \Tools::getValue('id_cart');
+        $payerID = \Tools::getValue('payerID');
+        $paymentId = \Tools::getValue('paymentId');
+        $submit = \Tools::getValue('submit');
 
         if ((!empty($idCart) && $this->context->cart->id == $idCart) &&
             !empty($payerID) &&
@@ -208,9 +218,9 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
             $payment = json_decode($callApiPaypalPlus->executePayment($payerID, $paymentId));
 
             if (isset($payment->state)) {
-                $paypal = new PayPal();
+                $paypal = \Module::getInstanceByName('paypal');
 
-                $transaction = array(
+                $transaction = [
                     'id_transaction' => $payment->transactions[0]->related_resources[0]->sale->id,
                     'payment_status' => $payment->state,
                     'total_paid' => $payment->transactions[0]->amount->total,
@@ -218,12 +228,12 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                     'shipping' => 0,
                     'currency' => $payment->transactions[0]->amount->currency,
                     'payment_date' => date("Y-m-d H:i:s"),
-                );
+                ];
 
                 if ($submit == 'confirmPayment') {
                     if ($payment->state == 'approved') {
                         $paypal->validateOrder(
-                            $this->id_cart,
+                            $this->idCart,
                             $this->getOrderStatus('payment'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -233,7 +243,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                         $return['success'][] = $this->module->l('Your payment has been taken into account');
                     } else {
                         $paypal->validateOrder(
-                            $this->id_cart,
+                            $this->idCart,
                             $this->getOrderStatus('payment_error'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -244,7 +254,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
                     }
                 } elseif ($submit == 'confirmCancel') {
                     $paypal->validateOrder(
-                        $this->id_cart,
+                        $this->idCart,
                         $this->getOrderStatus('order_canceled'),
                         $payment->transactions[0]->amount->total,
                         $payment->payer->payment_method,
@@ -280,7 +290,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
         $params = $this->displayHook();
 
         if ($params && is_array($params)) {
-            return Hook::exec('displayPaymentReturn', $params, (int) $this->module->id);
+            return \Hook::exec('displayPaymentReturn', $params, (int) $this->module->id);
         }
 
         return false;
@@ -298,7 +308,7 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
         $params = $this->displayHook();
 
         if ($params && is_array($params)) {
-            return Hook::exec('displayOrderConfirmation', $params);
+            return \Hook::exec('displayOrderConfirmation', $params);
         }
 
         return false;
@@ -311,12 +321,12 @@ class PayPalSubmitplusModuleFrontController extends ModuleFrontController
      */
     public function getOrderStatus($template)
     {
-        $sql = new DbQuery();
+        $sql = new \DbQuery();
         $sql->select('`id_order_state`');
         $sql->from('order_state_lang');
         $sql->where('`template` = \''.pSQL($template).'\'');
         $sql->where('`id_lang` = '.(int) $this->context->language->id);
 
-        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
+        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
     }
 }

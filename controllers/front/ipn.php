@@ -28,14 +28,17 @@ use PayPalModule\PayPalIpn;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalIpnModuleFrontController extends ModuleFrontController
+class PayPalIpnModuleFrontController extends \ModuleFrontController
 {
+    /** @var bool $ssl */
+    public $ssl = true;
+
     public function initContent()
     {
-        if (Tools::getValue('receiver_email') == Configuration::get('PAYPAL_BUSINESS_ACCOUNT')) {
-            if (Tools::getIsset('custom')) {
+        if (\Tools::getValue('receiver_email') == \Configuration::get('PAYPAL_BUSINESS_ACCOUNT')) {
+            if (\Tools::getIsset('custom')) {
                 $ipn = new PayPalIpn();
-                $custom = json_decode(Tools::getValue('custom'), true);
+                $custom = json_decode(\Tools::getValue('custom'), true);
                 $ipn->confirmOrder($custom);
             }
         }

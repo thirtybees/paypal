@@ -2,7 +2,7 @@
 
 global $_MODULE;
 
-$_MODULE = array();
+$_MODULE = [];
 
 $_MODULE['<{paypal}prestashop>paypal_ad69e733ebae8d264bccaa38d68830e8'] = 'PayPal';
 $_MODULE['<{paypal}prestashop>paypal_6e7012516038a096b9f6bb71ba2cc5a3'] = 'Acceptez le paiements par cartes de crédits  (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars)  avec PayPal.';

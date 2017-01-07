@@ -26,7 +26,7 @@ require_once dirname(__FILE__).'/../paypal.php';
 
 class PayPalExpressCheckout
 {
-    public $logs = array();
+    public $logs = [];
 
     public $methodVersion = '106';
 
@@ -74,12 +74,12 @@ class PayPalExpressCheckout
     public $payerId;
 
     /** @var array $availableTypes */
-    public $availableTypes = array('cart', 'product', 'payment_cart');
+    public $availableTypes = ['cart', 'product', 'payment_cart'];
 
     public $totalDifferentProduct;
 
     /** @var array $productList */
-    public $productList = array();
+    public $productList = [];
 
     /**
      * Used to know if user can validated his payment after shipping / address selection
@@ -99,7 +99,7 @@ class PayPalExpressCheckout
     public static $cookieName = 'express_checkout';
 
     /** @var array $cookieKey */
-    public $cookieKey = array(
+    public $cookieKey = [
         'token',
         'idProduct',
         'idProductAttribute',
@@ -109,7 +109,7 @@ class PayPalExpressCheckout
         'secureKey',
         'ready',
         'payerId',
-    );
+    ];
 
     /** @var string $secureKey */
     public $secureKey;
@@ -197,7 +197,7 @@ class PayPalExpressCheckout
     public function setExpressCheckout($accessToken = false)
     {
         $this->method = 'SetExpressCheckout';
-        $fields = array();
+        $fields = [];
         $this->setCancelUrl($fields);
 
         // Only this call need to get the value from the $_GET / $_POST array
@@ -220,7 +220,7 @@ class PayPalExpressCheckout
         }
 
         if (\Country::getIsoById(\Configuration::get('PAYPAL_COUNTRY_DEFAULT')) == 'de') {
-            $fields['BANKTXNPENDINGURL'] = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', array('banktxnpendingurl' => 'true'), \Tools::usingSecureMode());
+            $fields['BANKTXNPENDINGURL'] = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', ['banktxnpendingurl' => 'true'], \Tools::usingSecureMode());
         }
 
         $this->callAPI($fields);
@@ -234,7 +234,7 @@ class PayPalExpressCheckout
      */
     public function setCancelUrl(&$fields)
     {
-        $url = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', array(), \Tools::usingSecureMode()).'?'.urldecode($_SERVER['QUERY_STRING']);
+        $url = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', [], \Tools::usingSecureMode()).'?'.urldecode($_SERVER['QUERY_STRING']);
         $parsedData = parse_url($url);
 
         $parsedData['scheme'] .= '://';
@@ -263,7 +263,7 @@ class PayPalExpressCheckout
     public function getExpressCheckout()
     {
         $this->method = 'GetExpressCheckoutDetails';
-        $fields = array();
+        $fields = [];
         $fields['TOKEN'] = $this->token;
 
         $this->initParameters();
@@ -281,7 +281,7 @@ class PayPalExpressCheckout
     public function doExpressCheckout()
     {
         $this->method = 'DoExpressCheckoutPayment';
-        $fields = array();
+        $fields = [];
         $fields['TOKEN'] = $this->token;
         $fields['PAYERID'] = $this->payerId;
 
@@ -309,7 +309,7 @@ class PayPalExpressCheckout
      */
     protected function callAPI($fields)
     {
-        $this->logs = array();
+        $this->logs = [];
         $paypalLib = new PaypalLib();
 
         $this->result = $paypalLib->makeCall($this->module->getAPIURL(), $this->module->getAPIScript(), $this->method, $fields, $this->methodVersion);
@@ -328,7 +328,7 @@ class PayPalExpressCheckout
     protected function setPaymentDetails(&$fields)
     {
         // Required field
-        $fields['RETURNURL'] = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', array(), \Tools::usingSecureMode());
+        $fields['RETURNURL'] = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', [], \Tools::usingSecureMode());
         $fields['NOSHIPPING'] = '1';
         $fields['BUTTONSOURCE'] = $this->module->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD'));
 
@@ -613,7 +613,7 @@ class PayPalExpressCheckout
      */
     protected function storeCookieInfo()
     {
-        $tab = array();
+        $tab = [];
 
         foreach ($this->cookieKey as $key) {
             $tab[$key] = $this->{$key};
@@ -645,7 +645,7 @@ class PayPalExpressCheckout
     public function hasSucceedRequest()
     {
         if (is_array($this->result)) {
-            foreach (array('ACK', 'PAYMENTINFO_0_ACK') as $key) {
+            foreach (['ACK', 'PAYMENTINFO_0_ACK'] as $key) {
                 if (isset($this->result[$key]) && \Tools::strtoupper($this->result[$key]) == 'SUCCESS') {
                     return true;
                 }
@@ -668,7 +668,7 @@ class PayPalExpressCheckout
             $this->initParameters();
         }
 
-        $key = array();
+        $key = [];
 
         foreach ($this->productList as $product) {
             $idProduct = $product['id_product'];
@@ -753,7 +753,7 @@ class PayPalExpressCheckout
         \Hook::exec('authentication');
 
         if ($redirect) {
-            $link = $context->link->getPageLink('order.php', false, null, array('step' => '1'));
+            $link = $context->link->getPageLink('order.php', false, null, ['step' => '1']);
             \Tools::redirectLink($link);
             exit(0);
         }

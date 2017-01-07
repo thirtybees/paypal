@@ -49,7 +49,7 @@ class PayPalIpn extends \PayPal
         if (is_array($result) || (strcmp(trim($result), "VERIFIED") === false)) {
             $transactionId = pSQL($result['txn_id']);
 
-            return array(
+            return [
                 'id_transaction' => $transactionId,
                 'transaction_id' => $transactionId,
                 'id_invoice' => $result['invoice'],
@@ -58,11 +58,11 @@ class PayPalIpn extends \PayPal
                 'shipping' => (float) $result['mc_shipping'],
                 'payment_date' => pSQL($result['payment_date']),
                 'payment_status' => pSQL($result['payment_status']),
-            );
+            ];
         } else {
             $transactionId = pSQL(\Tools::getValue('txn_id'));
 
-            return array(
+            return [
                 'id_transaction' => $transactionId,
                 'transaction_id' => $transactionId,
                 'id_invoice' => pSQL(\Tools::getValue('invoice')),
@@ -71,7 +71,7 @@ class PayPalIpn extends \PayPal
                 'shipping' => (float) \Tools::getValue('mc_shipping'),
                 'payment_date' => pSQL(\Tools::getValue('payment_date')),
                 'payment_status' => pSQL(\Tools::getValue('payment_status')),
-            );
+            ];
         }
     }
 
@@ -186,18 +186,18 @@ class PayPalIpn extends \PayPal
             $paymentType = (int) \Configuration::get('PS_OS_ERROR');
             $message = $this->l('Cart changed, please retry.').'<br />';
         } else {
-            return $this->getDetails($paymentStatus) + array(
+            return $this->getDetails($paymentStatus) + [
                 'payment_status' => $paymentStatus,
                 'total_price' => $totalPrice,
-            );
+                ];
         }
 
-        return array(
+        return [
             'message' => $message,
             'payment_type' => $paymentType,
             'payment_status' => $paymentStatus,
             'total_price' => $totalPrice,
-        );
+        ];
     }
 
     /**
@@ -227,10 +227,10 @@ class PayPalIpn extends \PayPal
             }
         }
 
-        return array(
+        return [
             'message' => $message,
             'payment_type' => (int) $paymentType,
-        );
+        ];
     }
 
     /**

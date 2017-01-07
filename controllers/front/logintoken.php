@@ -28,16 +28,19 @@ use PayPalModule\PayPalLogin;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalLogintokenModuleFrontController extends ModuleFrontController
+class PayPalLogintokenModuleFrontController extends \ModuleFrontController
 {
+    /** @var bool $ssl */
+    public $ssl = true;
+
     public function initContent()
     {
         $login = new PayPalLogin();
 
         $obj = $login->getAuthorizationCode();
         if ($obj) {
-            $context = Context::getContext();
-            $customer = new Customer((int) $obj->id_customer);
+            $context = \Context::getContext();
+            $customer = new \Customer((int) $obj->id_customer);
             $context->cookie->id_customer = (int) ($customer->id);
             $context->cookie->customer_lastname = $customer->lastname;
             $context->cookie->customer_firstname = $customer->firstname;

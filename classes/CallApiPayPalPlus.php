@@ -26,13 +26,6 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-define('URL_PPP_CREATE_TOKEN', '/v1/oauth2/token');
-define('URL_PPP_CREATE_PAYMENT', '/v1/payments/payment');
-define('URL_PPP_LOOK_UP', '/v1/payments/payment/');
-define('URL_PPP_WEBPROFILE', '/v1/payment-experience/web-profiles');
-define('URL_PPP_EXECUTE_PAYMENT', '/v1/payments/payment/');
-define('URL_PPP_EXECUTE_REFUND', '/v1/payments/sale/');
-
 class CallApiPayPalPlus extends ApiPayPalPlus
 {
     protected $cart = null;
@@ -63,22 +56,20 @@ class CallApiPayPalPlus extends ApiPayPalPlus
         /*
          * Récupération du token
          */
-        $accessToken = $this->getToken(URL_PPP_CREATE_TOKEN, array('grant_type' => 'client_credentials'));
+        $accessToken = $this->getToken(ApiPayPalPlus::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
 
         if ($accessToken != false) {
-
             $result = json_decode($this->createPayment($this->customer, $this->cart, $accessToken));
 
             if (isset($result->links)) {
-
                 foreach ($result->links as $link) {
-
                     if ($link->rel == 'approval_url') {
                         return $link->href;
                     }
                 }
             }
         }
+
         return false;
     }
 
@@ -93,23 +84,22 @@ class CallApiPayPalPlus extends ApiPayPalPlus
      */
     public function lookUpPayment($paymentId)
     {
-
         if ($paymentId == 'NULL') {
             return false;
         }
 
         $accessToken = $this->refreshToken();
 
-        $header = array(
+        $header = [
             'Content-Type:application/json',
             'Authorization:Bearer '.$accessToken,
-        );
+        ];
 
-        return $this->sendByCURL(URL_PPP_LOOK_UP.$paymentId, false, $header);
+        return $this->sendByCURL(ApiPayPalPlus::URL_PPP_LOOK_UP.$paymentId, false, $header);
     }
 
     /**
-     * @param $payer_id
+     * @param $payerId
      * @param $paymentId
      *
      * @return bool|mixed
@@ -118,23 +108,22 @@ class CallApiPayPalPlus extends ApiPayPalPlus
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function executePayment($payer_id, $paymentId)
+    public function executePayment($payerId, $paymentId)
     {
-
-        if ($payer_id == 'NULL' || $paymentId == 'NULL') {
+        if ($payerId == 'NULL' || $paymentId == 'NULL') {
             return false;
         }
 
         $accessToken = $this->refreshToken();
 
-        $header = array(
+        $header = [
             'Content-Type:application/json',
             'Authorization:Bearer '.$accessToken,
-        );
+        ];
 
-        $data = array('payer_id' => $payer_id);
+        $data = ['payer_id' => $payerId];
 
-        return $this->sendByCURL(URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header);
+        return $this->sendByCURL(ApiPayPalPlus::URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header);
     }
 
     /**
@@ -149,18 +138,17 @@ class CallApiPayPalPlus extends ApiPayPalPlus
      */
     public function executeRefund($paymentId, $data)
     {
-
         if ($paymentId == 'NULL' || !is_object($data)) {
             return false;
         }
 
         $accessToken = $this->refreshToken();
 
-        $header = array(
+        $header = [
             'Content-Type:application/json',
             'Authorization:Bearer '.$accessToken,
-        );
+        ];
 
-        return $this->sendByCURL(URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
+        return $this->sendByCURL(ApiPayPalPlus::URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
     }
 }

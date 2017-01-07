@@ -2,7 +2,7 @@
 
 global $_MODULE;
 
-$_MODULE = array();
+$_MODULE = [];
 
 $_MODULE['<{paypal}prestashop>paypal_connect_d1f14cc4a2dade80c92421d26422fea0'] = 'Fazendo nova conexão com';
 $_MODULE['<{paypal}prestashop>paypal_connect_94a27811a721ef512ad7bfa06cab34e0'] = 'Falha ao conectar com método CURL';

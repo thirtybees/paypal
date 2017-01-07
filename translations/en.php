@@ -1,7 +1,7 @@
 <?php
 
 global $_MODULE;
-$_MODULE = array();
+$_MODULE = [];
 $_MODULE['<{paypal}default-bootstrap>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Price paid on paypal is not the same that on Thirty Bees.';
 $_MODULE['<{paypal}default-bootstrap>ipn_572f9af7615560af2cba038cc1948287'] = 'Cart changed, please retry.';
 $_MODULE['<{paypal}default-bootstrap>ipn_ada2b5d5bbf3065de283d61526141780'] = 'Pending payment capture.';

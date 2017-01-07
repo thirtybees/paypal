@@ -28,9 +28,16 @@ use PayPalModule\PayPalOrder;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalHostedsolutionsubmitModuleFrontController extends ModuleFrontController
+class PayPalHostedsolutionsubmitModuleFrontController extends \ModuleFrontController
 {
+    /** @var \Context $context */
     public $context;
+
+    /** @var bool $ssl */
+    public $ssl = true;
+
+    /** @var \PayPal $module */
+    public $module;
 
     /**
      * PayPalIntegralEvolutionSubmit constructor.
@@ -41,34 +48,37 @@ class PayPalHostedsolutionsubmitModuleFrontController extends ModuleFrontControl
      */
     public function __construct()
     {
-        $this->context = Context::getContext();
+        $this->context = \Context::getContext();
         parent::__construct();
     }
 
+    /**
+     * Initialize content
+     */
     public function initContent()
     {
-        $idCart = Tools::getValue('id_cart');
+        $idCart = \Tools::getValue('id_cart');
 
         if ($idCart) {
             // Redirection
-            $values = array(
+            $values = [
                 'id_cart' => (int) $idCart,
-                'id_module' => (int) Module::getInstanceByName('paypal')->id,
-                'id_order' => (int) Order::getOrderByCartId((int) $idCart),
-            );
+                'id_module' => (int) \Module::getInstanceByName('paypal')->id,
+                'id_order' => (int) \Order::getOrderByCartId((int) $idCart),
+            ];
 
             if (version_compare(_PS_VERSION_, '1.5', '<')) {
-                $customer = new Customer(Context::getContext()->cookie->id_customer);
+                $customer = new \Customer(\Context::getContext()->cookie->id_customer);
                 $values['key'] = $customer->secure_key;
-                $url = _MODULE_DIR_.'/paypal/integral_evolution/submit.php';
-                Tools::redirectLink($url.'?'.http_build_query($values, '', '&'));
+                $url = $this->context->link->getModuleLink('paypal', 'hostedsolutionsubmit', [], \Tools::usingSecureMode());
+                \Tools::redirectLink($url.'?'.http_build_query($values, '', '&'));
             } else {
-                $values['key'] = Context::getContext()->customer->secure_key;
-                $link = Context::getContext()->link->getModuleLink('paypal', 'submit', $values);
-                Tools::redirect($link);
+                $values['key'] = \Context::getContext()->customer->secure_key;
+                $link = \Context::getContext()->link->getModuleLink('paypal', 'submit', $values, \Tools::usingSecureMode());
+                \Tools::redirectLink($link);
             }
         } else {
-            Tools::redirectLink(__PS_BASE_URI__);
+            \Tools::redirectLink(__PS_BASE_URI__);
         }
 
         exit(0);
@@ -83,19 +93,19 @@ class PayPalHostedsolutionsubmitModuleFrontController extends ModuleFrontControl
      */
     public function displayContent()
     {
-        $idOrder = (int) Tools::getValue('id_order');
+        $idOrder = (int) \Tools::getValue('id_order');
         $order = PayPalOrder::getOrderById($idOrder);
-        $price = Tools::displayPrice($order['total_paid'], $this->context->currency);
+        $price = \Tools::displayPrice($order['total_paid'], $this->context->currency);
 
-        $this->context->smarty->assign(array(
+        $this->context->smarty->assign([
             'order' => $order,
             'price' => $price,
-        ));
+        ]);
 
-        $this->context->smarty->assign(array(
-            'reference_order' => Order::getUniqReferenceOf($idOrder),
-        ));
+        $this->context->smarty->assign([
+            'reference_order' => \Order::getUniqReferenceOf($idOrder),
+        ]);
 
-        echo $this->context->smarty->fetch(_PS_MODULE_DIR_.'paypal/views/templates/front/order-confirmation.tpl');
+        echo $this->module->display(_PS_MODULE_DIR_.'paypal/paypal.php', 'views/templates/front/order-confirmation.tpl');
     }
 }

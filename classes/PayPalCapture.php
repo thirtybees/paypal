@@ -49,17 +49,17 @@ class PayPalCapture extends PayPalObjectModel
     /**
      * @see ObjectModel::$definition
      */
-    public static $definition = array(
+    public static $definition = [
         'table' => 'paypal_capture',
         'primary' => 'id_paypal_capture',
-        'fields' => array(
-            'id_order' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'),
-            'capture_amount' => array('type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'),
-            'result' => array('type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'TEXT'),
-            'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'),
-            'date_upd' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'),
-        ),
-    );
+        'fields' => [
+            'id_order' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
+            'capture_amount' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'],
+            'result' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'TEXT'],
+            'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'],
+            'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'],
+        ],
+    ];
 
     /**
      * @param $idOrder
@@ -153,8 +153,8 @@ class PayPalCapture extends PayPalObjectModel
         $regexp = "/^([0-9\s]{0,10})((\.|,)[0-9]{0,2})?$/isD";
 
         if (preg_match($regexp, $price)) {
-            $arrayRegexp = array("#,#isD", "# #isD");
-            $arrayReplace = array(".", "");
+            $arrayRegexp = ["#,#isD", "# #isD"];
+            $arrayReplace = [".", ""];
             $price = preg_replace($arrayRegexp, $arrayReplace, $price);
 
             return \Tools::ps_round($price, 2);

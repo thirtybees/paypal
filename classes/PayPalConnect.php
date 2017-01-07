@@ -33,7 +33,7 @@ if (!defined('_PS_VERSION_')) {
  */
 class PayPalConnect
 {
-    protected $logs = array();
+    protected $logs = [];
     protected $paypal = null;
 
     /**

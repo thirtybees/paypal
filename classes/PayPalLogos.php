@@ -62,14 +62,14 @@ class PayPalLogos
      */
     public function getLogos()
     {
-        $file = dirname(__FILE__).'/'.\PayPal::_PAYPAL_LOGO_XML_;
+        $file = _PS_MODULE_DIR_.'paypal/'.\PayPal::_PAYPAL_LOGO_XML_;
 
         if (!file_exists($file)) {
             return false;
         }
 
         $xml = simplexml_load_file($file);
-        $logos = array();
+        $logos = [];
 
         if (isset($xml) && $xml != false) {
             foreach ($xml->country as $item) {

@@ -1,7 +1,7 @@
 <?php
 
 global $_MODULE;
-$_MODULE = array();
+$_MODULE = [];
 $_MODULE['<{paypal}prestashop>paypal_abstract_ad69e733ebae8d264bccaa38d68830e8'] = 'Paypal';
 $_MODULE['<{paypal}prestashop>paypal_abstract_6e7012516038a096b9f6bb71ba2cc5a3'] = 'Aceita pagamentos por cartão de crédito (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) com Paypal.';
 $_MODULE['<{paypal}prestashop>paypal_abstract_69a1a3ad8dd5da6db3c4da838a0cf9c7'] = 'Você tem certeza que você quer deletar seus dados?';

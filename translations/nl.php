@@ -1,7 +1,7 @@
 <?php
 
 global $_MODULE;
-$_MODULE = array();
+$_MODULE = [];
 $_MODULE['<{paypal}prestashop>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van Thirty Bees.';
 $_MODULE['<{paypal}prestashop>ipn_572f9af7615560af2cba038cc1948287'] = 'Winkelwagen gewijzigd, probeer opnieuw.';
 $_MODULE['<{paypal}prestashop>ipn_ada2b5d5bbf3065de283d61526141780'] = 'Betalingsaanvraag in behandeling.';

@@ -28,7 +28,7 @@ if (!defined('_PS_VERSION_')) {
 
 class PayPalLogin
 {
-    protected $logs = array();
+    protected $logs = [];
     protected $enableLog = false;
 
     protected $paypalConnect = null;
@@ -102,7 +102,7 @@ class PayPalLogin
      */
     public static function getReturnLink()
     {
-        return \Context::getContext()->link->getModuleLink('paypal', 'logintoken', array(), \Tools::usingSecureMode());
+        return \Context::getContext()->link->getModuleLink('paypal', 'logintoken', [], \Tools::usingSecureMode());
     }
 
     /**
@@ -123,11 +123,11 @@ class PayPalLogin
             return $this->getRefreshToken();
         }
 
-        $params = array(
+        $params = [
             'grant_type' => 'authorization_code',
             'code' => \Tools::getValue('code'),
             'redirect_url' => PayPalLogin::getReturnLink(),
-        );
+        ];
 
         $request = http_build_query($params, '', '&');
         $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
@@ -188,10 +188,10 @@ class PayPalLogin
             return false;
         }
 
-        $params = array(
+        $params = [
             'grant_type' => 'refresh_token',
             'refresh_token' => $login->refresh_token,
-        );
+        ];
 
         $request = http_build_query($params, '', '&');
         $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
@@ -230,14 +230,14 @@ class PayPalLogin
     protected function getUserInformations($accessToken, &$login)
     {
         unset($this->logs);
-        $headers = array(
+        $headers = [
             // 'Content-Type:application/json',
             'Authorization: Bearer '.$accessToken,
-        );
+        ];
 
-        $params = array(
+        $params = [
             'schema' => 'openid',
-        );
+        ];
 
         $request = http_build_query($params, '', '&');
         $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getUserInfoEndpoint(), $request, false, $headers, true);

@@ -99,7 +99,7 @@
 				var id_product_attribute = $('input[name="id_product_attribute"]').val();
 				$.ajax({
 					type: 'GET',
-					url: '{Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutajax', array(), Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
+					url: '{Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
 					data: {
 						get_qty: '1',
 						id_product: id_product,
@@ -201,7 +201,7 @@
 					function (data) {
 						if ((typeof(data) != 'undefined') && (data > 0)) {
 							clearInterval(confirmTimer);
-							window.location.replace('{Context::getContext()->link->getModuleLink('paypal', 'submit', array(), Tools::usingSecureMode())|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
+							window.location.replace('{Context::getContext()->link->getModuleLink('paypal', 'submit', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
 							$('p.payment_module, p.cart_navigation').hide();
 						}
 					}

@@ -31,7 +31,7 @@ define('PAYPAL_API_VERSION', '106.0');
 class PaypalLib
 {
     protected $enableLog = false;
-    protected $logs = array();
+    protected $logs = [];
     protected $paypal = null;
 
     /**
@@ -72,13 +72,13 @@ class PaypalLib
         // Making request string
         $methodVersion = (!empty($methodVersion)) ? $methodVersion : PAYPAL_API_VERSION;
 
-        $params = array(
+        $params = [
             'METHOD' => $methodName,
             'VERSION' => $methodVersion,
             'PWD' => \Configuration::get('PAYPAL_API_PASSWORD'),
             'USER' => \Configuration::get('PAYPAL_API_USER'),
             'SIGNATURE' => \Configuration::get('PAYPAL_API_SIGNATURE'),
-        );
+        ];
 
         $request = http_build_query($params, '', '&');
         $request .= '&'.(!is_array($data) ? $data : http_build_query($data, '', '&'));
@@ -87,7 +87,7 @@ class PaypalLib
         $result = $this->makeSimpleCall($host, $script, $request, true);
         $response = explode('&', $result);
         $logsRequest = $this->logs;
-        $return = array();
+        $return = [];
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -104,10 +104,10 @@ class PaypalLib
         }
 
         if (!\Configuration::get('PAYPAL_DEBUG_MODE')) {
-            $this->logs = array();
+            $this->logs = [];
         }
 
-        $toExclude = array('TOKEN', 'SUCCESSPAGEREDIRECTREQUESTED', 'VERSION', 'BUILD', 'ACK', 'CORRELATIONID');
+        $toExclude = ['TOKEN', 'SUCCESSPAGEREDIRECTREQUESTED', 'VERSION', 'BUILD', 'ACK', 'CORRELATIONID'];
         $this->logs[] = $this->paypal->l('PayPal response:');
 
         foreach ($return as $key => $value) {

@@ -28,16 +28,15 @@ if (!defined('_PS_VERSION_')) {
 
 class ApiPayPalPlus
 {
-    /*     * ********************************************************* */
-    /*     * ******************** CONNECT METHODS ******************** */
-    /*     * ********************************************************* */
+    const URL_PPP_CREATE_TOKEN = '/v1/oauth2/token';
+    const URL_PPP_CREATE_PAYMENT = '/v1/payments/payment';
+    const URL_PPP_LOOK_UP = '/v1/payments/payment/';
+    const URL_PPP_WEBPROFILE = '/v1/payment-experience/web-profiles';
+    const URL_PPP_EXECUTE_PAYMENT = '/v1/payments/payment/';
+    const URL_PPP_EXECUTE_REFUND = '/v1/payments/sale/';
 
     /**
      * ApiPaypalPlus constructor.
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function __construct()
     {
@@ -164,7 +163,7 @@ class ApiPayPalPlus
         $inputFields->address_override = 1;
 
         $flowConfig = new \stdClass();
-        $flowConfig->landing_page_type = "billing";
+        $flowConfig->landing_page_type = 'billing';
 
         $webProfile = new \stdClass();
         $webProfile->name = \Configuration::get('PS_SHOP_NAME');
@@ -184,17 +183,17 @@ class ApiPayPalPlus
      */
     public function getWebProfile()
     {
-        $accessToken = $this->getToken(URL_PPP_CREATE_TOKEN, array('grant_type' => 'client_credentials'));
+        $accessToken = $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
 
         if ($accessToken) {
             $data = $this->createWebProfile();
 
-            $header = array(
+            $header = [
                 'Content-Type:application/json',
                 'Authorization:Bearer '.$accessToken,
-            );
+            ];
 
-            $result = json_decode($this->sendByCURL(URL_PPP_WEBPROFILE, json_encode($data), $header));
+            $result = json_decode($this->sendByCURL(self::URL_PPP_WEBPROFILE, json_encode($data), $header));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -223,18 +222,18 @@ class ApiPayPalPlus
      */
     public function getListProfile()
     {
-        $accessToken = $this->getToken(URL_PPP_CREATE_TOKEN, array('grant_type' => 'client_credentials'));
+        $accessToken = $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
 
         if ($accessToken) {
-            $header = array(
+            $header = [
                 'Content-Type:application/json',
                 'Authorization:Bearer '.$accessToken,
-            );
+            ];
 
-            return json_decode($this->sendByCURL(URL_PPP_WEBPROFILE, false, $header));
+            return json_decode($this->sendByCURL(self::URL_PPP_WEBPROFILE, false, $header));
         }
 
-        return array();
+        return [];
     }
 
     /**
@@ -247,7 +246,7 @@ class ApiPayPalPlus
     public function refreshToken()
     {
         if ($this->context->cookie->paypal_access_token_time_max < time()) {
-            return $this->getToken(URL_PPP_CREATE_TOKEN, array('grant_type' => 'client_credentials'));
+            return $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
         } else {
             return $this->context->cookie->paypal_access_token_access_token;
         }
@@ -282,12 +281,7 @@ class ApiPayPalPlus
         $totalTax = $totalCartWithTax - $totalCartWithoutTax;
 
         if ($cart->gift) {
-            if (version_compare(_PS_VERSION_, '1.5.3.0', '>=')) {
-                $giftWithoutTax = $cart->getGiftWrappingPrice(false);
-            } else {
-                $giftWithoutTax = (float) (\Configuration::get('PS_GIFT_WRAPPING_PRICE'));
-            }
-
+            $giftWithoutTax = $cart->getGiftWrappingPrice(false);
         } else {
             $giftWithoutTax = 0;
         }
@@ -317,13 +311,13 @@ class ApiPayPalPlus
         $payerInfo->first_name = $address->firstname;
         $payerInfo->last_name = $address->lastname;
         $payerInfo->country_code = '"'.$isoCode.'"';
-        $payerInfo->shipping_address = array($shippingAddress);
+        $payerInfo->shipping_address = [$shippingAddress];
 
         $payer = new \stdClass();
-        $payer->payment_method = "paypal";
+        $payer->payment_method = 'paypal';
         //$payer->payer_info = $payer_info; // Objet set by PayPal
 
-        $aItems = array();
+        $aItems = [];
         /* Item */
         foreach ($cartItems as $cartItem) {
             $item = new \stdClass();
@@ -357,19 +351,18 @@ class ApiPayPalPlus
         $transaction = new \stdClass();
         $transaction->amount = $amount;
         $transaction->item_list = $itemList;
-        $transaction->description = "Payment description";
+        $transaction->description = 'Payment description';
 
-        /* Redirecte Url */
-
+        /* Redirect Url */
         $redirectUrls = new \stdClass();
-        $redirectUrls->cancel_url = $shopUrl._MODULE_DIR_.'paypal/paypal_plus/submit.php?id_cart='.(int) $cart->id;
-        $redirectUrls->return_url = $shopUrl._MODULE_DIR_.'paypal/paypal_plus/submit.php?id_cart='.(int) $cart->id;
+        $redirectUrls->cancel_url = $this->context->link->getModuleLink('paypal', 'pluscancel', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
+        $redirectUrls->return_url = $this->context->link->getModuleLink('paypal', 'plussubmit', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
 
         /* Payment */
         $payment = new \stdClass();
-        $payment->transactions = array($transaction);
+        $payment->transactions = [$transaction];
         $payment->payer = $payer;
-        $payment->intent = "sale";
+        $payment->intent = 'sale';
         if (\Configuration::get('PAYPAL_WEB_PROFILE_ID')) {
             $payment->experience_profile_id = \Configuration::get('PAYPAL_WEB_PROFILE_ID');
         }
@@ -394,12 +387,12 @@ class ApiPayPalPlus
 
         $data = $this->createPaymentObject($customer, $cart);
 
-        $header = array(
+        $header = [
             'Content-Type:application/json',
             'Authorization:Bearer '.$accessToken,
-        );
+        ];
 
-        $result = $this->sendByCURL(URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
+        $result = $this->sendByCURL(self::URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
 
         return $result;
     }

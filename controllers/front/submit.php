@@ -28,9 +28,9 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalSubmitModuleFrontController extends ModuleFrontController
+class PayPalSubmitModuleFrontController extends \ModuleFrontController
 {
-    /** @var PayPal $module */
+    /** @var \PayPal $module */
     public $module;
 
     /**
@@ -40,40 +40,36 @@ class PayPalSubmitModuleFrontController extends ModuleFrontController
     {
         parent::initContent();
 
-        $idOrder = (int) Tools::getValue('id_order');
-        $order = new Order($idOrder);
+        $idOrder = (int) \Tools::getValue('id_order');
+        $order = new \Order($idOrder);
         $paypalOrder = PayPalOrder::getOrderById($idOrder);
-        $price = Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
-        $orderState = new OrderState($idOrder);
+        $price = \Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
+        $orderState = new \OrderState($idOrder);
         if ($orderState) {
             $orderStateMessage = $orderState->template[$this->context->language->id];
         }
         if (!$order || !$orderState || (isset($orderStateMessage) && ($orderStateMessage == 'payment_error'))) {
-            $this->context->smarty->assign(
-                array(
-                    'logs' => array($this->module->l('An error occurred while processing payment.')),
-                    'order' => $paypalOrder,
-                    'price' => $price,
-                )
-            );
+            $this->context->smarty->assign([
+                'logs' => [$this->module->l('An error occurred while processing payment.')],
+                'order' => $paypalOrder,
+                'price' => $price,
+            ]);
             if (isset($orderStateMessage) && $orderStateMessage) {
                 $this->context->smarty->assign('message', $orderStateMessage);
             }
             $template = 'error.tpl';
         } else {
-            $this->context->smarty->assign(
-                array(
-                    'order' => $paypalOrder,
-                    'price' => $price,
-                    'reference_order' => Order::getUniqReferenceOf($paypalOrder['id_order']),
-                    'HOOK_ORDER_CONFIRMATION' => '',
-                    'HOOK_PAYMENT_RETURN' => $this->module->hookPaymentReturn(),
-                )
-            );
+            $this->context->smarty->assign([
+                'order' => $paypalOrder,
+                'price' => $price,
+                'reference_order' => \Order::getUniqReferenceOf($paypalOrder['id_order']),
+                'HOOK_ORDER_CONFIRMATION' => '',
+                'HOOK_PAYMENT_RETURN' => $this->module->hookPaymentReturn(),
+            ]);
 
             $template = 'order-confirmation.tpl';
         }
-        $this->context->smarty->assign('use_mobile', (bool) $this->module->useMobile());
+        $this->context->smarty->assign('use_mobile', (bool) $this->context->getMobileDevice());
 
         $this->setTemplate($template);
     }

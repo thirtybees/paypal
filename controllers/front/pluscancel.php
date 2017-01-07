@@ -26,15 +26,14 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalConfirmModuleFrontController extends \ModuleFrontController
+class PayPalPluscancelModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
-    // @codingStandardsIgnoreEnd
 
-    /** @var \PayPal $module */
-    public $module;
+    /** @var bool $display_column_right */
+    public $display_column_right = false;
 
     /** @var bool $ssl */
     public $ssl = true;
@@ -44,20 +43,12 @@ class PayPalConfirmModuleFrontController extends \ModuleFrontController
      */
     public function initContent()
     {
-        if (!$this->context->customer->isLogged(true) || empty($this->context->cart)) {
-            \Tools::redirect('index.php');
-        }
+        $cookie = $this->context->cookie;
 
-        parent::initContent();
+        unset ($cookie->paypal_access_token_access_token);
+        unset ($cookie->paypal_access_token_time_max);
+        $cookie->write();
 
-        $this->context = \Context::getContext();
-
-        $this->module->assignCartSummary();
-
-        $this->context->smarty->assign([
-            'form_action' => $this->context->link->getModuleLink($this->module->name, 'expresscheckoutpayment', [], \Tools::usingSecureMode()),
-        ]);
-
-        $this->setTemplate('order-summary.tpl');
+        \Tools::redirectLink($this->context->link->getPageLink('order', \Tools::usingSecureMode()));
     }
 }

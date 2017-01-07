@@ -29,15 +29,19 @@ require_once dirname(__FILE__).'/../../paypal.php';
 /**
  * Class PayPalHostedsolutionconfirmModuleFrontController
  */
-class PayPalHostedsolutionconfirmModuleFrontController extends ModuleFrontController
+class PayPalHostedsolutionconfirmModuleFrontController extends \ModuleFrontController
 {
+    /** @var bool $ssl */
+    public $ssl = true;
+
     public function initContent()
     {
         if ($idCart = Tools::getValue('id_cart')) {
-            $idOrder = Db::getInstance()->getValue('
-		SELECT id_order
-		FROM `'._DB_PREFIX_.'paypal_order`
-		WHERE `id_order` = '.(int) Order::getOrderByCartId((int) $idCart));
+            $sql = new \DbQuery();
+            $sql->select('po.`id_order`');
+            $sql->from('paypal_order', 'po');
+            $sql->where('po.`id_order` = '.(int) \Order::getOrderByCartId((int) $idCart));
+            $idOrder = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
 
             if ($idOrder !== false) {
                 echo (int) $idOrder;

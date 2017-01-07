@@ -2,7 +2,7 @@
 
 global $_MODULE;
 
-$_MODULE = array();
+$_MODULE = [];
 
 $_MODULE['<{paypal}prestashop>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'Die Preise bei PayPal und Thirty Bees sind nicht identisch.';
 $_MODULE['<{paypal}prestashop>ipn_572f9af7615560af2cba038cc1948287'] = 'Warenkorb geändert, versuchen Sie es erneut.';

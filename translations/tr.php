@@ -2,7 +2,7 @@
 
 global $_MODULE;
 
-$_MODULE = array();
+$_MODULE = [];
 
 $_MODULE['<{paypal}prestashop>back_office_e9f91995a69772872f7a386c6909403d'] = 'Müşteri tabanınızı genişletin';
 $_MODULE['<{paypal}prestashop>back_office_bbf54c5f55856a290f0deae540368071'] = 'PayPal ile başlıca kredi kartlarından ödeme alın ve PayPal\'ı tercih eden 100 milyondan fazla aktif kullanıcıya erişin';
