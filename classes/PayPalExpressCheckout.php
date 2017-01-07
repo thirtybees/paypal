@@ -721,7 +721,7 @@ class PayPalExpressCheckout
         $this->secureKey = $this->getSecureKey();
         $this->storeCookieInfo();
 
-        $url = '/websc&cmd=_express-checkout';
+        $url = '/webscr?cmd=_express-checkout';
 
 
         if (($this->method == 'SetExpressCheckout') && (\Configuration::get('PAYPAL_COUNTRY_DEFAULT') == 1) && ($this->type == 'payment_cart')) {

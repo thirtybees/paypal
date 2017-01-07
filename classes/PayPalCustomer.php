@@ -48,4 +48,21 @@ class PayPalCustomer extends PayPalObjectModel
             'paypal_email' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
         ],
     ];
+
+    /**
+     * Get PayPalCustomer ID by email
+     *
+     * @param string $email
+     *
+     * @return false|null|string
+     */
+    public static function getPayPalCustomerIdByEmail($email)
+    {
+        $sql = new \DbQuery();
+        $sql->select('pc.`id_customer`');
+        $sql->from(bqSQL(self::$definition['table']), 'pc');
+        $sql->where('pc.`paypal_email` = \''.pSQL($email).'\'');
+
+        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
+    }
 }

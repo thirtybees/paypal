@@ -24,6 +24,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalExpressCheckout;
 use PayPalModule\PayPalLogin;
 use PayPalModule\PayPalLoginUser;
@@ -31,6 +32,9 @@ use PayPalModule\PayPalOrder;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
+/**
+ * Class PayPalExpresscheckoutpaymentModuleFrontController
+ */
 class PayPalExpresscheckoutpaymentModuleFrontController extends \ModuleFrontController
 {
     /** @var PayPalExpressCheckout $payPalExpressCheckout */
@@ -59,6 +63,10 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends \ModuleFrontCont
         parent::initContent();
 
         $this->payPalExpressCheckout = new PayPalExpressCheckout(\Tools::getValue('express_checkout'));
+
+        if (\Tools::getValue('paypal_ec_canceled')) {
+            $this->cancelExpressCheckout();
+        }
 
         if (\Tools::isSubmit('token') && \Tools::isSubmit('PayerID')) {
             return $this->processPayment();
@@ -145,7 +153,7 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends \ModuleFrontCont
 
             /* Create Customer if not exist with address etc */
             if ($this->context->cookie->logged) {
-                $idCustomer = \Paypal::getPayPalCustomerIdByEmail($email);
+                $idCustomer = PaypalCustomer::getPayPalCustomerIdByEmail($email);
                 if (!$idCustomer) {
                     \PayPal::addPayPalCustomer($this->context->customer->id, $email);
                 }
@@ -484,5 +492,15 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends \ModuleFrontCont
             $customer->secure_key,
             $this->context->shop
         );
+    }
+
+    /**
+     * Cancel Express Checkout
+     */
+    public function cancelExpressCheckout()
+    {
+        unset($this->context->cookie->express_checkout);
+
+        \Tools::redirectLink($this->context->link->getPageLink('order', \Tools::usingSecureMode()));
     }
 }

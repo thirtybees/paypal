@@ -1915,21 +1915,6 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @param $email
-     *
-     * @return mixed
-     */
-    public static function getPayPalCustomerIdByEmail($email)
-    {
-        $sql = new \DbQuery();
-        $sql->select('pc.`id_customer`');
-        $sql->from('paypal_customer', 'pc');
-        $sql->where('pc.`email` = \''.pSQL($email).'\'');
-
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
-    }
-
-    /**
      * @param int $idCustomer
      *
      * @return mixed
