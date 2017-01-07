@@ -26,7 +26,7 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-use PayPalModule\CallApiPayPalPlus;
+use PayPalModule\CallPayPalPlusApi;
 
 class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
 {
@@ -48,7 +48,7 @@ class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
         $this->paymentId = \Tools::getValue('paymentID');
 
         if ($this->payerId && $this->paymentId) {
-            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $callApiPaypalPlus = new CallPayPalPlusApi();
             $payment = json_decode($callApiPaypalPlus->lookUpPayment($this->paymentId));
 
             if (isset($payment->state) && $payment->state === 'created') {

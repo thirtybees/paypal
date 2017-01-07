@@ -26,10 +26,15 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class AuthenticatePaymentMethods
+/**
+ * Class AuthenticatePaymentMethods
+ *
+ * @package PayPalModule
+ */
+class AvailablePaymentMethods
 {
     /**
-     * @param $isoCode
+     * @param string $isoCode
      *
      * @return bool|mixed
      *
@@ -44,7 +49,7 @@ class AuthenticatePaymentMethods
         // WPS  -> Web Payments Standard
         // WPRH -> Web Payments Pro Hosted
         // EC   -> Express Checkout
-        // PPP  -> Website Payments Plus
+        // WPP  -> Website Payments Plus
         // PVZ  -> Braintree / Payment VZero
 
         $paymentMethod = [
@@ -115,7 +120,7 @@ class AuthenticatePaymentMethods
     }
 
     /**
-     * @param $isoCode
+     * @param string $isoCode
      *
      * @return bool|int|string
      *

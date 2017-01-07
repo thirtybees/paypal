@@ -26,7 +26,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class CallApiPayPalPlus extends ApiPayPalPlus
+class CallPayPalPlusApi extends PayPalRestApi
 {
     protected $cart = null;
     protected $customer = null;
@@ -53,10 +53,7 @@ class CallApiPayPalPlus extends ApiPayPalPlus
      */
     public function getApprovalUrl()
     {
-        /*
-         * Récupération du token
-         */
-        $accessToken = $this->getToken(ApiPayPalPlus::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+        $accessToken = $this->getToken(PayPalRestApi::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
 
         if ($accessToken != false) {
             $result = json_decode($this->createPayment($this->customer, $this->cart, $accessToken));
@@ -74,7 +71,7 @@ class CallApiPayPalPlus extends ApiPayPalPlus
     }
 
     /**
-     * @param $paymentId
+     * @param string $paymentId
      *
      * @return bool|mixed
      *
@@ -95,12 +92,12 @@ class CallApiPayPalPlus extends ApiPayPalPlus
             'Authorization:Bearer '.$accessToken,
         ];
 
-        return $this->sendByCURL(ApiPayPalPlus::URL_PPP_LOOK_UP.$paymentId, false, $header);
+        return $this->sendWithCurl(PayPalRestApi::URL_PPP_LOOK_UP.$paymentId, false, $header);
     }
 
     /**
-     * @param $payerId
-     * @param $paymentId
+     * @param string $payerId
+     * @param string $paymentId
      *
      * @return bool|mixed
      *
@@ -123,12 +120,12 @@ class CallApiPayPalPlus extends ApiPayPalPlus
 
         $data = ['payer_id' => $payerId];
 
-        return $this->sendByCURL(ApiPayPalPlus::URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header);
+        return $this->sendWithCurl(PayPalRestApi::URL_PPP_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header);
     }
 
     /**
-     * @param $paymentId
-     * @param $data
+     * @param string    $paymentId
+     * @param \stdClass $data
      *
      * @return bool|mixed
      *
@@ -149,6 +146,6 @@ class CallApiPayPalPlus extends ApiPayPalPlus
             'Authorization:Bearer '.$accessToken,
         ];
 
-        return $this->sendByCURL(ApiPayPalPlus::URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
+        return $this->sendWithCurl(PayPalRestApi::URL_PPP_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
     }
 }

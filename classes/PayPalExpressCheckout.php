@@ -147,45 +147,6 @@ class PayPalExpressCheckout
     }
 
     /**
-     * @return bool
-     */
-    protected function initParameters()
-    {
-        if (!$this->context->cart || !$this->context->cart->id) {
-            return false;
-        }
-
-        $context = $this->context;
-        $module = $this->module;
-
-        $cartCurrency = new \Currency((int) $context->cart->id_currency);
-        $currencyModule = $module->getCurrency((int) $context->cart->id_currency);
-
-        $this->currency = $cartCurrency;
-
-        if (!\Validate::isLoadedObject($this->currency)) {
-            $context->controller->errors[] = $module->l('Not a valid currency');
-        }
-
-        if (count($context->controller->errors)) {
-            return false;
-        }
-
-        $currencyDecimals = is_array($this->currency) ? (int) $this->currency['decimals'] : (int) $this->currency->decimals;
-        $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
-
-        if ($cartCurrency !== $currencyModule) {
-            $context->cart->id_currency = $currencyModule->id;
-            $context->cart->update();
-        }
-
-        $context->currency = $currencyModule;
-        $this->productList = $context->cart->getProducts(true);
-
-        return (bool) count($this->productList);
-    }
-
-    /**
      * @param bool $accessToken
      *
      * @return bool
@@ -230,7 +191,7 @@ class PayPalExpressCheckout
     }
 
     /**
-     * @param $fields
+     * @param array $fields
      */
     public function setCancelUrl(&$fields)
     {
@@ -301,6 +262,76 @@ class PayPalExpressCheckout
     }
 
     /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function rightPaymentProcess()
+    {
+        $total = $this->getTotalPaid();
+
+        // float problem with php, have to use the string cast.
+        if ((isset($this->result['AMT']) && ((string) $this->result['AMT'] != (string) $total)) ||
+            (isset($this->result['PAYMENTINFO_0_AMT']) && ((string) $this->result['PAYMENTINFO_0_AMT'] != (string) $total))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function getTotalPaid()
+    {
+        $total = 0.00;
+
+        $context = $this->context;
+        $cart = $context->cart;
+
+        foreach ($this->productList as $product) {
+            $price = \Tools::ps_round($product['price_wt'], $this->decimals);
+            $quantity = \Tools::ps_round($product['quantity'], $this->decimals);
+            $total = \Tools::ps_round($total + ($price * $quantity), $this->decimals);
+        }
+
+        if ($cart->gift) {
+            $total = \Tools::ps_round($total + $this->module->getGiftWrappingPrice(), $this->decimals);
+        }
+
+        $discounts = $cart->getCartRules();
+        $shippingCost = $cart->getTotalShippingCost();
+
+        if (count($discounts) > 0) {
+            foreach ($discounts as $product) {
+                $price = -1 * \Tools::ps_round($product['value_real'], $this->decimals);
+                $total = \Tools::ps_round($total + $price, $this->decimals);
+            }
+        }
+
+        return \Tools::ps_round($shippingCost, $this->decimals) + $total;
+    }
+
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function displayPaypalInContextCheckout()
+    {
+        $this->secureKey = $this->getSecureKey();
+        $this->storeCookieInfo();
+        echo $this->token;
+        die;
+    }
+
+    /**
      * @param $fields
      *
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -316,6 +347,45 @@ class PayPalExpressCheckout
         $this->logs = array_merge($this->logs, $paypalLib->getLogs());
 
         $this->storeToken();
+    }
+
+    /**
+     * @return bool
+     */
+    protected function initParameters()
+    {
+        if (!$this->context->cart || !$this->context->cart->id) {
+            return false;
+        }
+
+        $context = $this->context;
+        $module = $this->module;
+
+        $cartCurrency = new \Currency((int) $context->cart->id_currency);
+        $currencyModule = $module->getCurrency((int) $context->cart->id_currency);
+
+        $this->currency = $cartCurrency;
+
+        if (!\Validate::isLoadedObject($this->currency)) {
+            $context->controller->errors[] = $module->l('Not a valid currency');
+        }
+
+        if (count($context->controller->errors)) {
+            return false;
+        }
+
+        $currencyDecimals = is_array($this->currency) ? (int) $this->currency['decimals'] : (int) $this->currency->decimals;
+        $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
+
+        if ($cartCurrency !== $currencyModule) {
+            $context->cart->id_currency = $currencyModule->id;
+            $context->cart->update();
+        }
+
+        $context->currency = $currencyModule;
+        $this->productList = $context->cart->getProducts(true);
+
+        return (bool) count($this->productList);
     }
 
     /**
@@ -337,7 +407,7 @@ class PayPalExpressCheckout
         $index = -1;
 
         // Set cart products list
-        $this->setProductsList($fields, $index, $total /* , $taxes */);
+        $this->setProductList($fields, $index, $total /* , $taxes */);
         $this->setDiscountsList($fields, $index, $total /* , $taxes */);
         $this->setGiftWrapping($fields, $index, $total);
 
@@ -409,7 +479,7 @@ class PayPalExpressCheckout
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function setProductsList(&$fields, &$index, &$total)
+    protected function setProductList(&$fields, &$index, &$total)
     {
         foreach ($this->productList as $product) {
             $fields['L_PAYMENTREQUEST_0_NUMBER'.++$index] = (int) $product['id_product'];
@@ -438,9 +508,32 @@ class PayPalExpressCheckout
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
+    protected function setGiftWrapping(&$fields, &$index, &$total)
+    {
+        if ($this->context->cart->gift == 1) {
+            $giftWrappingPrice = $this->module->getGiftWrappingPrice();
+
+            $fields['L_PAYMENTREQUEST_0_NAME'.++$index] = $this->module->l('Gift wrapping');
+
+            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = \Tools::ps_round($giftWrappingPrice, $this->decimals);
+            $fields['L_PAYMENTREQUEST_0_QTY'.$index] = 1;
+
+            $total = \Tools::ps_round($total /*+ $giftWrappingPrice*/, $this->decimals);
+        }
+    }
+
+    /**
+     * @param $fields
+     * @param $index
+     * @param $total
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
     protected function setDiscountsList(&$fields, &$index, &$total)
     {
-        $discounts = (_PS_VERSION_ < '1.5') ? $this->context->cart->getDiscounts() : $this->context->cart->getCartRules();
+        $discounts = $this->context->cart->getCartRules();
 
         if (count($discounts) > 0) {
             foreach ($discounts as $discount) {
@@ -462,34 +555,122 @@ class PayPalExpressCheckout
     }
 
     /**
-     * @param $fields
-     * @param $index
-     * @param $total
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function storeToken()
+    {
+        if (is_array($this->result) && isset($this->result['TOKEN'])) {
+            $this->token = (string) $this->result['TOKEN'];
+        }
+
+    }
+
+    /**
+     * @return bool
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function setGiftWrapping(&$fields, &$index, &$total)
+    public function hasSucceedRequest()
     {
-        if ($this->context->cart->gift == 1) {
-            // FIXME: find access to PaymenmtModule::getGiftWrappingPrice
-//            $giftWrappingPrice = $this->getGiftWrappingPrice();
+        if (is_array($this->result)) {
+            foreach (['ACK', 'PAYMENTINFO_0_ACK'] as $key) {
+                if (isset($this->result[$key]) && \Tools::strtoupper($this->result[$key]) == 'SUCCESS') {
+                    return true;
+                }
+            }
+        }
 
-            $fields['L_PAYMENTREQUEST_0_NAME'.++$index] = $this->module->l('Gift wrapping');
+        return false;
+    }
+    // Store data for the next reloading page
 
-            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = 0;//\Tools::ps_round($giftWrappingPrice, $this->decimals);
-            $fields['L_PAYMENTREQUEST_0_QTY'.$index] = 1;
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function isProductsListStillRight()
+    {
+        return $this->secureKey == $this->getSecureKey();
+    }
 
-            $total = \Tools::ps_round($total /*+ $giftWrappingPrice*/, $this->decimals);
+    /**
+     * @param string $type
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function setExpressCheckoutType($type)
+    {
+        if (in_array($type, $this->availableTypes)) {
+            $this->type = $type;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param \Customer $customer
+     * @param bool      $redirect
+     */
+    public function redirectToCheckout(\Customer $customer, $redirect = false)
+    {
+        $this->ready = true;
+        $this->storeCookieInfo();
+
+        $context = $this->context;
+        $context->cookie->id_customer = (int) $customer->id;
+        $context->cookie->customer_lastname = $customer->lastname;
+        $context->cookie->customer_firstname = $customer->firstname;
+        $context->cookie->passwd = $customer->passwd;
+        $context->cookie->email = $customer->email;
+        $context->cookie->is_guest = $customer->isGuest();
+        $context->cookie->logged = 1;
+
+        \Hook::exec('authentication');
+
+        if ($redirect) {
+            $link = $context->link->getPageLink('order.php', false, null, ['step' => '1']);
+            \Tools::redirectLink($link);
+            exit(0);
         }
     }
 
     /**
-     * @param $fields
-     * @param $index
-     * @param $total
-     * @param $taxes
+     * Redirect to API
+     */
+    public function redirectToAPI()
+    {
+        $this->secureKey = $this->getSecureKey();
+        $this->storeCookieInfo();
+
+        $url = '/webscr?cmd=_express-checkout';
+
+
+        if (($this->method == 'SetExpressCheckout') && (\Configuration::get('PAYPAL_COUNTRY_DEFAULT') == 1) && ($this->type == 'payment_cart')) {
+            $url .= '&useraction=commit';
+        }
+
+        \Tools::redirectLink('https://'.$this->module->getPayPalURL().$url.'&token='.urldecode($this->token));
+        exit(0);
+    }
+
+    /**
+     * @param array $fields
+     * @param int   $index
+     * @param float $total
+     * @param array $taxes
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -535,78 +716,6 @@ class PayPalExpressCheckout
     }
 
     /**
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function rightPaymentProcess()
-    {
-        $total = $this->getTotalPaid();
-
-        // float problem with php, have to use the string cast.
-        if ((isset($this->result['AMT']) && ((string) $this->result['AMT'] != (string) $total)) ||
-            (isset($this->result['PAYMENTINFO_0_AMT']) && ((string) $this->result['PAYMENTINFO_0_AMT'] != (string) $total))) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * @return mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function getTotalPaid()
-    {
-        $total = 0.00;
-
-        $context = $this->context;
-        $cart = $context->cart;
-
-        foreach ($this->productList as $product) {
-            $price = \Tools::ps_round($product['price_wt'], $this->decimals);
-            $quantity = \Tools::ps_round($product['quantity'], $this->decimals);
-            $total = \Tools::ps_round($total + ($price * $quantity), $this->decimals);
-        }
-
-        if ($cart->gift) {
-            // FIXME: find access to PaymentModule::getGiftWrappingPrice
-            $total = \Tools::ps_round($total /*+ $this->module->getGiftWrappingPrice()*/, $this->decimals);
-        }
-
-        $discounts = $cart->getCartRules();
-        $shippingCost = $cart->getTotalShippingCost();
-
-        if (count($discounts) > 0) {
-            foreach ($discounts as $product) {
-                $price = -1 * \Tools::ps_round($product['value_real'], $this->decimals);
-                $total = \Tools::ps_round($total + $price, $this->decimals);
-            }
-        }
-
-        return \Tools::ps_round($shippingCost, $this->decimals) + $total;
-    }
-
-    /**
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function storeToken()
-    {
-        if (is_array($this->result) && isset($this->result['TOKEN'])) {
-            $this->token = (string) $this->result['TOKEN'];
-        }
-
-    }
-
-    // Store data for the next reloading page
-    /**
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -620,39 +729,6 @@ class PayPalExpressCheckout
         }
 
         $this->context->cookie->{self::$cookieName} = serialize($tab);
-    }
-
-    /**
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function displayPaypalInContextCheckout()
-    {
-        $this->secureKey = $this->getSecureKey();
-        $this->storeCookieInfo();
-        echo $this->token;
-        die;
-    }
-
-    /**
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function hasSucceedRequest()
-    {
-        if (is_array($this->result)) {
-            foreach (['ACK', 'PAYMENTINFO_0_ACK'] as $key) {
-                if (isset($this->result[$key]) && \Tools::strtoupper($this->result[$key]) == 'SUCCESS') {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -679,83 +755,5 @@ class PayPalExpressCheckout
         }
 
         return md5(serialize($key));
-    }
-
-    /**
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function isProductsListStillRight()
-    {
-        return $this->secureKey == $this->getSecureKey();
-    }
-
-    /**
-     * @param $type
-     *
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function setExpressCheckoutType($type)
-    {
-        if (in_array($type, $this->availableTypes)) {
-            $this->type = $type;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Redirect to API
-     */
-    public function redirectToAPI()
-    {
-        $this->secureKey = $this->getSecureKey();
-        $this->storeCookieInfo();
-
-        $url = '/webscr?cmd=_express-checkout';
-
-
-        if (($this->method == 'SetExpressCheckout') && (\Configuration::get('PAYPAL_COUNTRY_DEFAULT') == 1) && ($this->type == 'payment_cart')) {
-            $url .= '&useraction=commit';
-        }
-
-        \Tools::redirectLink('https://'.$this->module->getPayPalURL().$url.'&token='.urldecode($this->token));
-        exit(0);
-    }
-
-    /**
-     * @param \Customer $customer
-     * @param bool     $redirect
-     */
-    public function redirectToCheckout(\Customer $customer, $redirect = false)
-    {
-        $this->ready = true;
-        $this->storeCookieInfo();
-
-        $context = $this->context;
-        $context->cookie->id_customer = (int) $customer->id;
-        $context->cookie->customer_lastname = $customer->lastname;
-        $context->cookie->customer_firstname = $customer->firstname;
-        $context->cookie->passwd = $customer->passwd;
-        $context->cookie->email = $customer->email;
-        $context->cookie->is_guest = $customer->isGuest();
-        $context->cookie->logged = 1;
-
-        \Hook::exec('authentication');
-
-        if ($redirect) {
-            $link = $context->link->getPageLink('order.php', false, null, ['step' => '1']);
-            \Tools::redirectLink($link);
-            exit(0);
-        }
     }
 }

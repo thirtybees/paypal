@@ -261,12 +261,10 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends \ModuleFrontCont
                 $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
                 \Tools::redirect($link);
             } elseif ($ppec->result['ACK'] != 'Failure') {
-                $this->context->smarty->assign(
-                    [
+                $this->context->smarty->assign([
                     'logs' => $ppec->logs,
                     'message' => $this->module->l('Error occurred:'),
-                    ]
-                );
+                ]);
 
                 $this->setTemplate('error.tpl');
             }
@@ -296,11 +294,9 @@ class PayPalExpresscheckoutpaymentModuleFrontController extends \ModuleFrontCont
          * Detect if we are using mobile or not
          * Check the 'ps_mobile_site' parameter.
          */
-        $this->context->smarty->assign(
-            [
+        $this->context->smarty->assign([
             'use_mobile' => (bool) $this->context->getMobileDevice(),
-            ]
-        );
+        ]);
 
         $this->setTemplate($template);
     }

@@ -30,9 +30,9 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/classes/autoload.php';
 
-use PayPalModule\ApiPayPalPlus;
-use PayPalModule\AuthenticatePaymentMethods;
-use PayPalModule\CallApiPayPalPlus;
+use PayPalModule\PayPalRestApi;
+use PayPalModule\AvailablePaymentMethods;
+use PayPalModule\CallPayPalPlusApi;
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PaypalLib;
@@ -831,7 +831,7 @@ class PayPal extends \PaymentModule
 
             return $this->display(__FILE__, 'express_checkout_payment.tpl');
         } elseif ($method == self::WPP) {
-            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $callApiPaypalPlus = new CallPayPalPlusApi();
             $callApiPaypalPlus->setParams($params);
 
             $approvalUrl = $callApiPaypalPlus->getApprovalUrl();
@@ -922,24 +922,18 @@ class PayPal extends \PaymentModule
             return null;
         }
 
-        // TODO: Why so limited? :S
-        $values = ['en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE'];
         $paypalLogos = $this->paypalLogos->getLogos();
 
-        $this->context->smarty->assign(
-            [
+        $this->context->smarty->assign([
             'PayPal_payment_type' => 'cart',
-            'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton'])
-            ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
+            'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
             'PayPal_current_page' => $this->getCurrentUrl(),
-            'PayPal_lang_code' => (isset($values[$this->context->language->iso_code])
-                ? $values[$this->context->language->iso_code] : 'en_US'),
+            'PayPal_lang_code' => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
             'PayPal_tracking_code' => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
             'include_form' => true,
             'template_dir' => dirname(__FILE__).'/views/templates/hook/',
             'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', [], \Tools::usingSecureMode()),
-            ]
-        );
+        ]);
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
     }
@@ -1381,11 +1375,11 @@ class PayPal extends \PaymentModule
     public function getPaymentMethods()
     {
         if (\Configuration::get(self::UPDATED_COUNTRIES_OK)) {
-            return AuthenticatePaymentMethods::authenticatePaymentMethodByLang(\Tools::strtoupper($this->context->language->iso_code));
+            return AvailablePaymentMethods::authenticatePaymentMethodByLang(\Tools::strtoupper($this->context->language->iso_code));
         } else {
             $country = new \Country((int) \Configuration::get('PS_COUNTRY_DEFAULT'));
 
-            return AuthenticatePaymentMethods::authenticatePaymentMethodByCountry($country->iso_code);
+            return AvailablePaymentMethods::authenticatePaymentMethodByCountry($country->iso_code);
         }
     }
 
@@ -1610,7 +1604,7 @@ class PayPal extends \PaymentModule
                     \Configuration::updateValue(self::PLUS_SECRET, \Tools::getValue('secret'));
 
                     if ((int) Tools::getValue('paypalplus_webprofile') == 1) {
-                        $apiPaypalPlus = new ApiPayPalPlus();
+                        $apiPaypalPlus = new PayPalRestApi();
                         $idWebProfile = $apiPaypalPlus->getWebProfile();
 
                         if ($idWebProfile) {
@@ -1711,7 +1705,7 @@ class PayPal extends \PaymentModule
                 $params->amount = $amount;
             }
 
-            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $callApiPaypalPlus = new CallPayPalPlusApi();
 
             return json_decode($callApiPaypalPlus->executeRefund($idTransaction, $params));
         }

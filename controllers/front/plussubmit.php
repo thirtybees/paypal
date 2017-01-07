@@ -20,7 +20,7 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-use PayPalModule\CallApiPayPalPlus;
+use PayPalModule\CallPayPalPlusApi;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -87,7 +87,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
         $this->token = \Tools::getValue('token');
 
         if ($this->idCart && $this->paymentId && $this->token) {
-            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $callApiPaypalPlus = new CallPayPalPlusApi();
             $payment = json_decode($callApiPaypalPlus->lookUpPayment($this->paymentId));
 
             if (isset($payment->state)) {
@@ -214,7 +214,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
             !empty($payerID) &&
             !empty($paymentId) &&
             !empty($submit)) {
-            $callApiPaypalPlus = new CallApiPayPalPlus();
+            $callApiPaypalPlus = new CallPayPalPlusApi();
             $payment = json_decode($callApiPaypalPlus->executePayment($payerID, $paymentId));
 
             if (isset($payment->state)) {

@@ -26,7 +26,12 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class ApiPayPalPlus
+/**
+ * Class PayPalRestApi
+ *
+ * @package PayPalModule
+ */
+class PayPalRestApi
 {
     const URL_PPP_CREATE_TOKEN = '/v1/oauth2/token';
     const URL_PPP_CREATE_PAYMENT = '/v1/payments/payment';
@@ -55,7 +60,7 @@ class ApiPayPalPlus
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function sendByCURL($url, $body, $httpHeader = false, $identify = false)
+    protected function sendWithCurl($url, $body, $httpHeader = false, $identify = false)
     {
         $ch = curl_init();
 
@@ -111,7 +116,7 @@ class ApiPayPalPlus
      */
     public function getToken($url, $body)
     {
-        $result = $this->sendByCURL($url, $body, false, true);
+        $result = $this->sendWithCurl($url, $body, false, true);
 
         /*
          * Init variable
@@ -186,7 +191,7 @@ class ApiPayPalPlus
                 'Authorization:Bearer '.$accessToken,
             ];
 
-            $result = json_decode($this->sendByCURL(self::URL_PPP_WEBPROFILE, json_encode($data), $header));
+            $result = json_decode($this->sendWithCurl(self::URL_PPP_WEBPROFILE, json_encode($data), $header));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -223,7 +228,7 @@ class ApiPayPalPlus
                 'Authorization:Bearer '.$accessToken,
             ];
 
-            return json_decode($this->sendByCURL(self::URL_PPP_WEBPROFILE, false, $header));
+            return json_decode($this->sendWithCurl(self::URL_PPP_WEBPROFILE, false, $header));
         }
 
         return [];
@@ -385,7 +390,7 @@ class ApiPayPalPlus
             'Authorization:Bearer '.$accessToken,
         ];
 
-        $result = $this->sendByCURL(self::URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
+        $result = $this->sendWithCurl(self::URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
 
         return $result;
     }

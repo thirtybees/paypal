@@ -28,6 +28,7 @@ if (!defined('_PS_VERSION_')) {
 
 class PayPalCapture extends PayPalObjectModel
 {
+    // @codingStandardsIgnoreStart
     /** @var int $id_order */
     public $id_order;
 
@@ -45,6 +46,7 @@ class PayPalCapture extends PayPalObjectModel
 
     /** @var int $id_paypal_capture */
     public $id_paypal_capture;
+    // @codingStandardsIgnoreEnd
 
     /**
      * @see ObjectModel::$definition
@@ -62,9 +64,11 @@ class PayPalCapture extends PayPalObjectModel
     ];
 
     /**
-     * @param $idOrder
+     * Get the total amount that has been captured for the given Order
      *
-     * @return float
+     * @param int $idOrder
+     *
+     * @return float Total amount captured
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -99,7 +103,7 @@ class PayPalCapture extends PayPalObjectModel
     }
 
     /**
-     * @param $idOrder
+     * @param int $idOrder
      *
      * @return bool
      *
@@ -140,7 +144,7 @@ class PayPalCapture extends PayPalObjectModel
     }
 
     /**
-     * @param $price
+     * @param float $price
      *
      * @return bool|float
      *

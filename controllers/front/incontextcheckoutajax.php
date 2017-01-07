@@ -20,7 +20,7 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-use PayPalModule\ApiPayPalPlus;
+use PayPalModule\PayPalRestApi;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -35,8 +35,8 @@ class PayPalIncontextcheckoutajaxModuleFrontController extends \ModuleFrontContr
 
     public function initContent()
     {
-        $rest = new ApiPayPalPlus();
-        $accessToken = $rest->getToken(ApiPayPalPlus::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+        $rest = new PayPalRestApi();
+        $accessToken = $rest->getToken(PayPalRestApi::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
         $payment = json_decode($rest->createPayment($this->context->customer, $this->context->cart, $accessToken));
 
         if (isset($payment->id)) {
