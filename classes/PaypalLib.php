@@ -26,13 +26,13 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-define('PAYPAL_API_VERSION', '106.0');
-
 class PaypalLib
 {
     protected $enableLog = false;
     protected $logs = [];
     protected $paypal = null;
+
+    const PAYPAL_API_VERSION = '106.0';
 
     /**
      * PaypalLib constructor.
@@ -70,7 +70,7 @@ class PaypalLib
     public function makeCall($host, $script, $methodName, $data, $methodVersion = '')
     {
         // Making request string
-        $methodVersion = (!empty($methodVersion)) ? $methodVersion : PAYPAL_API_VERSION;
+        $methodVersion = (!empty($methodVersion)) ? $methodVersion : self::PAYPAL_API_VERSION;
 
         $params = [
             'METHOD' => $methodName,
