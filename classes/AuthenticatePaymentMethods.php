@@ -39,78 +39,79 @@ class AuthenticatePaymentMethods
      */
     public static function getPaymentMethodsByIsoCode($isoCode)
     {
-        // WPS -> Web Payment Standard
-        // HSS -> Web Payment Pro / Integral Evolution
-        // ECS -> Express Checkout Solution
-        // PPP -> PAYPAL PLUS
-        // PVZ -> Braintree / Payment VZero
+        $isoCode = \Tools::strtoupper($isoCode);
 
-        $paymentMethod = array(
-            // EUROPE
-            'BE'=>array(\PayPal::WPS, \PayPal::ECS),
-            'CZ'=>array(\PayPal::WPS, \PayPal::ECS),
-            'DE'=>array(\PayPal::WPS, \PayPal::ECS, \PayPal::PPP),
-            'ES'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'FR'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'IT'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'VA'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'NL'=>array(\PayPal::WPS, \PayPal::ECS),
-            'AN'=>array(\PayPal::WPS, \PayPal::ECS), //Netherlands Antilles
-            'PL'=>array(\PayPal::WPS, \PayPal::ECS),
-            'PT'=>array(\PayPal::WPS, \PayPal::ECS),
-            'AT'=>array(\PayPal::WPS, \PayPal::ECS),
-            'CH'=>array(\PayPal::WPS, \PayPal::ECS),
-            'DK'=>array(\PayPal::WPS, \PayPal::ECS),
-            'FI'=>array(\PayPal::WPS, \PayPal::ECS),
-            'GR'=>array(\PayPal::WPS, \PayPal::ECS),
-            'HU'=>array(\PayPal::WPS, \PayPal::ECS),
-            'LU'=>array(\PayPal::WPS, \PayPal::ECS),
-            'NO'=>array(\PayPal::WPS, \PayPal::ECS),
-            'RO'=>array(\PayPal::WPS, \PayPal::ECS),
-            'RU'=>array(\PayPal::WPS, \PayPal::ECS),
-            'SE'=>array(\PayPal::WPS, \PayPal::ECS),
-            'SK'=>array(\PayPal::WPS, \PayPal::ECS),
-            'UA'=>array(\PayPal::WPS, \PayPal::ECS),
-            'TR'=>array(\PayPal::WPS, \PayPal::ECS),
-            'SI'=>array(\PayPal::WPS, \PayPal::ECS),
-            'GB'=>array(\PayPal::WPS, \PayPal::ECS),
+        // WPS  -> Web Payments Standard
+        // WPRH -> Web Payments Pro Hosted
+        // EC   -> Express Checkout
+        // PPP  -> Website Payments Plus
+        // PVZ  -> Braintree / Payment VZero
 
-            //ASIE
-            'CN'=>array(\PayPal::WPS, \PayPal::ECS),
-            'MO'=>array(\PayPal::WPS, \PayPal::ECS),
-            'HK'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'JP'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'MY'=>array(\PayPal::WPS, \PayPal::ECS),
-            'BN'=>array(\PayPal::WPS, \PayPal::ECS),
-            'ID'=>array(\PayPal::WPS, \PayPal::ECS),
-            'KH'=>array(\PayPal::WPS, \PayPal::ECS),
-            'LA'=>array(\PayPal::WPS, \PayPal::ECS),
-            'PH'=>array(\PayPal::WPS, \PayPal::ECS),
-            'TL'=>array(\PayPal::WPS, \PayPal::ECS),
-            'VN'=>array(\PayPal::WPS, \PayPal::ECS),
-            'IL'=>array(\PayPal::WPS, \PayPal::ECS), //Israel
-            'SG'=>array(\PayPal::WPS, \PayPal::ECS),
-            'TH'=>array(\PayPal::WPS, \PayPal::ECS),
-            'TW'=>array(\PayPal::WPS, \PayPal::ECS),
+        $paymentMethod = [
+            // Europe
+            'BE' => [\PayPal::WPS,                \PayPal::EC               ], // Belgium
+            'CZ' => [\PayPal::WPS,                \PayPal::EC               ], // Czech Republic
+            'DE' => [\PayPal::WPS,                \PayPal::EC,  \PayPal::WPP], // Germany
+            'ES' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // Spain
+            'FR' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // France
+            'IT' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // Italy
+            'VA' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // Vatican City
+            'NL' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // The Netherlands
+            'AN' => [\PayPal::WPS,                \PayPal::EC               ], // Netherlands Antilles
+            'PL' => [\PayPal::WPS,                \PayPal::EC               ], // Poland
+            'PT' => [\PayPal::WPS,                \PayPal::EC               ], // Portugal
+            'AT' => [\PayPal::WPS,                \PayPal::EC               ], // Austria (without kangaroos)
+            'CH' => [\PayPal::WPS,                \PayPal::EC               ], // Switzerland
+            'DK' => [\PayPal::WPS,                \PayPal::EC               ], // Denmark
+            'FI' => [\PayPal::WPS,                \PayPal::EC               ], // Finland
+            'GR' => [\PayPal::WPS,                \PayPal::EC               ], // Greece
+            'HU' => [\PayPal::WPS,                \PayPal::EC               ], // Hungary
+            'LU' => [\PayPal::WPS,                \PayPal::EC               ], // Luxembourg
+            'NO' => [\PayPal::WPS,                \PayPal::EC               ], // Norway
+            'RO' => [\PayPal::WPS,                \PayPal::EC               ], // Romania
+            'RU' => [\PayPal::WPS,                \PayPal::EC               ], // Russia
+            'SE' => [\PayPal::WPS,                \PayPal::EC               ], // Sweden
+            'SK' => [\PayPal::WPS,                \PayPal::EC               ], // Slovakia
+            'UA' => [\PayPal::WPS,                \PayPal::EC               ], // Ukraine
+            'TR' => [\PayPal::WPS,                \PayPal::EC               ], // Turkey
+            'SI' => [\PayPal::WPS,                \PayPal::EC               ], // Slovenia
+            'GB' => [\PayPal::WPS,                \PayPal::EC               ], // Great Britain (but incl. North Ireland)
+            // Asia
+            'CN' => [\PayPal::WPS,                \PayPal::EC               ], // People's Republic of China
+            'MO' => [\PayPal::WPS,                \PayPal::EC               ], // Macao
+            'HK' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // Hong Kong
+            'JP' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // Japan
+            'MY' => [\PayPal::WPS,                \PayPal::EC               ], // Malaysia
+            'BN' => [\PayPal::WPS,                \PayPal::EC               ], // Brunei
+            'ID' => [\PayPal::WPS,                \PayPal::EC               ], // Indonesia
+            'KH' => [\PayPal::WPS,                \PayPal::EC               ], // Cambodia
+            'LA' => [\PayPal::WPS,                \PayPal::EC               ], // Laos
+            'PH' => [\PayPal::WPS,                \PayPal::EC               ], // Philippines
+            'TL' => [\PayPal::WPS,                \PayPal::EC               ], // East Timor
+            'VN' => [\PayPal::WPS,                \PayPal::EC               ], // Vietnam
+            'IL' => [\PayPal::WPS,                \PayPal::EC               ], // Israel
+            'SG' => [\PayPal::WPS,                \PayPal::EC               ], // Singapore
+            'TH' => [\PayPal::WPS,                \PayPal::EC               ], // Thailand
+            'TW' => [\PayPal::WPS,                \PayPal::EC               ], // Taiwan
+            // Oceania
+            'NZ' => [\PayPal::WPS,                \PayPal::EC               ], // New-Zealand
+            'PW' => [\PayPal::WPS,                \PayPal::EC               ], // Palau
+            'AU' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC               ], // Australia (with kangaroos)
+            // North America
+            'US' => [\PayPal::WPS,                \PayPal::EC               ], // United States
+            'CA' => [\PayPal::WPS,                \PayPal::EC               ], // Canada
+            // Latin America
+            'BR' => [\PayPal::WPS,                \PayPal::EC               ], // Brazil
+            'MX' => [\PayPal::WPS,                \PayPal::EC               ], // Mexico
+            'CL' => [\PayPal::WPS,                \PayPal::EC               ], // Chile
+            'CO' => [\PayPal::WPS,                \PayPal::EC               ], // Colombia
+            'PE' => [\PayPal::WPS,                \PayPal::EC               ], // Peru
+            // Africa
+            'SL' => [\PayPal::WPS,                \PayPal::EC               ], // Sierra Leone
+            'SN' => [\PayPal::WPS,                \PayPal::EC               ], // Senegal
+        ];
 
-            // OCEANIE
-            'NZ'=>array(\PayPal::WPS, \PayPal::ECS),
-            'PW'=>array(\PayPal::WPS, \PayPal::ECS),
-            'AU'=>array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-
-            // AMERIQUE LATINE
-            'BR'=>array(\PayPal::WPS, \PayPal::ECS),
-            'MX'=>array(\PayPal::WPS, \PayPal::ECS),
-            'CL'=>array(\PayPal::WPS, \PayPal::ECS),
-            'CO'=>array(\PayPal::WPS, \PayPal::ECS),
-            'PE'=>array(\PayPal::WPS, \PayPal::ECS),
-
-            //AFRIQUE
-            'SL'=>array(\PayPal::WPS, \PayPal::ECS),
-            'SN'=>array(\PayPal::WPS, \PayPal::ECS),
-        );
-
-        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : false;
+        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : [\PayPal::WPS, \PayPal::EC];
     }
 
     /**
@@ -185,32 +186,32 @@ class AuthenticatePaymentMethods
         // PPP -> PAYPAL PLUS
 
         $paymentMethod = array(
-            'AU' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'BE' => array(\PayPal::WPS, \PayPal::ECS),
-            'CN' => array(\PayPal::WPS, \PayPal::ECS),
+            'AU' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'BE' => array(\PayPal::WPS, \PayPal::EC),
+            'CN' => array(\PayPal::WPS, \PayPal::EC),
             'CZ' => array(),
-            'DE' => array(\PayPal::WPS, \PayPal::ECS, \PayPal::PPP),
-            'ES' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'FR' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'GB' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'HK' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'IL' => array(\PayPal::WPS, \PayPal::ECS),
-            'IN' => array(\PayPal::WPS, \PayPal::ECS),
-            'IT' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'JP' => array(\PayPal::WPS, \PayPal::HSS, \PayPal::ECS),
-            'MY' => array(\PayPal::WPS, \PayPal::ECS),
-            'NL' => array(\PayPal::WPS, \PayPal::ECS),
-            'NZ' => array(\PayPal::WPS, \PayPal::ECS),
-            'PL' => array(\PayPal::WPS, \PayPal::ECS),
-            'PT' => array(\PayPal::WPS, \PayPal::ECS),
-            'RA' => array(\PayPal::WPS, \PayPal::ECS),
-            'RE' => array(\PayPal::WPS, \PayPal::ECS),
-            'SG' => array(\PayPal::WPS, \PayPal::ECS),
-            'TH' => array(\PayPal::WPS, \PayPal::ECS),
-            'TR' => array(\PayPal::WPS, \PayPal::ECS),
-            'TW' => array(\PayPal::WPS, \PayPal::ECS),
-            'US' => array(\PayPal::WPS, \PayPal::ECS),
-            'ZA' => array(\PayPal::WPS, \PayPal::ECS));
+            'DE' => array(\PayPal::WPS, \PayPal::EC, \PayPal::WPP),
+            'ES' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'FR' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'GB' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'HK' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'IL' => array(\PayPal::WPS, \PayPal::EC),
+            'IN' => array(\PayPal::WPS, \PayPal::EC),
+            'IT' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'JP' => array(\PayPal::WPS, \PayPal::WPRH, \PayPal::EC),
+            'MY' => array(\PayPal::WPS, \PayPal::EC),
+            'NL' => array(\PayPal::WPS, \PayPal::EC),
+            'NZ' => array(\PayPal::WPS, \PayPal::EC),
+            'PL' => array(\PayPal::WPS, \PayPal::EC),
+            'PT' => array(\PayPal::WPS, \PayPal::EC),
+            'RA' => array(\PayPal::WPS, \PayPal::EC),
+            'RE' => array(\PayPal::WPS, \PayPal::EC),
+            'SG' => array(\PayPal::WPS, \PayPal::EC),
+            'TH' => array(\PayPal::WPS, \PayPal::EC),
+            'TR' => array(\PayPal::WPS, \PayPal::EC),
+            'TW' => array(\PayPal::WPS, \PayPal::EC),
+            'US' => array(\PayPal::WPS, \PayPal::EC),
+            'ZA' => array(\PayPal::WPS, \PayPal::EC));
 
         return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : $paymentMethod['GB'];
     }
