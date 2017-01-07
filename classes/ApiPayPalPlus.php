@@ -40,14 +40,7 @@ class ApiPayPalPlus
      */
     public function __construct()
     {
-        if (class_exists('Context')) {
-            $this->context = \Context::getContext();
-        } else {
-            global $smarty, $cookie;
-            $this->context = new \StdClass();
-            $this->context->smarty = $smarty;
-            $this->context->cookie = $cookie;
-        }
+        $this->context = \Context::getContext();
     }
 
     /**
@@ -107,8 +100,8 @@ class ApiPayPalPlus
     }
 
     /**
-     * @param $url
-     * @param $body
+     * @param string $url
+     * @param string $body
      *
      * @return bool
      *
@@ -262,7 +255,7 @@ class ApiPayPalPlus
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function createPaymentObject(\Customer $customer, \Cart $cart)
+    public function createPaymentObject(\Customer $customer, \Cart $cart)
     {
         /*
          * Init Variable
@@ -382,7 +375,7 @@ class ApiPayPalPlus
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function createPayment($customer, $cart, $accessToken)
+    public function createPayment($customer, $cart, $accessToken)
     {
 
         $data = $this->createPaymentObject($customer, $cart);

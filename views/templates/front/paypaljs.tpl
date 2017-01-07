@@ -21,7 +21,7 @@
 <script type="text/javascript">
 	(function () {
 		function initPayPalJs() {
-			if (typeof $ === 'undefined' || !$('#payment_paypal_express_checkout').length) {
+			if (typeof $ === 'undefined' || !$('#payment_paypal_express_checkout').length{if $use_paypal_in_context} || typeof window.paypal  === 'undefined' || typeof window.paypal.checkout === 'undefined'{/if}) {
 				setTimeout(initPayPalJs, 100);
 				return;
 			}
@@ -37,54 +37,39 @@
 			$('body').on('submit', "#paypal_payment_form", updateFormDatas);
 
 			{if $use_paypal_in_context}
-			window.paypalCheckoutReady = function () {
-				window.paypal.checkout.setup('{$PayPal_in_context_checkout_merchant_id|escape:'javascript':'UTF-8'}', {
-					environment: {if $PAYPAL_SANDBOX}'sandbox'{else}'production'{/if},
-					click: function (event) {
-						event.preventDefault();
-
-						window.paypal.checkout.initXO();
-						updateFormDatas();
-						var str = '';
-						if ($('#paypal_payment_form input[name="id_product"]').length > 0) {
-							str += '&id_product=' + $('#paypal_payment_form input[name="id_product"]').val();
-						}
-						if ($('#paypal_payment_form input[name="quantity"]').length > 0) {
-							str += '&quantity=' + $('#paypal_payment_form input[name="quantity"]').val();
-						}
-						if ($('#paypal_payment_form input[name="id_product_attribute"]').length > 0) {
-							str += '&id_product_attribute=' + $('#paypal_payment_form input[name="id_product_attribute"]').val();
-						}
-
-						$.support.cors = true;
-
-						$.ajax({
-							url: '{$express_checkout_payment_link|escape:'javascript':'UTF-8'}',
-							type: 'GET',
-							data: {
-								ajax: 1,
-								onlytoken: 1,
-								express_checkout: $('input[name="express_checkout"]').val(),
-								current_shop_url: $('input[name="current_shop_url"]').val(),
-								bn: $('input[name="bn"]').val() + str,
-							},
-							async: true,
-							crossDomain: true,
-							success: function (token) {
-								var url = window.paypal.checkout.urlPrefix + token;
-								window.paypal.checkout.startFlow(url);
-								console.log('token: '+ token);
-							},
-							error: function (responseData, textStatus, errorThrown) {
-								alert("Error in ajax post" + responseData.statusText);
-
-								window.paypal.checkout.closeFlow();
-							}
-						});
+				$('#container_express_checkout').empty();
+				paypal.Button.render({
+					env: {if $PAYPAL_SANDBOX}'sandbox'{else}'production'{/if}, // Optional: specify 'sandbox' environment
+					payment: function(resolve, reject) {
+						var CREATE_PAYMENT_URL = '{Context::getContext()->link->getModuleLink('paypal', 'incontextcheckoutajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}';
+						paypal.request.post(CREATE_PAYMENT_URL, {
+							requestForInContext: true,
+						})
+						.then(function(data) { resolve(data.paymentID); })
+						.catch(function(err) { reject(err); });
 					},
-					button: ['paypal_process_payment', 'payment_paypal_express_checkout']
-				});
-			};
+					onAuthorize: function(data) {
+						// Note: you can display a confirmation page before executing
+
+						var EXECUTE_PAYMENT_URL = '{Context::getContext()->link->getModuleLink('paypal', 'incontextsubmit', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}';
+						paypal.request.post(EXECUTE_PAYMENT_URL, {
+							paymentID: data.paymentID,
+							payerID: data.payerID
+						})
+						.then(function(data) {
+							if (data.success) {
+								window.location.replace('{Context::getContext()->link->getModuleLink('paypal', 'confirm', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}');
+								return;
+							} else {
+								alert('fail');
+							}
+						})
+						.catch(function(err) {
+							alert('Payment failure');
+						});
+					}
+
+				}, '#container_express_checkout');
 			{/if}
 
 			{if !$use_paypal_in_context}

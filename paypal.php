@@ -391,8 +391,8 @@ class PayPal extends \PaymentModule
     {
         $paymentMethod = \Configuration::get(self::PAYMENT_METHOD);
 
-        if (($paymentMethod == self::WPS || $paymentMethod == self::EC) && (!is_null(\Configuration::get('PAYPAL_API_USER'))
-            && !is_null(\Configuration::get('PAYPAL_API_PASSWORD')) && !is_null(\Configuration::get('PAYPAL_API_SIGNATURE')))) {
+        if (($paymentMethod == self::WPS || $paymentMethod == self::EC) && (!is_null(\Configuration::get(self::API_USER))
+            && !is_null(\Configuration::get(self::API_PASSWORD)) && !is_null(\Configuration::get(self::API_SIGNATURE)))) {
             return true;
         }
 
@@ -458,7 +458,7 @@ class PayPal extends \PaymentModule
             (!(bool) \Configuration::get(self::API_USER)) &&
             (!(bool) \Configuration::get(self::API_PASSWORD)) &&
             (!(bool) \Configuration::get(self::API_SIGNATURE)))) {
-            $this->warning .= $this->l('You must set your PayPal Integral credentials in order to have the mobile theme work correctly.').'<br />';
+            $this->warning .= $this->l('You must set your PayPal Website Payments Pro Hosted Solution credentials in order to have the mobile theme work correctly.').'<br />';
         }
 
     }
