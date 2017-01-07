@@ -42,7 +42,7 @@ class PayPalLogos
     /**
      * PayPalLogos constructor.
      *
-     * @param $isoCode
+     * @param string $isoCode
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA

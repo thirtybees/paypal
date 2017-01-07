@@ -76,7 +76,7 @@ class PayPalIpn extends \PayPal
     }
 
     /**
-     * @param $custom
+     * @param array $custom
      */
     public function confirmOrder($custom)
     {
@@ -152,9 +152,9 @@ class PayPalIpn extends \PayPal
     }
 
     /**
-     * @param $paymentStatus
-     * @param $mcGrossNotRounded
-     * @param $newOrder
+     * @param string $paymentStatus
+     * @param float  $mcGrossNotRounded
+     * @param bool   $newOrder
      *
      * @return array
      *
@@ -201,7 +201,7 @@ class PayPalIpn extends \PayPal
     }
 
     /**
-     * @param $paymentStatus
+     * @param string $paymentStatus
      *
      * @return array
      *

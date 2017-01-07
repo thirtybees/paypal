@@ -26,7 +26,12 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class PaypalLib
+/**
+ * Class PayPalLib
+ *
+ * @package PayPalModule
+ */
+class PayPalLib
 {
     protected $enableLog = false;
     protected $logs = [];
@@ -55,10 +60,10 @@ class PaypalLib
     }
 
     /**
-     * @param        $host
-     * @param        $script
-     * @param        $methodName
-     * @param        $data
+     * @param string $host
+     * @param string $script
+     * @param string $methodName
+     * @param array  $data
      * @param string $methodVersion
      *
      * @return array
@@ -126,10 +131,10 @@ class PaypalLib
     }
 
     /**
-     * @param      $host
-     * @param      $script
-     * @param      $request
-     * @param bool $simpleMode
+     * @param string $host
+     * @param string $script
+     * @param string $request
+     * @param bool   $simpleMode
      *
      * @return bool|mixed|string
      *

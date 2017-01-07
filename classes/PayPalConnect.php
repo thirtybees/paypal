@@ -124,7 +124,7 @@ class PayPalConnect
             @curl_setopt($ch, CURLOPT_URL, 'https://'.$url);
 
             if ($identify) {
-                @curl_setopt($ch, CURLOPT_USERPWD, \Configuration::get('PAYPAL_LOGIN_CLIENT_ID').':'.\Configuration::get('PAYPAL_LOGIN_SECRET'));
+                @curl_setopt($ch, CURLOPT_USERPWD, \Configuration::get(\PayPal::CLIENT_ID).':'.\Configuration::get(\PayPal::SECRET));
             }
 
             @curl_setopt($ch, CURLOPT_POST, true);
@@ -205,7 +205,7 @@ class PayPalConnect
     /**
      * @param $host
      * @param $script
-     * @param $lenght
+     * @param $length
      *
      * @return string
      *
@@ -213,13 +213,15 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function createHeader($host, $script, $lenght)
+    protected function createHeader($host, $script, $length)
     {
-        return 'POST '.(string) $script.' HTTP/1.1'."\r\n".
-        'Host: '.(string) $host."\r\n".
-        'Content-Type: application/x-www-form-urlencoded'."\r\n".
-        'Content-Length: '.(int) $lenght."\r\n".
-            'Connection: close'."\r\n\r\n";
+        return implode("\r\n", [
+            'POST '.(string) $script.' HTTP/1.1',
+            'Host: '.(string) $host,
+            'Content-Type: application/x-www-form-urlencoded',
+            'Content-Length: '.(int) $length,
+            'Connection: close',
+        ])."\r\n\r\n";
     }
 
     /**

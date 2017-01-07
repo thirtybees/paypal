@@ -28,11 +28,17 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
+/**
+ * Class PayPalIncontextcheckoutajaxModuleFrontController
+ */
 class PayPalIncontextcheckoutajaxModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
 
+    /**
+     * Initialize content
+     */
     public function initContent()
     {
         $rest = new PayPalRestApi();
@@ -44,8 +50,9 @@ class PayPalIncontextcheckoutajaxModuleFrontController extends \ModuleFrontContr
             echo json_encode([
                 'paymentID' => $payment->id,
             ]);
+            die();
         }
 
-        die();
+        die('{}');
     }
 }

@@ -26,9 +26,10 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-/*
- * Instant payment notification class.
- * (wait for PayPal payment confirmation, then validate order)
+/**
+ * Class PayPalNotifier
+ *
+ * @package PayPalModule
  */
 class PayPalNotifier extends \PayPal
 {

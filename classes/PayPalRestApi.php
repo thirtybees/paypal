@@ -49,62 +49,6 @@ class PayPalRestApi
     }
 
     /**
-     * @param      $url
-     * @param      $body
-     * @param bool $httpHeader
-     * @param bool $identify
-     *
-     * @return mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function sendWithCurl($url, $body, $httpHeader = false, $identify = false)
-    {
-        $ch = curl_init();
-
-        if ($ch) {
-            if ((int) \Configuration::get('PAYPAL_SANDBOX') == 1) {
-                curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
-            } else {
-                curl_setopt($ch, CURLOPT_URL, 'https://api.paypal.com'.$url);
-            }
-
-            if ($identify) {
-                curl_setopt($ch, CURLOPT_USERPWD, \Configuration::get('PAYPAL_PLUS_CLIENT_ID').':'.\Configuration::get('PAYPAL_PLUS_SECRET'));
-            }
-
-            if ($httpHeader) {
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
-            }
-            if ($body) {
-                curl_setopt($ch, CURLOPT_POST, true);
-                if ($identify) {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($body));
-                } else {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-                }
-
-            }
-
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HEADER, false);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_SSLVERSION, defined('CURL_SSLVERSION_TLSv1') ? CURL_SSLVERSION_TLSv1 : 1);
-            curl_setopt($ch, CURLOPT_VERBOSE, false);
-
-            $result = curl_exec($ch);
-
-            curl_close($ch);
-        }
-
-        return isset($result) ? $result : false;
-    }
-
-    /**
      * @param string $url
      * @param string $body
      *
@@ -138,38 +82,6 @@ class PayPalRestApi
 
             return $accessToken;
         }
-    }
-
-    /**
-     * @return \stdClass
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function createWebProfile()
-    {
-
-        $presentation = new \stdClass();
-        $presentation->brand_name = \Configuration::get('PS_SHOP_NAME');
-        $presentation->logo_image = _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg';
-        $presentation->locale_code = \Tools::strtoupper(\Language::getIsoById($this->context->language->id));
-
-        $inputFields = new \stdClass();
-        $inputFields->allow_note = true;
-        $inputFields->no_shipping = 1;
-        $inputFields->address_override = 1;
-
-        $flowConfig = new \stdClass();
-        $flowConfig->landing_page_type = 'billing';
-
-        $webProfile = new \stdClass();
-        $webProfile->name = \Configuration::get('PS_SHOP_NAME');
-        $webProfile->presentation = $presentation;
-        $webProfile->input_fields = $inputFields;
-        $webProfile->flow_config = $flowConfig;
-
-        return $webProfile;
     }
 
     /**
@@ -235,6 +147,24 @@ class PayPalRestApi
     }
 
     /**
+     * @return array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function deleteProfile($idProfile)
+    {
+        $accessToken = $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+
+        if ($accessToken) {
+            $this->sendWithCurl(self::URL_PPP_WEBPROFILE, false, false, false, 'DELETE');
+        }
+
+        return true;
+    }
+
+    /**
      * @return bool
      *
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -251,8 +181,8 @@ class PayPalRestApi
     }
 
     /**
-     * @param $customer
-     * @param $cart
+     * @param \Customer $customer
+     * @param \Cart     $cart
      *
      * @return \stdClass
      *
@@ -262,9 +192,6 @@ class PayPalRestApi
      */
     public function createPaymentObject(\Customer $customer, \Cart $cart)
     {
-        /*
-         * Init Variable
-         */
         $oCurrency = new \Currency($cart->id_currency);
         $address = new \Address((int) $cart->id_address_invoice);
 
@@ -285,12 +212,6 @@ class PayPalRestApi
         }
 
         $cartItems = $cart->getProducts();
-
-        $shopUrl = \PayPal::getShopDomainSsl(true, true);
-
-        /*
-         * Création de l'obj à envoyer à Paypal
-         */
 
         $state = new \State($address->id_state);
         $shippingAddress = new \stdClass();
@@ -370,9 +291,9 @@ class PayPalRestApi
     }
 
     /**
-     * @param $customer
-     * @param $cart
-     * @param $accessToken
+     * @param \Customer $customer
+     * @param \Cart     $cart
+     * @param string    $accessToken
      *
      * @return mixed
      *
@@ -380,9 +301,8 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPayment($customer, $cart, $accessToken)
+    public function createPayment(\Customer $customer, \Cart $cart, $accessToken)
     {
-
         $data = $this->createPaymentObject($customer, $cart);
 
         $header = [
@@ -393,5 +313,90 @@ class PayPalRestApi
         $result = $this->sendWithCurl(self::URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
 
         return $result;
+    }
+
+    /**
+     * @param string      $url
+     * @param bool|string $body
+     * @param bool        $httpHeader
+     * @param bool        $identify
+     *
+     * @param bool|string $requestType
+     *
+     * @return mixed
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function sendWithCurl($url, $body = false, $httpHeader = false, $identify = false, $requestType = false)
+    {
+        $ch = curl_init();
+
+        if ($ch) {
+            if (\Configuration::get(\PayPal::SANDBOX)) {
+                curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
+            } else {
+                curl_setopt($ch, CURLOPT_URL, 'https://api.paypal.com'.$url);
+            }
+
+            if ($identify) {
+                curl_setopt($ch, CURLOPT_USERPWD, \Configuration::get(\PayPal::CLIENT_ID).':'.\Configuration::get(\PayPal::SECRET));
+            }
+
+            if ($httpHeader) {
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
+            }
+            if (!$requestType && $body) {
+                curl_setopt($ch, CURLOPT_POST, true);
+                if ($identify) {
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($body));
+                } else {
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+                }
+            } elseif ($requestType) {
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $requestType);
+            }
+
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HEADER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_SSLVERSION, defined('CURL_SSLVERSION_TLSv1_2') ? CURL_SSLVERSION_TLSv1_2 : 1);
+            curl_setopt($ch, CURLOPT_VERBOSE, false);
+
+            $result = curl_exec($ch);
+
+            curl_close($ch);
+        }
+
+        return isset($result) ? $result : false;
+    }
+
+    /**
+     * @return array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function createWebProfile()
+    {
+        return [
+            'name' => \Configuration::get('PS_SHOP_NAME'),
+            'presentation' => [
+                'brand_name' => \Configuration::get('PS_SHOP_NAME'),
+                'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                'locale_code' => $this->context->language->iso_code,
+            ],
+            'input_fields' => [
+                'allow_note' => true,
+                'no_shipping' => 2,
+                'address_override' => 0,
+            ],
+            'flow_config' => [
+                'landing_page_type' => 'billing',
+            ],
+        ];
     }
 }

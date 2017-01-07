@@ -26,6 +26,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalLoginUser
+ *
+ * @package PayPalModule
+ */
 class PayPalLoginUser extends PayPalObjectModel
 {
     // @codingStandardsIgnoreStart

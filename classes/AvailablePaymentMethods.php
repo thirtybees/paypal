@@ -131,45 +131,31 @@ class AvailablePaymentMethods
     public static function getCountryDependencyRetroCompatibilite($isoCode)
     {
         $localizations = [
-            'AU' => ['AU'], 'BE' => ['BE'], 'CN' => ['CN', 'MO'],
-            'CZ' => ['CZ'], 'DE' => ['DE'], 'ES' => ['ES'],
-            'FR' => ['FR'], 'GB' => ['GB'], 'HK' => ['HK'], 'IL' => [
-                'IL'
-            ], 'IN' => ['IN'], 'IT' => ['IT', 'VA'],
-            'JP' => ['JP'], 'MY' => ['MY'], 'NL' => ['AN', 'NL'],
-            'NZ' => ['NZ'], 'PL' => ['PL'], 'PT' => ['PT', 'BR'],
-            'RA' => [
-                'AF', 'AS', 'BD', 'BN', 'BT', 'CC', 'CK', 'CX', 'FM', 'HM',
-                'ID', 'KH', 'KI', 'KN', 'KP', 'KR', 'KZ', 'LA', 'LK', 'MH',
-                'MM', 'MN', 'MV', 'MX', 'NF', 'NP', 'NU', 'OM', 'PG', 'PH', 'PW',
-                'QA', 'SB', 'TJ', 'TK', 'TL', 'TM', 'TO', 'TV', 'TZ', 'UZ', 'VN',
-                'VU', 'WF', 'WS'
-            ],
-            'RE' => [
-                'IE', 'ZA', 'GP', 'GG', 'JE', 'MC', 'MS', 'MP', 'PA', 'PY',
-                'PE', 'PN', 'PR', 'LC', 'SR', 'TT',
-                'UY', 'VE', 'VI', 'AG', 'AR', 'CA', 'BO', 'BS', 'BB', 'BZ', 'CL',
-                'CO', 'CR', 'CU', 'SV', 'GD', 'GT', 'HN', 'JM', 'NI', 'AD', 'AE',
-                'AI', 'AL', 'AM', 'AO', 'AQ', 'AT', 'AW', 'AX', 'AZ', 'BA', 'BF',
-                'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BV', 'BW', 'BY', 'CD', 'CF',
-                'CG',
-                'CH', 'CI', 'CM', 'CV', 'CY', 'DJ', 'DK', 'DM', 'DO', 'DZ', 'EC',
-                'EE', 'EG', 'EH', 'ER', 'ET', 'FI', 'FJ', 'FK', 'FO', 'GA', 'GE',
-                'GF',
-                'GH', 'GI', 'GL', 'GM', 'GN', 'GQ', 'GR', 'GS', 'GU', 'GW', 'GY',
-                'HR', 'HT', 'HU', 'IM', 'IO', 'IQ', 'IR', 'IS', 'JO', 'KE', 'KM',
-                'KW',
-                'KY', 'LB', 'LI', 'LR', 'LS', 'LT', 'LU', 'LV', 'LY', 'MA', 'MD',
-                'ME', 'MF', 'MG', 'MK', 'ML', 'MQ', 'MR', 'MT', 'MU', 'MW', 'MZ',
-                'NA',
-                'NC', 'NE', 'NG', 'NO', 'NR', 'PF', 'PK', 'PM', 'PS', 'RE', 'RO',
-                'RS', 'RU', 'RW', 'SA', 'SC', 'SD', 'SE', 'SI', 'SJ', 'SK', 'SL',
-                'SM', 'SN', 'SO', 'ST', 'SY', 'SZ', 'TC', 'TD', 'TF', 'TG', 'TN',
-                'UA', 'UG', 'VC', 'VG', 'YE', 'YT', 'ZM', 'ZW'
-            ],
-            'SG' => ['SG'], 'TH' => ['TH'], 'TR' => ['TR'], 'TW' => [
-                'TW'
-            ], 'US' => ['US']
+            'AU' => ['AU'],
+            'BE' => ['BE'],
+            'CN' => ['CN', 'MO'],
+            'CZ' => ['CZ'],
+            'DE' => ['DE'],
+            'ES' => ['ES'],
+            'FR' => ['FR'],
+            'GB' => ['GB'],
+            'HK' => ['HK'],
+            'IL' => ['IL'],
+            'IN' => ['IN'],
+            'IT' => ['IT', 'VA'],
+            'JP' => ['JP'],
+            'MY' => ['MY'],
+            'NL' => ['AN', 'NL'],
+            'NZ' => ['NZ'],
+            'PL' => ['PL'],
+            'PT' => ['PT', 'BR'],
+            'RA' => ['AF', 'AS', 'BD', 'BN', 'BT', 'CC', 'CK', 'CX', 'FM', 'HM', 'ID', 'KH', 'KI', 'KN', 'KP', 'KR', 'KZ', 'LA', 'LK', 'MH', 'MM', 'MN', 'MV', 'MX', 'NF', 'NP', 'NU', 'OM', 'PG', 'PH', 'PW', 'QA', 'SB', 'TJ', 'TK', 'TL', 'TM', 'TO', 'TV', 'TZ', 'UZ', 'VN', 'VU', 'WF', 'WS'],
+            'RE' => ['IE', 'ZA', 'GP', 'GG', 'JE', 'MC', 'MS', 'MP', 'PA', 'PY', 'PE', 'PN', 'PR', 'LC', 'SR', 'TT', 'UY', 'VE', 'VI', 'AG', 'AR', 'CA', 'BO', 'BS', 'BB', 'BZ', 'CL', 'CO', 'CR', 'CU', 'SV', 'GD', 'GT', 'HN', 'JM', 'NI', 'AD', 'AE', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AT', 'AW', 'AX', 'AZ', 'BA', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BV', 'BW', 'BY', 'CD', 'CF', 'CG', 'CH', 'CI', 'CM', 'CV', 'CY', 'DJ', 'DK', 'DM', 'DO', 'DZ', 'EC', 'EE', 'EG', 'EH', 'ER', 'ET', 'FI', 'FJ', 'FK', 'FO', 'GA', 'GE', 'GF', 'GH', 'GI', 'GL', 'GM', 'GN', 'GQ', 'GR', 'GS', 'GU', 'GW', 'GY', 'HR', 'HT', 'HU', 'IM', 'IO', 'IQ', 'IR', 'IS', 'JO', 'KE', 'KM', 'KW', 'KY', 'LB', 'LI', 'LR', 'LS', 'LT', 'LU', 'LV', 'LY', 'MA', 'MD', 'ME', 'MF', 'MG', 'MK', 'ML', 'MQ', 'MR', 'MT', 'MU', 'MW', 'MZ', 'NA', 'NC', 'NE', 'NG', 'NO', 'NR', 'PF', 'PK', 'PM', 'PS', 'RE', 'RO', 'RS', 'RU', 'RW', 'SA', 'SC', 'SD', 'SE', 'SI', 'SJ', 'SK', 'SL', 'SM', 'SN', 'SO', 'ST', 'SY', 'SZ', 'TC', 'TD', 'TF', 'TG', 'TN', 'UA', 'UG', 'VC', 'VG', 'YE', 'YT', 'ZM', 'ZW'],
+            'SG' => ['SG'],
+            'TH' => ['TH'],
+            'TR' => ['TR'],
+            'TW' => ['TW'],
+            'US' => ['US'],
         ];
 
         foreach ($localizations as $key => $value) {
@@ -182,7 +168,7 @@ class AvailablePaymentMethods
     }
 
     /**
-     * @param $isoCode
+     * @param string $isoCode
      *
      * @return mixed
      *
@@ -192,45 +178,45 @@ class AvailablePaymentMethods
      */
     public static function getPaymentMethodsRetroCompatibilite($isoCode)
     {
-        // WPS -> Web Payment Standard
-        // HSS -> Web Payment Pro / Integral Evolution
-        // ECS -> Express Checkout Solution
-        // PPP -> PAYPAL PLUS
+        // WPS -> Website Payments Standard
+        // WPRH -> Web Payments Pro Hosted Solution
+        // EC -> Express Checkout
+        // WPP -> PAYPAL PLUS
 
         $paymentMethod = [
-            'AU' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'BE' => [\PayPal::WPS, \PayPal::EC],
-            'CN' => [\PayPal::WPS, \PayPal::EC],
-            'CZ' => [],
-            'DE' => [\PayPal::WPS, \PayPal::EC, \PayPal::WPP],
-            'ES' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'FR' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'GB' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'HK' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'IL' => [\PayPal::WPS, \PayPal::EC],
-            'IN' => [\PayPal::WPS, \PayPal::EC],
-            'IT' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'JP' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC],
-            'MY' => [\PayPal::WPS, \PayPal::EC],
-            'NL' => [\PayPal::WPS, \PayPal::EC],
-            'NZ' => [\PayPal::WPS, \PayPal::EC],
-            'PL' => [\PayPal::WPS, \PayPal::EC],
-            'PT' => [\PayPal::WPS, \PayPal::EC],
-            'RA' => [\PayPal::WPS, \PayPal::EC],
-            'RE' => [\PayPal::WPS, \PayPal::EC],
-            'SG' => [\PayPal::WPS, \PayPal::EC],
-            'TH' => [\PayPal::WPS, \PayPal::EC],
-            'TR' => [\PayPal::WPS, \PayPal::EC],
-            'TW' => [\PayPal::WPS, \PayPal::EC],
-            'US' => [\PayPal::WPS, \PayPal::EC],
-            'ZA' => [\PayPal::WPS, \PayPal::EC]
+            'AU' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'BE' => [\PayPal::WPS,                \PayPal::EC              ],
+            'CN' => [\PayPal::WPS,                \PayPal::EC              ],
+            'CZ' => [\PayPal::WPS,                \PayPal::EC,             ],
+            'DE' => [\PayPal::WPS,                \PayPal::EC, \PayPal::WPP],
+            'ES' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'FR' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'GB' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'HK' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'IL' => [\PayPal::WPS,                \PayPal::EC              ],
+            'IN' => [\PayPal::WPS,                \PayPal::EC              ],
+            'IT' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'JP' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ],
+            'MY' => [\PayPal::WPS,                \PayPal::EC              ],
+            'NL' => [\PayPal::WPS,                \PayPal::EC              ],
+            'NZ' => [\PayPal::WPS,                \PayPal::EC              ],
+            'PL' => [\PayPal::WPS,                \PayPal::EC              ],
+            'PT' => [\PayPal::WPS,                \PayPal::EC              ],
+            'RA' => [\PayPal::WPS,                \PayPal::EC              ],
+            'RE' => [\PayPal::WPS,                \PayPal::EC              ],
+            'SG' => [\PayPal::WPS,                \PayPal::EC              ],
+            'TH' => [\PayPal::WPS,                \PayPal::EC              ],
+            'TR' => [\PayPal::WPS,                \PayPal::EC              ],
+            'TW' => [\PayPal::WPS,                \PayPal::EC              ],
+            'US' => [\PayPal::WPS,                \PayPal::EC              ],
+            'ZA' => [\PayPal::WPS,                \PayPal::EC              ],
         ];
 
-        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : $paymentMethod['GB'];
+        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : $paymentMethod['NL'];
     }
 
     /**
-     * @param $isoCode
+     * @param string $isoCode
      *
      * @return mixed
      *
@@ -244,7 +230,7 @@ class AvailablePaymentMethods
     }
 
     /**
-     * @param $isoCode
+     * @param string $isoCode
      *
      * @return bool|mixed
      *

@@ -26,6 +26,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalCapture
+ *
+ * @package PayPalModule
+ */
 class PayPalCapture extends PayPalObjectModel
 {
     // @codingStandardsIgnoreStart

@@ -35,7 +35,7 @@ use PayPalModule\AvailablePaymentMethods;
 use PayPalModule\CallPayPalPlusApi;
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
-use PayPalModule\PaypalLib;
+use PayPalModule\PayPalLib;
 use PayPalModule\PayPalLogin;
 use PayPalModule\PayPalLoginUser;
 use PayPalModule\PayPalLogos;
@@ -93,9 +93,6 @@ class PayPal extends \PaymentModule
     const HEADER = 'PAYPAL_HEADER';
     const BUSINESS = 'PAYPAL_BUSINESS';
     const BUSINESS_ACCOUNT = 'PAYPAL_BUSINESS_ACCOUNT';
-    const API_USER = 'PAYPAL_API_USER';
-    const API_PASSWORD = 'PAYPAL_API_PASSWORD';
-    const API_SIGNATURE = 'PAYPAL_API_SIGNATURE';
     const EXPRESS_CHECKOUT = 'PAYPAL_EXPRESS_CHECKOUT';
     const CAPTURE = 'PAYPAL_CAPTURE';
     const PAYMENT_METHOD = 'PAYPAL_PAYMENT_METHOD';
@@ -107,16 +104,18 @@ class PayPal extends \PaymentModule
     const TEMPLATE = 'PAYPAL_TEMPLATE';
 
     const LOGIN = 'PAYPAL_LOGIN';
-    const LOGIN_CLIENT_ID = 'PAYPAL_LOGIN_CLIENT_ID';
-    const LOGIN_SECRET = 'PAYPAL_LOGIN_SECRET';
     const LOGIN_TPL = 'PAYPAL_LOGIN_TPL';
     const EXPRESS_CHECKOUT_SHORTCUT = 'PAYPAL_EXPRESS_CHECKOUT_SHORTCUT';
 
-    const PLUS_CLIENT_ID = 'PAYPAL_PLUS_CLIENT_ID';
-    const PLUS_SECRET = 'PAYPAL_PLUS_SECRET';
+    const WEBSITE_PAYMENTS_PRO_HOSTED = 'PAYPAL_WPRH';
+
+    const API_USER = 'PAYPAL_API_USER';
+    const API_PASSWORD = 'PAYPAL_API_PASSWORD';
+    const API_SIGNATURE = 'PAYPAL_API_SIGNATURE';
+    const CLIENT_ID = 'PAYPAL_PLUS_CLIENT_ID';
+    const SECRET = 'PAYPAL_PLUS_SECRET';
 
     const IN_CONTEXT_CHECKOUT = 'PAYPAL_IN_CONTEXT_CHECKOUT';
-    const IN_CONTEXT_CHECKOUT_M_ID = 'PAYPAL_IN_CONTEXT_CHECKOUT_M_ID';
 
     const HSS_TEMPLATE = 'PAYPAL_HSS_TEMPLATE';
     const HSS_SOLUTION = 'PAYPAL_HSS_SOLUTION';
@@ -269,7 +268,7 @@ class PayPal extends \PaymentModule
         \Configuration::updateValue(self::COUNTRY_DEFAULT, (int) \Configuration::get('PS_COUNTRY_DEFAULT'));
 
         // PayPal v3 configuration
-        \Configuration::updateValue('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT', 1);
+        \Configuration::updateValue(self::EXPRESS_CHECKOUT_SHORTCUT, 1);
         $paypal = new \Paypal();
         $tlsVerifier = new TlsVerifier(true, $paypal);
         \Configuration::updateValue('PAYPAL_VERSION_TLS_CHECKED', $tlsVerifier->getVersion());
@@ -301,8 +300,8 @@ class PayPal extends \PaymentModule
 
         /* USE PAYPAL LOGIN */
         \Configuration::deleteByName(self::LOGIN);
-        \Configuration::deleteByName(self::LOGIN_CLIENT_ID);
-        \Configuration::deleteByName(self::LOGIN_SECRET);
+        \Configuration::deleteByName(self::CLIENT_ID);
+        \Configuration::deleteByName(self::SECRET);
         \Configuration::deleteByName(self::LOGIN_TPL);
         /* /USE PAYPAL LOGIN */
 
@@ -391,17 +390,9 @@ class PayPal extends \PaymentModule
     {
         $paymentMethod = \Configuration::get(self::PAYMENT_METHOD);
 
-        if (($paymentMethod == self::WPS || $paymentMethod == self::EC) && (!is_null(\Configuration::get(self::API_USER))
-            && !is_null(\Configuration::get(self::API_PASSWORD)) && !is_null(\Configuration::get(self::API_SIGNATURE)))) {
+        if (\Configuration::get(self::CLIENT_ID) && \Configuration::get(self::SECRET)) {
             return true;
-        }
-
-        if ($paymentMethod == self::WPP && (!is_null(\Configuration::get(self::PLUS_CLIENT_ID))
-            || !is_null(\Configuration::get(self::PLUS_SECRET)))) {
-            return true;
-        }
-
-        if ($paymentMethod == self::WPRH && !is_null(\Configuration::get(self::BUSINESS_ACCOUNT))) {
+        } elseif ($paymentMethod == self::WPRH && \Configuration::get(self::BUSINESS_ACCOUNT)) {
             return true;
         }
 
@@ -455,9 +446,8 @@ class PayPal extends \PaymentModule
         $paymentMethod = \Configuration::get(self::PAYMENT_METHOD);
 
         if (((int) $paymentMethod == self::WPRH) && (
-            (!(bool) \Configuration::get(self::API_USER)) &&
-            (!(bool) \Configuration::get(self::API_PASSWORD)) &&
-            (!(bool) \Configuration::get(self::API_SIGNATURE)))) {
+            (!\Configuration::get(self::CLIENT_ID)) &&
+            (!\Configuration::get(self::SECRET)))) {
             $this->warning .= $this->l('You must set your PayPal Website Payments Pro Hosted Solution credentials in order to have the mobile theme work correctly.').'<br />';
         }
 
@@ -517,32 +507,31 @@ class PayPal extends \PaymentModule
             'PayPal_allowed_methods' => $this->getPaymentMethods(),
             'PayPal_country' => \Country::getNameById((int) $englishLanguageId, (int) $this->defaultCountry),
             'PayPal_country_id' => (int) $this->defaultCountry,
-            'PayPal_business' => \Configuration::get(self::BUSINESS),
-            'PayPal_payment_method' => (int) \Configuration::get(self::PAYMENT_METHOD),
-            'PayPal_api_username' => \Configuration::get(self::API_USER),
-            'PayPal_api_password' => \Configuration::get(self::API_PASSWORD),
-            'PayPal_api_signature' => \Configuration::get(self::API_SIGNATURE),
-            'PayPal_api_business_account' => \Configuration::get(self::BUSINESS_ACCOUNT),
-            'PayPal_express_checkout_shortcut' => (int) \Configuration::get(self::EXPRESS_CHECKOUT_SHORTCUT),
-            'PayPal_in_context_checkout' => (int) \Configuration::get(self::IN_CONTEXT_CHECKOUT),
+            self::BUSINESS => \Configuration::get(self::BUSINESS),
+            self::PAYMENT_METHOD => (int) \Configuration::get(self::PAYMENT_METHOD),
+            self::BUSINESS_ACCOUNT => \Configuration::get(self::BUSINESS_ACCOUNT),
+            self::EXPRESS_CHECKOUT_SHORTCUT => (int) \Configuration::get(self::EXPRESS_CHECKOUT_SHORTCUT),
+            self::IN_CONTEXT_CHECKOUT => (int) \Configuration::get(self::IN_CONTEXT_CHECKOUT),
             'use_paypal_in_context' => (int) $this->useInContextCheckout(),
-            'PayPal_in_context_checkout_merchant_id' => \Configuration::get(self::IN_CONTEXT_CHECKOUT_M_ID),
-            'PayPal_sandbox_mode' => (int) \Configuration::get(self::SANDBOX),
-            'PayPal_payment_capture' => (int) \Configuration::get(self::CAPTURE),
+            self::SANDBOX => (int) \Configuration::get(self::SANDBOX),
+            self::CAPTURE => (int) \Configuration::get(self::CAPTURE),
             'PayPal_country_default' => (int) $this->defaultCountry,
-            'PayPal_change_country_url' => 'index.php?tab=AdminCountries&token='.\Tools::getAdminTokenLite('AdminCountries').'#footer',
+            'PayPal_change_country_url' => $this->context->link->getAdminLink('AdminCountries', true).'#footer',
             'Countries' => \Country::getCountries($englishLanguageId),
             'One_Page_Checkout' => (int) \Configuration::get('PS_ORDER_PROCESS_TYPE'),
-            'PayPal_integral_evolution_template' => \Configuration::get(self::HSS_TEMPLATE),
-            'PayPal_integral_evolution_solution' => \Configuration::get(self::HSS_SOLUTION),
-            'PayPal_login' => (int) \Configuration::get(self::LOGIN),
-            'PayPal_login_client_id' => \Configuration::get(self::LOGIN_CLIENT_ID),
-            'PayPal_login_secret' => \Configuration::get(self::LOGIN_SECRET),
-            'PayPal_login_tpl' => (int) \Configuration::get(self::LOGIN_TPL),
+            self::HSS_TEMPLATE => \Configuration::get(self::HSS_TEMPLATE),
+            self::HSS_SOLUTION => \Configuration::get(self::HSS_SOLUTION),
+            self::LOGIN => (int) \Configuration::get(self::LOGIN),
+            self::CLIENT_ID => \Configuration::get(self::CLIENT_ID),
+            self::SECRET => \Configuration::get(self::SECRET),
+            self::LOGIN_TPL => (int) \Configuration::get(self::LOGIN_TPL),
+            self::API_USER => \Configuration::get(self::API_USER),
+            self::API_PASSWORD => \Configuration::get(self::API_PASSWORD),
+            self::API_SIGNATURE =>  \Configuration::get(self::API_SIGNATURE),
             'default_lang_iso' => \Language::getIsoById($this->context->employee->id_lang),
-            'PayPal_plus_client' => \Configuration::get(self::PLUS_CLIENT_ID),
-            'PayPal_plus_secret' => \Configuration::get(self::PLUS_SECRET),
-            'PayPal_plus_webprofile' => (\Configuration::get(self::WEB_PROFILE_ID) != '0') ? \Configuration::get(self::WEB_PROFILE_ID) : 0,
+            'PayPal_plus_client' => \Configuration::get(self::CLIENT_ID),
+            'PayPal_plus_secret' => \Configuration::get(self::SECRET),
+            self::WEB_PROFILE_ID => (\Configuration::get(self::WEB_PROFILE_ID) != '0') ? \Configuration::get(self::WEB_PROFILE_ID) : 0,
             //'PayPal_version_tls_checked' => $tls_version,
             'Presta_version' => _PS_VERSION_,
         ]);
@@ -575,7 +564,6 @@ class PayPal extends \PaymentModule
             'PAYPAL_SANDBOX' => \Configuration::get(self::SANDBOX),
             'PayPal_in_context_checkout' => \Configuration::get(self::IN_CONTEXT_CHECKOUT),
             'use_paypal_in_context' => (int) $this->useInContextCheckout(),
-            'PayPal_in_context_checkout_merchant_id' => \Configuration::get(self::IN_CONTEXT_CHECKOUT_M_ID),
             'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckoutpayment', [], \Tools::usingSecureMode()),
         ]);
 
@@ -593,8 +581,8 @@ class PayPal extends \PaymentModule
             (int) \Configuration::get('PAYPAL_LOGIN') == 1) {
             $this->context->smarty->assign([
                 'paypal_locale' => $this->getLocale(),
-                'PAYPAL_LOGIN_CLIENT_ID' => \Configuration::get(self::LOGIN_CLIENT_ID),
-                'PAYPAL_LOGIN_TPL' => \Configuration::get(self::LOGIN_TPL),
+                \PayPal::CLIENT_ID => \Configuration::get(self::CLIENT_ID),
+                \PayPal::LOGIN_TPL => \Configuration::get(self::LOGIN_TPL),
                 'PAYPAL_RETURN_LINK' => PayPalLogin::getReturnLink(),
             ]);
 
@@ -604,12 +592,6 @@ class PayPal extends \PaymentModule
         }
 
         if (\Configuration::get(self::PAYMENT_METHOD) == self::WPP) {
-            $this->context->smarty->assign([
-                'paypal_locale' => $this->getLocalePayPalPlus(),
-                'PAYPAL_LOGIN_CLIENT_ID' => \Configuration::get(self::LOGIN_CLIENT_ID),
-                'PAYPAL_LOGIN_TPL' => \Configuration::get(self::LOGIN_TPL),
-                'PAYPAL_RETURN_LINK' => PayPalLogin::getReturnLink(),
-            ]);
             $process .= '<script src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
         }
 
@@ -618,8 +600,7 @@ class PayPal extends \PaymentModule
 
     public function useInContextCheckout()
     {
-        return \Configuration::get(self::IN_CONTEXT_CHECKOUT) && \Configuration::get(self::IN_CONTEXT_CHECKOUT_M_ID)
-            != null;
+        return \Configuration::get(self::IN_CONTEXT_CHECKOUT);
     }
 
     public function getLocalePayPalPlus()
@@ -826,7 +807,6 @@ class PayPal extends \PaymentModule
                 'PayPal_tracking_code' => $this->getTrackingCode($method),
                 'PayPal_in_context_checkout' => \Configuration::get('PAYPAL_IN_CONTEXT_CHECKOUT'),
                 'use_paypal_in_context' => (int) $this->useInContextCheckout(),
-                'PayPal_in_context_checkout_merchant_id' => \Configuration::get('PAYPAL_IN_CONTEXT_CHECKOUT_M_ID'),
             ]);
 
             return $this->display(__FILE__, 'express_checkout_payment.tpl');
@@ -1525,27 +1505,27 @@ class PayPal extends \PaymentModule
     protected function preProcess()
     {
         if (\Tools::isSubmit('submitPaypal')) {
-            $business = \Tools::getValue('business') !== false ? (int) \Tools::getValue('business') : false;
-            $paymentMethod = \Tools::getValue('paypal_payment_method') !== false ? (int) Tools::getValue('paypal_payment_method') : false;
-            $paymentCapture = \Tools::getValue('payment_capture') !== false ? (int) \Tools::getValue('payment_capture') : false;
-            $sandboxMode = \Tools::getValue('sandbox_mode') !== false ? (int) \Tools::getValue('sandbox_mode') : false;
+            $business = \Tools::getValue(self::BUSINESS) !== false ? (int) \Tools::getValue(self::BUSINESS) : false;
+            $paymentMethod = \Tools::getValue(self::PAYMENT_METHOD) !== false ? (int) Tools::getValue(self::PAYMENT_METHOD) : false;
+            $paymentCapture = \Tools::getValue(self::CAPTURE) !== false ? (int) \Tools::getValue(self::CAPTURE) : false;
+            $sandboxMode = \Tools::getValue(self::SANDBOX) !== false ? (int) \Tools::getValue(self::SANDBOX) : false;
 
             if ($this->defaultCountry === false || $sandboxMode === false || $paymentCapture === false || $business === false || $paymentMethod === false) {
                 $this->errors[] = $this->l('Some fields are empty.');
             } elseif (!$business) {
                 $this->errors[] = $this->l('Credentials fields cannot be empty');
             } elseif ($business) {
-                if (($paymentMethod == self::WPS || $paymentMethod == self::EC) && (!\Tools::getValue('api_username')
-                    || !\Tools::getValue('api_password') || !\Tools::getValue('api_signature'))) {
+                if (($paymentMethod == self::WPS || $paymentMethod == self::EC) && (!\Tools::getValue(self::API_USER)
+                    || !\Tools::getValue(self::API_PASSWORD) || !\Tools::getValue(self::API_SIGNATURE))) {
                     $this->errors[] = $this->l('Credentials fields cannot be empty');
                 }
 
-                if ($paymentMethod == self::WPP && (\Tools::getValue('paypalplus_webprofile')
-                    != 0 && (!\Tools::getValue('client_id') && !\Tools::getValue('secret')))) {
+                if ($paymentMethod == self::WPP && (\Tools::getValue(self::WEB_PROFILE_ID)
+                    != 0 && (!\Tools::getValue(self::CLIENT_ID) && !\Tools::getValue(self::SECRET)))) {
                     $this->errors[] = $this->l('Credentials fields cannot be empty');
                 }
 
-                if ($paymentMethod == self::WPRH && !\Tools::getValue('api_business_account')) {
+                if ($paymentMethod == self::WPRH && !\Tools::getValue(self::BUSINESS_ACCOUNT)) {
                     $this->errors[] = $this->l('Business e-mail field cannot be empty');
                 }
 
@@ -1581,54 +1561,53 @@ class PayPal extends \PaymentModule
             if (\Tools::getValue('paypal_country_only')) {
                 \Configuration::updateValue('PAYPAL_COUNTRY_DEFAULT', (int) \Tools::getValue('paypal_country_only'));
             } elseif ($this->preProcess()) {
-                \Configuration::updateValue(self::BUSINESS, (int) \Tools::getValue('business'));
-                \Configuration::updateValue(self::PAYMENT_METHOD, (int) \Tools::getValue('paypal_payment_method'));
-                \Configuration::updateValue(self::API_USER, trim(\Tools::getValue('api_username')));
-                \Configuration::updateValue(self::API_PASSWORD, trim(\Tools::getValue('api_password')));
-                \Configuration::updateValue(self::API_SIGNATURE, trim(\Tools::getValue('api_signature')));
-                \Configuration::updateValue(self::BUSINESS_ACCOUNT, trim(\Tools::getValue('api_business_account')));
-                \Configuration::updateValue(self::EXPRESS_CHECKOUT_SHORTCUT, (int) \Tools::getValue('express_checkout_shortcut'));
-                \Configuration::updateValue(self::IN_CONTEXT_CHECKOUT_M_ID, \Tools::getValue('in_context_checkout_merchant_id'));
-                \Configuration::updateValue(self::SANDBOX, (int) \Tools::getValue('sandbox_mode'));
-                \Configuration::updateValue(self::CAPTURE, (int) \Tools::getValue('payment_capture'));
+                \Configuration::updateValue(self::BUSINESS, (int) \Tools::getValue(self::BUSINESS));
+                \Configuration::updateValue(self::PAYMENT_METHOD, (int) \Tools::getValue(self::PAYMENT_METHOD));
+                \Configuration::updateValue(self::BUSINESS_ACCOUNT, trim(\Tools::getValue(self::BUSINESS_ACCOUNT)));
+                \Configuration::updateValue(self::API_USER, trim(\Tools::getValue(self::API_USER)));
+                \Configuration::updateValue(self::API_PASSWORD, trim(\Tools::getValue(self::API_PASSWORD)));
+                \Configuration::updateValue(self::API_SIGNATURE, trim(\Tools::getValue(self::API_SIGNATURE)));
+                \Configuration::updateValue(self::EXPRESS_CHECKOUT_SHORTCUT, (int) \Tools::getValue(self::EXPRESS_CHECKOUT_SHORTCUT));
+                \Configuration::updateValue(self::SANDBOX, (int) \Tools::getValue(self::SANDBOX));
+                \Configuration::updateValue(self::CAPTURE, (int) \Tools::getValue(self::CAPTURE));
 
                 /* USE PAYPAL LOGIN */
-                \Configuration::updateValue(self::LOGIN, (int) \Tools::getValue('paypal_login'));
-                \Configuration::updateValue(self::LOGIN_CLIENT_ID, \Tools::getValue('paypal_login_client_id'));
-                \Configuration::updateValue(self::LOGIN_SECRET, \Tools::getValue('paypal_login_client_secret'));
-                \Configuration::updateValue(self::LOGIN_TPL, (int) \Tools::getValue('paypal_login_client_template'));
+                \Configuration::updateValue(self::LOGIN, (int) \Tools::getValue(self::LOGIN));
+                \Configuration::updateValue(self::CLIENT_ID, \Tools::getValue(self::CLIENT_ID));
+                \Configuration::updateValue(self::SECRET, \Tools::getValue(self::SECRET));
+                \Configuration::updateValue(self::LOGIN_TPL, (int) \Tools::getValue(self::LOGIN_TPL));
 
                 /* USE PAYPAL PLUS */
                 if ((int) \Tools::getValue('paypal_payment_method') == 5) {
-                    \Configuration::updateValue(self::PLUS_CLIENT_ID, \Tools::getValue('client_id'));
-                    \Configuration::updateValue(self::PLUS_SECRET, \Tools::getValue('secret'));
+                    \Configuration::updateValue(self::CLIENT_ID, \Tools::getValue(self::CLIENT_ID));
+                    \Configuration::updateValue(self::SECRET, \Tools::getValue(self::SECRET));
 
                     if ((int) Tools::getValue('paypalplus_webprofile') == 1) {
                         $apiPaypalPlus = new PayPalRestApi();
                         $idWebProfile = $apiPaypalPlus->getWebProfile();
 
                         if ($idWebProfile) {
-                            \Configuration::updateValue('PAYPAL_WEB_PROFILE_ID', $idWebProfile);
+                            \Configuration::updateValue(self::WEB_PROFILE_ID, $idWebProfile);
                         } else {
-                            \Configuration::updateValue('PAYPAL_WEB_PROFILE_ID', 0);
+                            \Configuration::updateValue(self::WEB_PROFILE_ID, 0);
                         }
                     }
                 }
                 /* IS IN_CONTEXT_CHECKOUT ENABLED */
-                if ((int) \Tools::getValue('paypal_payment_method') != 2) {
-                    \Configuration::updateValue('PAYPAL_IN_CONTEXT_CHECKOUT', (int) \Tools::getValue('in_context_checkout'));
+                if ((int) \Tools::getValue(self::PAYMENT_METHOD) != 2) {
+                    \Configuration::updateValue(self::IN_CONTEXT_CHECKOUT, (int) \Tools::getValue(self::IN_CONTEXT_CHECKOUT));
                 } else {
-                    \Configuration::updateValue('PAYPAL_IN_CONTEXT_CHECKOUT', 0);
+                    \Configuration::updateValue(self::IN_CONTEXT_CHECKOUT, 0);
                 }
 
                 /* /IS IN_CONTEXT_CHECKOUT ENABLED */
 
                 //EXPRESS CHECKOUT TEMPLATE
-                \Configuration::updateValue('PAYPAL_HSS_SOLUTION', (int) \Tools::getValue('integral_evolution_solution'));
-                if (\Tools::getValue('integral_evolution_solution') == self::PAYPAL_HSS_IFRAME) {
-                    \Configuration::updateValue('PAYPAL_HSS_TEMPLATE', 'D');
+                \Configuration::updateValue(self::HSS_SOLUTION, (int) \Tools::getValue(self::HSS_SOLUTION));
+                if (\Tools::getValue(self::HSS_SOLUTION) == self::PAYPAL_HSS_IFRAME) {
+                    \Configuration::updateValue(self::HSS_TEMPLATE, 'D');
                 } else {
-                    \Configuration::updateValue('PAYPAL_HSS_TEMPLATE', \Tools::getValue('integral_evolution_template'));
+                    \Configuration::updateValue(self::HSS_TEMPLATE, \Tools::getValue(self::HSS_TEMPLATE));
                 }
 
                 $this->context->smarty->assign('PayPal_save_success', true);
@@ -1678,7 +1657,7 @@ class PayPal extends \PaymentModule
                 ];
             }
 
-            $paypalLib = new PaypalLib();
+            $paypalLib = new PayPalLib();
 
             return $paypalLib->makeCall(
                 $this->getAPIURL(),
@@ -1846,7 +1825,7 @@ class PayPal extends \PaymentModule
             $complete = 'NotComplete';
         }
 
-        $paypalLib = new PaypalLib();
+        $paypalLib = new PayPalLib();
         $response = $paypalLib->makeCall(
             $this->getAPIURL(),
             $this->getAPIScript(),
@@ -1877,8 +1856,7 @@ class PayPal extends \PaymentModule
             $capture->result = pSQL($response['PAYMENTSTATUS']);
             if ($capture->save()) {
                 if (!($capture->getRestToCapture($capture->id_order))) {
-                    //plus d'argent a capturer
-                    if (!\Db::getInstance()->Execute(
+                    if (!\Db::getInstance()->execute(
                         'UPDATE `'._DB_PREFIX_.'paypal_order`
                         SET `capture` = 0, `payment_status` = \''.pSQL($response['PAYMENTSTATUS']).'\', `id_transaction` = \''.pSQL($response['TRANSACTIONID']).'\'
                         WHERE `id_order` = '.(int) $idOrder
@@ -1958,8 +1936,6 @@ class PayPal extends \PaymentModule
             $country = new \Country($this->defaultCountry);
             $this->iso_code = \Tools::strtoupper($country->iso_code);
         }
-
-        //$this->iso_code = AuthenticatePaymentMethods::getCountryDependency($iso_code);
     }
 
     /**

@@ -26,13 +26,18 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class CallPayPalPlusApi
+ *
+ * @package PayPalModule
+ */
 class CallPayPalPlusApi extends PayPalRestApi
 {
     protected $cart = null;
     protected $customer = null;
 
     /**
-     * @param $params
+     * @param array $params
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA

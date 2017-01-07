@@ -49,9 +49,11 @@ class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
 
         if ($this->payerId && $this->paymentId) {
             $callApiPaypalPlus = new CallPayPalPlusApi();
-            $payment = json_decode($callApiPaypalPlus->lookUpPayment($this->paymentId));
+            $callApiPaypalPlus->getWebProfile();
+            $payment = json_decode($callApiPaypalPlus->executePayment($this->payerId, $this->paymentId));
+            // TODO: Use the $payment object to create the customer and address first
 
-            if (isset($payment->state) && $payment->state === 'created') {
+            if (isset($payment->state) && $payment->state === 'approved') {
                 $transaction = [
                     'id_transaction' => $payment->id,
                     'payment_status' => $payment->state,
@@ -63,7 +65,6 @@ class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
                 ];
 
                 // TODO: find out why secure key has to be forced
-                // TODO: create customer and address for order first
                 if (!$secureKey = $this->context->cart->secure_key) {
                     $sql = new DbQuery();
                     $sql->select('`secure_key`');
@@ -90,11 +91,6 @@ class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
                     $secureKey
                 );
 
-                if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-                    /* If guest we clear the cookie for security reason */
-                    $this->context->customer->mylogout();
-                }
-
                 header('Content-Type: application/json');
                 die(json_encode(['success' => true]));
             } else {
@@ -107,5 +103,73 @@ class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
                 die(json_encode(['success' => false]));
             }
         }
+    }
+
+    /**
+     * Set customer information
+     * Used to create user account with PayPal account information
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function setCustomerInformation($payPalExpressCheckout, $email)
+    {
+        $customer = new \Customer();
+        $customer->email = $email;
+        $customer->lastname = $payPalExpressCheckout->result['LASTNAME'];
+        $customer->firstname = $payPalExpressCheckout->result['FIRSTNAME'];
+        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
+
+        return $customer;
+    }
+
+    /**
+     * Set customer address (when not logged in)
+     * Used to create user address with PayPal account information
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function setCustomerAddress($payPalExpressCheckout, $customer, $id = null)
+    {
+        $address = new \Address($id);
+        $address->id_country = \Country::getByIso($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOCOUNTRYCODE']);
+        if ($id == null) {
+            $address->alias = 'Paypal_Address';
+        }
+
+        $name = trim($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTONAME']);
+        $name = explode(' ', $name);
+        if (isset($name[1])) {
+            $firstname = $name[0];
+            unset($name[0]);
+            $lastname = implode(' ', $name);
+        } else {
+            $lastname = $payPalExpressCheckout->result['LASTNAME'];
+            $firstname = $payPalExpressCheckout->result['FIRSTNAME'];
+        }
+
+        $address->lastname = $lastname;
+        $address->firstname = $firstname;
+        $address->address1 = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTREET'];
+        if (isset($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTREET2'])) {
+            $address->address2 = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTREET2'];
+        }
+
+        $address->city = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOCITY'];
+        if (\Country::containsStates($address->id_country)) {
+            $address->id_state = (int) \State::getIdByIso($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTATE'], $address->id_country);
+        }
+
+        $address->postcode = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOZIP'];
+        if (isset($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOPHONENUM'])) {
+            $address->phone = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOPHONENUM'];
+        }
+
+        $address->id_customer = $customer->id;
+
+        return $address;
     }
 }

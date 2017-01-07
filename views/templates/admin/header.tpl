@@ -26,4 +26,4 @@
 	var PayPal_PPP = '{$PayPal_PPP|intval}';
 </script>
 
-<script type="text/javascript" src="{$PayPal_module_dir|escape:'htmlall':'UTF-8'}/views/js/back_office.js"></script>
+{include file='./back_officejs.tpl'}

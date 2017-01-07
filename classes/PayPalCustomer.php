@@ -26,6 +26,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalCustomer
+ *
+ * @package PayPalModule
+ */
 class PayPalCustomer extends PayPalObjectModel
 {
 

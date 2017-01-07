@@ -26,6 +26,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+/**
+ * Class PayPalLogin
+ *
+ * @package PayPalModule
+ */
 class PayPalLogin
 {
     protected $logs = [];
@@ -54,7 +59,7 @@ class PayPalLogin
      */
     public function getIdentityAPIURL()
     {
-        if (\Configuration::get('PAYPAL_SANDBOX')) {
+        if (\Configuration::get(\PayPal::SANDBOX)) {
             //return 'www.sandbox.paypal.com';
             return 'api.sandbox.paypal.com';
         } else {
@@ -72,7 +77,7 @@ class PayPalLogin
      */
     public function getTokenServiceEndpoint()
     {
-        if (\Configuration::get('PAYPAL_SANDBOX')) {
+        if (\Configuration::get(\PayPal::SANDBOX)) {
             // return '/webapps/auth/protocol/openidconnect/v1/tokenservice';
             return '/v1/identity/openidconnect/tokenservice';
         } else {
@@ -117,7 +122,7 @@ class PayPalLogin
         unset($this->logs);
 
         $context = \Context::getContext();
-        $isLogged = (method_exists($context->customer, 'isLogged') ? $context->customer->isLogged() : $context->cookie->isLogged());
+        $isLogged = $context->customer->isLogged();
 
         if ($isLogged) {
             return $this->getRefreshToken();
@@ -142,7 +147,7 @@ class PayPalLogin
 
         $result = json_decode($result);
 
-        if ($result) {
+        if ($result && isset($result->access_token)) {
             $login = new PayPalLoginUser();
 
             $customer = $this->getUserInformations($result->access_token, $login);

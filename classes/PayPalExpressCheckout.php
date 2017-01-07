@@ -24,6 +24,11 @@ namespace PayPalModule;
 
 require_once dirname(__FILE__).'/../paypal.php';
 
+/**
+ * Class PayPalExpressCheckout
+ *
+ * @package PayPalModule
+ */
 class PayPalExpressCheckout
 {
     public $logs = [];
@@ -171,7 +176,7 @@ class PayPalExpressCheckout
         $fields['SOLUTIONTYPE'] = 'Sole';
         $fields['LANDINGPAGE'] = 'Login';
 
-        // Seller informations
+        // Seller information
         $fields['USER'] = \Configuration::get('PAYPAL_API_USER');
         $fields['PWD'] = \Configuration::get('PAYPAL_API_PASSWORD');
         $fields['SIGNATURE'] = \Configuration::get('PAYPAL_API_SIGNATURE');
@@ -332,105 +337,165 @@ class PayPalExpressCheckout
     }
 
     /**
-     * @param $fields
+     * @return bool
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function callAPI($fields)
+    public function hasSucceedRequest()
     {
-        $this->logs = [];
-        $paypalLib = new PaypalLib();
+        if (is_array($this->result)) {
+            foreach (['ACK', 'PAYMENTINFO_0_ACK'] as $key) {
+                if (isset($this->result[$key]) && \Tools::strtoupper($this->result[$key]) == 'SUCCESS') {
+                    return true;
+                }
+            }
+        }
 
-        $this->result = $paypalLib->makeCall($this->module->getAPIURL(), $this->module->getAPIScript(), $this->method, $fields, $this->methodVersion);
-        $this->logs = array_merge($this->logs, $paypalLib->getLogs());
-
-        $this->storeToken();
+        return false;
     }
 
     /**
      * @return bool
-     */
-    protected function initParameters()
-    {
-        if (!$this->context->cart || !$this->context->cart->id) {
-            return false;
-        }
-
-        $context = $this->context;
-        $module = $this->module;
-
-        $cartCurrency = new \Currency((int) $context->cart->id_currency);
-        $currencyModule = $module->getCurrency((int) $context->cart->id_currency);
-
-        $this->currency = $cartCurrency;
-
-        if (!\Validate::isLoadedObject($this->currency)) {
-            $context->controller->errors[] = $module->l('Not a valid currency');
-        }
-
-        if (count($context->controller->errors)) {
-            return false;
-        }
-
-        $currencyDecimals = is_array($this->currency) ? (int) $this->currency['decimals'] : (int) $this->currency->decimals;
-        $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
-
-        if ($cartCurrency !== $currencyModule) {
-            $context->cart->id_currency = $currencyModule->id;
-            $context->cart->update();
-        }
-
-        $context->currency = $currencyModule;
-        $this->productList = $context->cart->getProducts(true);
-
-        return (bool) count($this->productList);
-    }
-
-    /**
-     * @param $fields
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function setPaymentDetails(&$fields)
+    public function isProductsListStillRight()
     {
-        // Required field
-        $fields['RETURNURL'] = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', [], \Tools::usingSecureMode());
-        $fields['NOSHIPPING'] = '1';
-        $fields['BUTTONSOURCE'] = $this->module->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD'));
+        return $this->secureKey == $this->getSecureKey();
+    }
 
-        // Products
-//        $taxes = $total = 0;
-        $index = -1;
+    /**
+     * @param string $type
+     *
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function setExpressCheckoutType($type)
+    {
+        if (in_array($type, $this->availableTypes)) {
+            $this->type = $type;
 
-        // Set cart products list
-        $this->setProductList($fields, $index, $total /* , $taxes */);
-        $this->setDiscountsList($fields, $index, $total /* , $taxes */);
-        $this->setGiftWrapping($fields, $index, $total);
-
-        // Payment values
-        $this->setPaymentValues($fields, $index, $total /* , $taxes */);
-
-        $idAddress = (int) $this->context->cart->id_address_delivery;
-        if (($idAddress == 0) && ($this->context->customer)) {
-            $idAddress = \Address::getFirstCustomerAddressId($this->context->customer->id);
+            return true;
         }
 
-        if ($idAddress && method_exists($this->context->cart, 'isVirtualCart') && !$this->context->cart->isVirtualCart()) {
-            $this->setShippingAddress($fields, $idAddress);
+        return false;
+    }
+
+    /**
+     * @param \Customer $customer
+     * @param bool      $redirect
+     */
+    public function redirectToCheckout(\Customer $customer, $redirect = false)
+    {
+        $this->ready = true;
+        $this->storeCookieInfo();
+
+        $context = $this->context;
+        $context->cookie->id_customer = (int) $customer->id;
+        $context->cookie->customer_lastname = $customer->lastname;
+        $context->cookie->customer_firstname = $customer->firstname;
+        $context->cookie->passwd = $customer->passwd;
+        $context->cookie->email = $customer->email;
+        $context->cookie->is_guest = $customer->isGuest();
+        $context->cookie->logged = 1;
+
+        \Hook::exec('authentication');
+
+        if ($redirect) {
+            $link = $context->link->getPageLink('order.php', false, null, ['step' => '1']);
+            \Tools::redirectLink($link);
+            exit(0);
+        }
+    }
+
+    /**
+     * Redirect to API
+     */
+    public function redirectToAPI()
+    {
+        $this->secureKey = $this->getSecureKey();
+        $this->storeCookieInfo();
+
+        $url = '/webscr?cmd=_express-checkout';
+
+
+        if (($this->method == 'SetExpressCheckout') && (\Configuration::get('PAYPAL_COUNTRY_DEFAULT') == 1) && ($this->type == 'payment_cart')) {
+            $url .= '&useraction=commit';
+        }
+
+        \Tools::redirectLink('https://'.$this->module->getPayPalURL().$url.'&token='.urldecode($this->token));
+        exit(0);
+    }
+
+    /**
+     * @param array $fields
+     * @param int   $index
+     * @param float $total
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function setPaymentValues(&$fields, &$index, &$total /* , &$taxes */)
+    {
+        $shippingCostTaxIncl = $this->context->cart->getTotalShippingCost();
+
+        if ((bool) \Configuration::get('PAYPAL_CAPTURE')) {
+            $fields['PAYMENTREQUEST_0_PAYMENTACTION'] = 'Authorization';
         } else {
-            $fields['NOSHIPPING'] = '0';
+            $fields['PAYMENTREQUEST_0_PAYMENTACTION'] = 'Sale';
         }
 
-        foreach ($fields as &$field) {
-            if (is_numeric($field)) {
-                $field = str_replace(',', '.', $field);
+        $currency = new \Currency((int) $this->context->cart->id_currency);
+        $fields['PAYMENTREQUEST_0_CURRENCYCODE'] = $currency->iso_code;
+
+        /**
+         * If the total amount is lower than 1 we put the shipping cost as an item
+         * so the payment could be valid.
+         */
+        if ($total <= 1) {
+            $carrier = new \Carrier($this->context->cart->id_carrier);
+            $fields['L_PAYMENTREQUEST_0_NUMBER'.++$index] = $carrier->id_reference;
+            $fields['L_PAYMENTREQUEST_0_NAME'.$index] = $carrier->name;
+            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = \Tools::ps_round($shippingCostTaxIncl, $this->decimals);
+            $fields['L_PAYMENTREQUEST_0_QTY'.$index] = 1;
+
+            $fields['PAYMENTREQUEST_0_ITEMAMT'] = \Tools::ps_round($total, $this->decimals) + \Tools::ps_round($shippingCostTaxIncl, $this->decimals);
+            $fields['PAYMENTREQUEST_0_AMT'] = $total + \Tools::ps_round($shippingCostTaxIncl, $this->decimals);
+        } else {
+            if ($currency->iso_code == 'HUF') {
+                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = round($shippingCostTaxIncl);
+                $fields['PAYMENTREQUEST_0_ITEMAMT'] = \Tools::ps_round($total, $this->decimals);
+                $fields['PAYMENTREQUEST_0_AMT'] = sprintf('%.2f', ($total + $fields['PAYMENTREQUEST_0_SHIPPINGAMT']));
+            } else {
+                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = sprintf('%.2f', $shippingCostTaxIncl);
+                $fields['PAYMENTREQUEST_0_ITEMAMT'] = \Tools::ps_round($total, $this->decimals);
+                $fields['PAYMENTREQUEST_0_AMT'] = sprintf('%.2f', ($total + $fields['PAYMENTREQUEST_0_SHIPPINGAMT']));
             }
         }
+    }
 
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function storeCookieInfo()
+    {
+        $tab = [];
+
+        foreach ($this->cookieKey as $key) {
+            $tab[$key] = $this->{$key};
+        }
+
+        $this->context->cookie->{self::$cookieName} = serialize($tab);
     }
 
     /**
@@ -524,6 +589,24 @@ class PayPalExpressCheckout
 
     /**
      * @param $fields
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function callAPI($fields)
+    {
+        $this->logs = [];
+        $paypalLib = new PayPalLib();
+
+        $this->result = $paypalLib->makeCall($this->module->getAPIURL(), $this->module->getAPIScript(), $this->method, $fields, $this->methodVersion);
+        $this->logs = array_merge($this->logs, $paypalLib->getLogs());
+
+        $this->storeToken();
+    }
+
+    /**
+     * @param $fields
      * @param $index
      * @param $total
      *
@@ -555,183 +638,6 @@ class PayPalExpressCheckout
     }
 
     /**
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function storeToken()
-    {
-        if (is_array($this->result) && isset($this->result['TOKEN'])) {
-            $this->token = (string) $this->result['TOKEN'];
-        }
-
-    }
-
-    /**
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function hasSucceedRequest()
-    {
-        if (is_array($this->result)) {
-            foreach (['ACK', 'PAYMENTINFO_0_ACK'] as $key) {
-                if (isset($this->result[$key]) && \Tools::strtoupper($this->result[$key]) == 'SUCCESS') {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-    // Store data for the next reloading page
-
-    /**
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function isProductsListStillRight()
-    {
-        return $this->secureKey == $this->getSecureKey();
-    }
-
-    /**
-     * @param string $type
-     *
-     * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function setExpressCheckoutType($type)
-    {
-        if (in_array($type, $this->availableTypes)) {
-            $this->type = $type;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param \Customer $customer
-     * @param bool      $redirect
-     */
-    public function redirectToCheckout(\Customer $customer, $redirect = false)
-    {
-        $this->ready = true;
-        $this->storeCookieInfo();
-
-        $context = $this->context;
-        $context->cookie->id_customer = (int) $customer->id;
-        $context->cookie->customer_lastname = $customer->lastname;
-        $context->cookie->customer_firstname = $customer->firstname;
-        $context->cookie->passwd = $customer->passwd;
-        $context->cookie->email = $customer->email;
-        $context->cookie->is_guest = $customer->isGuest();
-        $context->cookie->logged = 1;
-
-        \Hook::exec('authentication');
-
-        if ($redirect) {
-            $link = $context->link->getPageLink('order.php', false, null, ['step' => '1']);
-            \Tools::redirectLink($link);
-            exit(0);
-        }
-    }
-
-    /**
-     * Redirect to API
-     */
-    public function redirectToAPI()
-    {
-        $this->secureKey = $this->getSecureKey();
-        $this->storeCookieInfo();
-
-        $url = '/webscr?cmd=_express-checkout';
-
-
-        if (($this->method == 'SetExpressCheckout') && (\Configuration::get('PAYPAL_COUNTRY_DEFAULT') == 1) && ($this->type == 'payment_cart')) {
-            $url .= '&useraction=commit';
-        }
-
-        \Tools::redirectLink('https://'.$this->module->getPayPalURL().$url.'&token='.urldecode($this->token));
-        exit(0);
-    }
-
-    /**
-     * @param array $fields
-     * @param int   $index
-     * @param float $total
-     * @param array $taxes
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function setPaymentValues(&$fields, &$index, &$total /* , &$taxes */)
-    {
-        $shippingCostTaxIncl = $this->context->cart->getTotalShippingCost();
-
-        if ((bool) \Configuration::get('PAYPAL_CAPTURE')) {
-            $fields['PAYMENTREQUEST_0_PAYMENTACTION'] = 'Authorization';
-        } else {
-            $fields['PAYMENTREQUEST_0_PAYMENTACTION'] = 'Sale';
-        }
-
-        $currency = new \Currency((int) $this->context->cart->id_currency);
-        $fields['PAYMENTREQUEST_0_CURRENCYCODE'] = $currency->iso_code;
-
-        /**
-         * If the total amount is lower than 1 we put the shipping cost as an item
-         * so the payment could be valid.
-         */
-        if ($total <= 1) {
-            $carrier = new \Carrier($this->context->cart->id_carrier);
-            $fields['L_PAYMENTREQUEST_0_NUMBER'.++$index] = $carrier->id_reference;
-            $fields['L_PAYMENTREQUEST_0_NAME'.$index] = $carrier->name;
-            $fields['L_PAYMENTREQUEST_0_AMT'.$index] = \Tools::ps_round($shippingCostTaxIncl, $this->decimals);
-            $fields['L_PAYMENTREQUEST_0_QTY'.$index] = 1;
-
-            $fields['PAYMENTREQUEST_0_ITEMAMT'] = \Tools::ps_round($total, $this->decimals) + \Tools::ps_round($shippingCostTaxIncl, $this->decimals);
-            $fields['PAYMENTREQUEST_0_AMT'] = $total + \Tools::ps_round($shippingCostTaxIncl, $this->decimals);
-        } else {
-            if ($currency->iso_code == 'HUF') {
-                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = round($shippingCostTaxIncl);
-                $fields['PAYMENTREQUEST_0_ITEMAMT'] = \Tools::ps_round($total, $this->decimals);
-                $fields['PAYMENTREQUEST_0_AMT'] = sprintf('%.2f', ($total + $fields['PAYMENTREQUEST_0_SHIPPINGAMT']));
-            } else {
-                $fields['PAYMENTREQUEST_0_SHIPPINGAMT'] = sprintf('%.2f', $shippingCostTaxIncl);
-                $fields['PAYMENTREQUEST_0_ITEMAMT'] = \Tools::ps_round($total, $this->decimals);
-                $fields['PAYMENTREQUEST_0_AMT'] = sprintf('%.2f', ($total + $fields['PAYMENTREQUEST_0_SHIPPINGAMT']));
-            }
-        }
-    }
-
-    /**
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function storeCookieInfo()
-    {
-        $tab = [];
-
-        foreach ($this->cookieKey as $key) {
-            $tab[$key] = $this->{$key};
-        }
-
-        $this->context->cookie->{self::$cookieName} = serialize($tab);
-    }
-
-    /**
      * @return string
      *
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -755,5 +661,102 @@ class PayPalExpressCheckout
         }
 
         return md5(serialize($key));
+    }
+
+    /**
+     * @param $fields
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function setPaymentDetails(&$fields)
+    {
+        // Required field
+        $fields['RETURNURL'] = $this->context->link->getModuleLink('paypal', 'expresscheckoutpayment', [], \Tools::usingSecureMode());
+        $fields['NOSHIPPING'] = '1';
+        $fields['BUTTONSOURCE'] = $this->module->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD'));
+
+        // Products
+//        $taxes = $total = 0;
+        $index = -1;
+
+        // Set cart products list
+        $this->setProductList($fields, $index, $total /* , $taxes */);
+        $this->setDiscountsList($fields, $index, $total /* , $taxes */);
+        $this->setGiftWrapping($fields, $index, $total);
+
+        // Payment values
+        $this->setPaymentValues($fields, $index, $total /* , $taxes */);
+
+        $idAddress = (int) $this->context->cart->id_address_delivery;
+        if (($idAddress == 0) && ($this->context->customer)) {
+            $idAddress = \Address::getFirstCustomerAddressId($this->context->customer->id);
+        }
+
+        if ($idAddress && method_exists($this->context->cart, 'isVirtualCart') && !$this->context->cart->isVirtualCart()) {
+            $this->setShippingAddress($fields, $idAddress);
+        } else {
+            $fields['NOSHIPPING'] = '0';
+        }
+
+        foreach ($fields as &$field) {
+            if (is_numeric($field)) {
+                $field = str_replace(',', '.', $field);
+            }
+        }
+
+    }
+
+    /**
+     * @return bool
+     */
+    protected function initParameters()
+    {
+        if (!$this->context->cart || !$this->context->cart->id) {
+            return false;
+        }
+
+        $context = $this->context;
+        $module = $this->module;
+
+        $cartCurrency = new \Currency((int) $context->cart->id_currency);
+        $currencyModule = $module->getCurrency((int) $context->cart->id_currency);
+
+        $this->currency = $cartCurrency;
+
+        if (!\Validate::isLoadedObject($this->currency)) {
+            $context->controller->errors[] = $module->l('Not a valid currency');
+        }
+
+        if (count($context->controller->errors)) {
+            return false;
+        }
+
+        $currencyDecimals = is_array($this->currency) ? (int) $this->currency['decimals'] : (int) $this->currency->decimals;
+        $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
+
+        if ($cartCurrency !== $currencyModule) {
+            $context->cart->id_currency = $currencyModule->id;
+            $context->cart->update();
+        }
+
+        $context->currency = $currencyModule;
+        $this->productList = $context->cart->getProducts(true);
+
+        return (bool) count($this->productList);
+    }
+
+    /**
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function storeToken()
+    {
+        if (is_array($this->result) && isset($this->result['TOKEN'])) {
+            $this->token = (string) $this->result['TOKEN'];
+        }
+
     }
 }
