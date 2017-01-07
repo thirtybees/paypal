@@ -56,7 +56,7 @@ class AuthenticatePaymentMethods
             'FR' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ], // France
             'IT' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ], // Italy
             'VA' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC              ], // Vatican City
-            'NL' => [\PayPal::WPS, \PayPal::WPRH, \PayPal::EC, \PayPal::WPP], // The Netherlands
+            'NL' => [\PayPal::WPS,                \PayPal::EC,             ], // The Netherlands
             'AN' => [\PayPal::WPS,                \PayPal::EC              ], // Netherlands Antilles
             'PL' => [\PayPal::WPS,                \PayPal::EC              ], // Poland
             'PT' => [\PayPal::WPS,                \PayPal::EC              ], // Portugal
