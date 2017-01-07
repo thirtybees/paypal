@@ -20,8 +20,6 @@
 *}
 {*Displaying a button or the iframe*}
 {if $payment_hss_solution == $smarty.const.PAYPAL_HSS_REDIRECTION}
-	{if $smarty.const._PS_VERSION_ >= 1.6}
-
 	<div class="row">
 		<div class="col-xs-12 col-md-6">
 		<p class="payment_module paypal" >
@@ -33,33 +31,19 @@
 		</p>
 		</div>
 	</div>
-	{else}
-	<p class="payment_module">
-		<a href="javascript:void(0)" onclick="$('#paypal_form').submit();" id="paypal_process_payment" title="{l s='Pay with your card or your PayPal account' mod='paypal'}">
-			
-					<img src="{$logos.LocalPayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" height="48px" />		
-				{l s='Pay with your card or your PayPal account' mod='paypal'}
-		</a>
-	</p>
-	{/if}
 {else}
-	{if $smarty.const._PS_VERSION_ >= 1.6}
 	<div class="row">
-		<div class="col-xs-12 col-md-6">
+		<div class="col-xs-12 col-md-12">
 		<p class="payment_module">
-			<iframe name="hss_iframe" width="556px" height="540px" style="overflow: hidden; border: none" class="payment_module"></iframe>	
+			<iframe name="hss_iframe" width="100%" height="540px" style="overflow: hidden; border: none" class="payment_module"></iframe>
 		</p>
 		</div>
 	</div>
-	{else}
-	<hr style="border-top: 1px dotted rgb(204, 204, 204);" />
-	<iframe name="hss_iframe" width="556px" height="540px" style="overflow: hidden; border: none" class="payment_module"></iframe>
-	{/if}
 {/if}
 
 
 
-<form style="display: none" {if $payment_hss_solution == $smarty.const.PAYPAL_HSS_IFRAME}target="hss_iframe"{/if} id="paypal_form" name="paypal_form" method="post" action="{$action_url|escape:'htmlall':'UTF-8'}">
+<form style="display: block" {if $payment_hss_solution == PayPal::PAYPAL_HSS_IFRAME}target="hss_iframe"{/if} id="paypal_form" name="paypal_form" method="post" action="{$action_url|escape:'htmlall':'UTF-8'}">
 	<input type="hidden" name="cmd" value="_hosted-payment" />
 
 	<input type="hidden" name="billing_first_name" value="{$billing_address->firstname|escape:'htmlall':'UTF-8'}" />
@@ -105,7 +89,7 @@
     <input type="hidden" name="lc" value="{$iso_code|escape:'htmlall':'UTF-8'}" />
 </form>
 
-{if $payment_hss_solution == $smarty.const.PAYPAL_HSS_IFRAME}
+{if $payment_hss_solution == PayPal::PAYPAL_HSS_IFRAME}
 {literal}
 <script type="text/javascript">
 	$(document).ready( function() {

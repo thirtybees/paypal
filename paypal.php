@@ -736,8 +736,8 @@ class PayPal extends \PaymentModule
 
     public function hookProductFooter()
     {
-        $content = (!$this->context->getMobileDevice()) ? $this->renderExpressCheckoutButton('product')
-        : null;
+        $content = (!$this->context->getMobileDevice()) ? $this->renderExpressCheckoutButton('product') : null;
+
         return $content.$this->renderExpressCheckoutForm('product');
     }
 
@@ -790,8 +790,7 @@ class PayPal extends \PaymentModule
                 $actionUrl = 'https://securepayments.paypal.com/acquiringweb';
             }
 
-            $this->context->smarty->assign(
-                [
+            $this->context->smarty->assign([
                 'action_url' => $actionUrl,
                 'cart' => $cart,
                 'cart_details' => $cartDetails,
@@ -812,15 +811,13 @@ class PayPal extends \PaymentModule
                 'iso_code' => \Tools::strtoupper($this->context->language->iso_code),
                 'payment_hss_solution' => \Configuration::get('PAYPAL_HSS_SOLUTION'),
                 'payment_hss_template' => \Configuration::get('PAYPAL_HSS_TEMPLATE'),
-                ]
-            );
+            ]);
             $this->getTranslations();
 
             return $this->display(__FILE__, 'integral_evolution_payment.tpl');
         } elseif ($method == self::WPS || $method == self::EC) {
             $this->getTranslations();
-            $this->context->smarty->assign(
-                [
+            $this->context->smarty->assign([
                 'PayPal_integral' => self::WPS,
                 'PayPal_express_checkout' => self::EC,
                 'PayPal_payment_method' => $method,
@@ -830,8 +827,7 @@ class PayPal extends \PaymentModule
                 'PayPal_in_context_checkout' => \Configuration::get('PAYPAL_IN_CONTEXT_CHECKOUT'),
                 'use_paypal_in_context' => (int) $this->useInContextCheckout(),
                 'PayPal_in_context_checkout_merchant_id' => \Configuration::get('PAYPAL_IN_CONTEXT_CHECKOUT_M_ID'),
-                ]
-            );
+            ]);
 
             return $this->display(__FILE__, 'express_checkout_payment.tpl');
         } elseif ($method == self::WPP) {
@@ -840,15 +836,12 @@ class PayPal extends \PaymentModule
 
             $approvalUrl = $callApiPaypalPlus->getApprovalUrl();
 
-            $this->context->smarty->assign(
-                [
-                    'approval_url' => $approvalUrl,
-                    'language' => $this->getLocalePayPalPlus(),
-                    'country' => $this->getCountryCode(),
-                    'mode' => \Configuration::get('PAYPAL_SANDBOX') ? 'sandbox'
-                    : 'live',
-                ]
-            );
+            $this->context->smarty->assign([
+                'approval_url' => $approvalUrl,
+                'language' => $this->getLocalePayPalPlus(),
+                'country' => $this->getCountryCode(),
+                'mode' => \Configuration::get('PAYPAL_SANDBOX') ? 'sandbox' : 'live',
+            ]);
 
             return $this->display(__FILE__, 'paypal_plus_payment.tpl');
         }

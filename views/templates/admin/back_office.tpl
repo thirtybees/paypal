@@ -125,7 +125,7 @@
 				<br /><br /><br />
 
 				{if (in_array($PayPal_WPS, $PayPal_allowed_methods) || in_array($PayPal_HSS, $PayPal_allowed_methods))}
-					<h4 class="inline">{l s='Need PayPal to process all your card payments ?' mod='paypal'}</h4> <img src="{$PayPal_logo.BackOfficeCards|escape:'htmlall':'UTF-8'}" height="22px"/>
+					<h4 class="inline">{l s='Need PayPal to process all your card payments ?' mod='paypal'}</h4> <img src="{$PayPal_logo.PayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" height="22px"/>
 					<div class="paypal-clear"></div>
 					<div class="form-block">
 						{if (in_array($PayPal_WPS, $PayPal_allowed_methods))}
