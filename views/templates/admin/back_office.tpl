@@ -129,7 +129,7 @@
 
 			<br/><br/><br/>
 
-			{if (in_array($PayPal_WPS, $PayPal_allowed_methods) || in_array($PayPal_HSS, $PayPal_allowed_methods))}
+			{if (in_array($PayPal_WPS, $PayPal_allowed_methods))}
 				<h4 class="inline">{l s='Need PayPal to process all your card payments ?' mod='paypal'}</h4>
 				<img src="{$PayPal_logo.PayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" height="22px"/>
 				<div class="paypal-clear"></div>
@@ -141,17 +141,6 @@
 							{l s='Choose' mod='paypal'} {l s='Website Payments Standard' mod='paypal'}
 							<br/>
 							<span class="description">{l s='Start accepting payments immediately.' mod='paypal'}<br/>{l s='No subscription fees, pay only when you get paid.' mod='paypal'}</span>
-						</label>
-					{/if}
-					<div class="paypal-clear"></div>
-					{if (in_array($PayPal_HSS, $PayPal_allowed_methods))}
-						{* WEBSITE PAYMENT PRO *}
-						<br/>
-						<label for="paypal_payment_wpp">
-							<input type="radio" name="{PayPal::PAYMENT_METHOD}" id="paypal_payment_wpp" value='{$PayPal_HSS|escape:'htmlall':'UTF-8'}' {if ${PayPal::PAYMENT_METHOD} == $PayPal_HSS}checked="checked"{/if} />
-							{l s='Choose' mod='paypal'} {l s='Website Payments Pro' mod='paypal'}<br/>
-							<span class="description">{l s='A professional platform to accept payments through credit cards and PayPal account, covered by seller protection.' mod='paypal'}<br/>{l s='Customized payments pages. Monthly subscription of 25€.' mod='paypal'}</span>
-							<p class="toolbox">{l s='Click on the SAVE button only when PayPal has approved your subscription for this product. This process can take up to 3-5 days.' mod='paypal'}</p>
 						</label>
 					{/if}
 					<div class="paypal-clear"></div>
@@ -270,17 +259,6 @@
 					<div class="paypal-clear"></div>
 				</div>
 
-				<div id="integral-credentials" class="paypal-hide">
-					<h4>{l s='Indicate the email you used when you signed up for a PayPal Business account' mod='paypal'}</h4>
-
-					<br/>
-
-					<dl>
-						<dt><label for="{PayPal::BUSINESS_ACCOUNT}">{l s='API business e-mail' mod='paypal'} : </label></dt>
-						<dd><input type='text' name="{PayPal::BUSINESS_ACCOUNT}" id="{PayPal::BUSINESS_ACCOUNT}" value="{${PayPal::BUSINESS_ACCOUNT}|escape:'html':'UTF-8'}" autocomplete="off"/></dd>
-					</dl>
-				</div>
-
 				<div class="paypal-clear"></div>
 
 				<h4>{l s='To finalize setting up your PayPal account, you need to' mod='paypal'} : </h4>
@@ -288,24 +266,6 @@
 				<p><span class="paypal-bold">2.</span> {l s='Link your PayPal account to a bank account or a credit card : log into your PayPal account and go to "My business setup"' mod='paypal'}</p>
 
 				<h4>{l s='Configuration options' mod='paypal'}</h4>
-				<div id="{PayPal::HSS_SOLUTION}" class="paypal-hide">
-					<p class="description">
-						{l s='Choose the solution you want to use' mod='paypal'}
-					</p>
-					<input type="radio" name="{PayPal::HSS_SOLUTION}" id="{PayPal::HSS_SOLUTION}_iframe" value="1" {if ${PayPal::HSS_SOLUTION} == 1}checked="checked"{/if} /> <label for="{PayPal::HSS_SOLUTION}_iframe">{l s='Iframe' mod='paypal'}</label><br/>
-					<input type="radio" name="{PayPal::HSS_SOLUTION}" id="{PayPal::HSS_SOLUTION}_no_iframe" value="0" {if ${PayPal::HSS_SOLUTION} == 0}checked="checked"{/if} /> <label for="{PayPal::HSS_SOLUTION}_no_iframe">{l s='Full page redirect' mod='paypal'}</label><br/>
-					<div id="{PayPal::HSS_TEMPLATE}">
-						<p class="description">
-							{l s='Choose your template' mod='paypal'}
-						</p>
-						<img src="../modules/paypal/views/img/template.png" alt=""><br/>
-						<input type="radio" name="{PayPal::HSS_TEMPLATE}" id="{PayPal::HSS_TEMPLATE}_A" value="A" {if ${PayPal::HSS_TEMPLATE} == "A"}checked="checked"{/if} style="margin-left:60px"/> <label for="{PayPal::HSS_TEMPLATE}">A</label> &nbsp;&nbsp;&nbsp;&nbsp;
-						&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="{PayPal::HSS_TEMPLATE}" id="{PayPal::HSS_TEMPLATE}_B" value="B" {if ${PayPal::HSS_TEMPLATE} == "B"}checked="checked"{/if} style="margin-left:80px"/> <label for="{PayPal::HSS_TEMPLATE}">B</label>&nbsp;&nbsp;&nbsp;&nbsp;
-						&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="{PayPal::HSS_TEMPLATE}" id="{PayPal::HSS_TEMPLATE}_C" value="C" {if ${PayPal::HSS_TEMPLATE} == "C"}checked="checked"{/if} style="margin-left:70px"/> <label for="{PayPal::HSS_TEMPLATE}">C</label>&nbsp;&nbsp;&nbsp;&nbsp;
-					</div>
-
-
-				</div>
 
 				<div id="{PayPal::EXPRESS_CHECKOUT_SHORTCUT}" class="paypal-hide">
 					<p>{l s='Use express checkout shortcut' mod='paypal'}</p>

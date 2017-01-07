@@ -21,7 +21,6 @@
 
 <script type="text/javascript">
 	var PayPal_WPS = '{$PayPal_WPS|intval}';
-	var PayPal_HSS = '{$PayPal_HSS|intval}';
 	var PayPal_ECS = '{$PayPal_ECS|intval}';
 	var PayPal_PPP = '{$PayPal_PPP|intval}';
 </script>

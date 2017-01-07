@@ -35,7 +35,6 @@
 
 					var paypal_business = $('input[name="{PayPal::BUSINESS}"]:checked').val();
 					var paypal_payment_method = $('input[name="{PayPal::PAYMENT_METHOD}"]:checked').val();
-					var integral_evolution_solution = $('input[name="{PayPal::HSS_SOLUTION}"]:checked').val();
 					$('#signup span.paypal-signup-content').hide();
 					$('#signup .paypal-signup-button').hide();
 
@@ -53,31 +52,8 @@
 								$('#standard-credentials').slideDown();
 								$('#paypal-signup-button-u1').show();
 								$('#paypal-signup-content-u1').show();
-								$('#{PayPal::HSS_SOLUTION}').slideUp();
 								$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
 								$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideDown();
-								break;
-							case {PayPal::WPRH|intval}:
-								$('#signup').slideDown();
-								$('#paypalplus-credentials').slideUp();
-								$('#paypal-signup-button-u2').show();
-								$('#paypal-signup-content-u2').show();
-								$('#standard-credentials').slideUp();
-								$('#account').removeClass('paypal-disabled');
-								$('#standard-credentials').slideUp();
-								$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideUp();
-								$('#integral-credentials').slideDown();
-								$('#{PayPal::HSS_SOLUTION}').slideDown();
-								$('label[for="paypal_payment_wpp"] .toolbox').slideDown();
-								$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideUp();
-								switch (integral_evolution_solution) {
-									case "1": //Iframe
-										$('#{PayPal::HSS_TEMPLATE}').slideUp();
-										break;
-									case "0": //Redirection
-										$('#{PayPal::HSS_TEMPLATE}').slideDown();
-										break;
-								}
 								break;
 							case {PayPal::EC|intval}:
 								$('.toolbox').slideUp();
@@ -86,14 +62,12 @@
 								$('#standard-credentials').slideDown();
 								$('#paypal-signup-button-u3').show();
 								$('#paypal-signup-content-u3').show();
-								$('#{PayPal::HSS_SOLUTION}').slideUp();
 								$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
 								$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideDown();
 								break;
 							case {PayPal::WPP|intval}:
 								$('#standard-credentials').slideUp();
 								$('#integral-credentials').slideUp();
-								$('#{PayPal::HSS_SOLUTION}').slideUp();
 								$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideUp();
 								$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideUp();
 								$('#paypal-signup-button-u1').hide();
@@ -114,30 +88,8 @@
 									$('#integral-credentials').slideUp();
 									$('#standard-credentials').slideDown();
 									$('#paypal-signup-button-u4').show();
-									$('#{PayPal::HSS_SOLUTION}').slideUp();
 									$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
 									$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideDown();
-									break;
-								case {PayPal::WPRH|intval}:
-									$('#signup').slideDown();
-									$('#paypalplus-credentials').slideUp();
-									$('#paypal-signup-button-u5').show();
-									$('#paypal-signup-content-u5').show();
-									$('#account').removeClass('paypal-disabled');
-									$('#standard-credentials').slideUp();
-									$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideUp();
-									$('#integral-credentials').slideDown();
-									$('#{PayPal::HSS_SOLUTION}').slideDown();
-									$('label[for="paypal_payment_wpp"] .toolbox').slideDown();
-									$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideUp();
-									switch (integral_evolution_solution) {
-										case "1": //Iframe
-											$('#{PayPal::HSS_TEMPLATE}').slideUp();
-											break;
-										case "0": //Redirection
-											$('#{PayPal::HSS_TEMPLATE}').slideDown();
-											break;
-									}
 									break;
 								case {PayPal::EC|intval}:
 									$('#signup').slideUp();
@@ -145,7 +97,6 @@
 									$('#integral-credentials').slideUp();
 									$('#standard-credentials').slideDown();
 									$('#paypal-signup-button-u6').show();
-									$('#{PayPal::HSS_SOLUTION}').slideUp();
 									$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
 									$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideDown();
 									break;
@@ -153,7 +104,6 @@
 								case {PayPal::WPP|intval}:
 									$('#standard-credentials').slideUp();
 									$('#integral-credentials').slideUp();
-									$('#{PayPal::HSS_SOLUTION}').slideUp();
 									$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideUp();
 									$('#{PayPal::IN_CONTEXT_CHECKOUT}').slideUp();
 									$('#paypal-signup-button-u1').hide();
@@ -180,8 +130,7 @@
 					var paypal_business = $('input[name="{PayPal::BUSINESS}"]:checked').val();
 					var paypal_payment_method = $('input[name="{PayPal::PAYMENT_METHOD}"]:checked').val();
 
-					if (paypal_payment_method != PayPal_HSS &&
-						($('input[name="{PayPal::API_USER}"]').val().length > 0 ||
+					if (($('input[name="{PayPal::API_USER}"]').val().length > 0 ||
 						$('input[name="{PayPal::API_PASSWORD}"]').val().length > 0 ||
 						$('input[name="{PayPal::API_SIGNATURE}"]').val().length > 0)) {
 
@@ -196,22 +145,12 @@
 							$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
 							$('#integral-credentials').slideUp();
 						}
-					}
-					else if (paypal_payment_method == PayPal_HSS &&
-						($('input[name="{PayPal::BUSINESS_ACCOUNT}"]').val().length > 0)) {
-						$('#credentials').removeClass('paypal-disabled');
-						$('#configuration').slideDown();
-						$('input[type="submit"]').removeAttr('disabled');
-						$('#standard-credentials').slideUp();
-						$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideUp();
-						$('#integral-credentials').slideDown();
-					}
-					else if (paypal_business != 1) {
+					} else if (paypal_business != 1) {
 						$('#configuration').slideUp();
 					}
 				}
 
-				$('input[name="{PayPal::BUSINESS}"], input[name="{PayPal::PAYMENT_METHOD}"], input[name="{PayPal::HSS_SOLUTION}"]').on('change', function () {
+				$('input[name="{PayPal::BUSINESS}"], input[name="{PayPal::PAYMENT_METHOD}"]').on('change', function () {
 					displayConfiguration();
 				});
 
@@ -235,15 +174,9 @@
 						$('#account').addClass('paypal-disabled');
 
 					$('#configuration').slideDown();
-					if (paypal_payment_method == PayPal_HSS) {
-						$('#standard-credentials').slideUp();
-						$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideUp();
-						$('#integral-credentials').slideDown();
-					} else {
-						$('#standard-credentials').slideDown();
-						$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
-						$('#integral-credentials').slideUp();
-					}
+					$('#standard-credentials').slideDown();
+					$('#{PayPal::EXPRESS_CHECKOUT_SHORTCUT}').slideDown();
+					$('#integral-credentials').slideUp();
 					$('input[type="submit"]').removeAttr('disabled');
 
 					if ($(this).is('#step3')) {
@@ -262,8 +195,6 @@
 							(($('input[name="{PayPal::API_USER}"]').val().length <= 0) ||
 							($('input[name="{PayPal::API_PASSWORD}"]').val().length <= 0) ||
 							($('input[name="{PayPal::API_SIGNATURE}"]').val().length <= 0))) ||
-							((paypal_payment_method == PayPal_HSS &&
-							($('input[name="{PayPal::BUSINESS_ACCOUNT}"]').val().length <= 0))) ||
 							(paypal_payment_method == PayPal_PPP &&
 							(($('input[name="{PayPal::CLIENT_ID}"]').val().length <= 0) ||
 							($('input[name="{PayPal::SECRET}"]').val().length <= 0)))) {
