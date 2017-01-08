@@ -74,6 +74,10 @@ class PayPalIncontextajaxModuleFrontController extends \ModuleFrontController
 
         /** @var \Cart $cart */
         $cart = $this->context->cart;
+        if (!$cart->id) {
+            $cart->add();
+        }
+        $this->context->cookie->id_cart = $cart->id;
 
         // Empty cart
         foreach ($cart->getProducts(true) as $product) {
@@ -82,8 +86,7 @@ class PayPalIncontextajaxModuleFrontController extends \ModuleFrontController
         }
 
         // Add product to cart
-        if ($cart->updateQty(1, $idProduct, $idProductAttribute) && $cart->save()) {
-            $this->context->cookie->id_cart = $cart->id;
+        if ($cart->updateQty(1, $idProduct, $idProductAttribute) && $cart->update()) {
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
