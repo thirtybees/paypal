@@ -78,12 +78,17 @@ class PayPal extends \PaymentModule
     /** @var PayPalLogos $paypalLogos */
     public $paypalLogos;
 
+    /** @var string $moduleUrl */
+    public $moduleUrl;
+
     /**
      * Indicates whether the module supports Bootstrap configuration forms
      *
      * @var bool $bootstrap
      */
     public $bootstrap = true;
+
+    const MIN_PHP_VERSION = 50500;
 
     const BACKWARD_REQUIREMENT = '0.4';
     const ONLY_PRODUCTS = 1;
@@ -144,6 +149,12 @@ class PayPal extends \PaymentModule
     const EXPRESS_CHECKOUT_ENABLED = 'PAYPAL_EC_ENABLED';
     const LOGIN_ENABLED = 'PAYPAL_LOGIN_ENABLED';
 
+    const TLS_OK = 'PAYPAL_TLS_OK';
+    const TLS_LAST_CHECK = 'PAYPAL_TLS_LAST_CHECK';
+
+    const ENUM_TLS_OK = 1;
+    const ENUM_TLS_ERROR = -1;
+
     /**
      * PayPal constructor.
      */
@@ -175,6 +186,28 @@ class PayPal extends \PaymentModule
             'pluscancel',
             'ipn',
         ];
+
+        // Only check from Back Office
+        if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id) {
+            if ($this->active && extension_loaded('curl') == false) {
+                $this->context->controller->errors[] = $this->displayName.': '.$this->l('You have to enable the cURL extension on your server in order to use this module');
+                $this->disable();
+
+                return;
+            }
+            if (PHP_VERSION_ID < self::MIN_PHP_VERSION) {
+                $this->context->controller->errors[] = $this->displayName.': '.$this->l('Your PHP version is not supported. Please upgrade to PHP 5.5.0 or higher.');
+                $this->disable();
+
+                return;
+            }
+
+            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query(array(
+                    'configure' => $this->name,
+                    'tab_module' => $this->tab,
+                    'module_name' => $this->name,
+                ));
+        }
 
         if (self::isInstalled($this->name)) {
             $this->loadDefaults();
@@ -371,9 +404,19 @@ class PayPal extends \PaymentModule
      */
     public function getContent()
     {
+        $output = '';
+
         $this->postProcess();
 
-        return $this->renderMainForm();
+        $this->context->smarty->assign([
+            'module_url' => $this->moduleUrl,
+            'tls_ok' => (int) Configuration::get(self::TLS_OK),
+        ]);
+
+        $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
+        $output .= $this->display(__FILE__, 'views/templates/admin/tlscheck.tpl');
+
+        return $output.$this->renderMainForm();
     }
 
     /**
@@ -1469,13 +1512,35 @@ class PayPal extends \PaymentModule
         return $result && $result['payment_status'] == 'Pending_capture';
     }
 
+    protected function tlsCheck()
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://tlstest.paypal.com/');
+        curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/cacert.pem');
+        curl_setopt($ch, CURLOPT_SSLVERSION, 6);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        @curl_exec($ch);
+
+        if (curl_error($ch)) {
+            $this->updateAllValue(self::TLS_OK, self::ENUM_TLS_ERROR);
+        } else {
+            $this->updateAllValue(self::TLS_OK, self::ENUM_TLS_OK);
+        }
+    }
+
+
+
     /**
      * Post process
      */
     protected function postProcess()
     {
         // FIXME: check web profile and create one if missing
-        // TODO: Verify if TLS is working via cURL and FSOCKopen
+
+        if (Tools::isSubmit('checktls') && (bool) Tools::getValue('checktls')) {
+            $this->tlsCheck();
+        }
+
         if (\Tools::isSubmit('submit'.$this->name)) {
             // General
             \Configuration::updateValue(self::STORE_COUNTRY, (int) \Tools::getValue(self::STORE_COUNTRY));
@@ -1992,5 +2057,20 @@ class PayPal extends \PaymentModule
         $this->context->smarty->assign([
             'paypal_cart_summary' => $this->display(__FILE__, 'views/templates/hook/paypal_cart_summary.tpl'),
         ]);
+    }
+
+    /**
+     * Update configuration value in ALL contexts
+     *
+     * @param string $key    Configuration key
+     * @param mixed  $values Configuration values, can be string or array with id_lang as key
+     * @param bool   $html   Contains HTML
+     */
+    public function updateAllValue($key, $values, $html = false)
+    {
+        foreach (Shop::getShops() as $shop) {
+            Configuration::updateValue($key, $values, $html, $shop['id_shop_group'], $shop['id_shop']);
+        }
+        Configuration::updateGlobalValue($key, $values, $html);
     }
 }

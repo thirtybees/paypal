@@ -67,7 +67,7 @@ class PayPalConnect
         $this->logs[] = $this->paypal->l('Making new connection to').' \''.$host.$script.'\'';
 
         if (function_exists('curl_exec')) {
-            $return = $this->connectWithCurl($host.$script, $body, $httpHeader, $identify);
+            $return = $this->sendWithCurl($host.$script, $body, $httpHeader, $identify);
         }
 
         if (isset($return) && $return) {
@@ -110,7 +110,7 @@ class PayPalConnect
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function connectWithCurl($url, $body, $httpHeader = false, $identify = false)
+    protected function sendWithCurl($url, $body, $httpHeader = false, $identify = false)
     {
         $ch = @curl_init();
 
@@ -135,9 +135,10 @@ class PayPalConnect
             @curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             @curl_setopt($ch, CURLOPT_HEADER, false);
             @curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            //@curl_setopt($ch, CURLOPT_SSLVERSION, Configuration::get('PAYPAL_VERSION_TLS_CHECKED') == '1.2' ? 6 : 1);
+            @curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/../cacert.pem');
+            @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
+            @curl_setopt($ch, CURLOPT_SSLVERSION, 6);
 
             @curl_setopt($ch, CURLOPT_VERBOSE, false);
             if ($httpHeader) {
