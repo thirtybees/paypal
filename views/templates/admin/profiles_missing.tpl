@@ -15,15 +15,11 @@
  *  @copyright 2017 Thirty Bees
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
-<div class="panel">
-	<h3><i class="icon icon-puzzle-piece"></i> {l s='PayPal' mod='paypal'}</h3>
-	<strong>{l s='Accept payments with PayPal' mod='paypal'}</strong>
-	<p>
-		{l s='Thank you for using this module!' mod='paypal'}
-	</p>
-	<strong>{l s='Quick start' mod='paypal'}</strong>
-	<ol>
-		<li>{l s='Visit' mod='paypal'} <a href="https://developer.paypal.com/">https://developer.paypal.com/</a> {l s='and create a new CLIENT ID and SECRET for the REST API.' mod='paypal'}</li>
-		<li>{l s='Enter those credentials on this page' mod='paypal'}</li>
-	</ol>
-</div>
+{l s='In order to provide the best checkout experience, all profiles have to be loaded and available.' mod='paypal'}<br />
+<br />
+{l s='Unfortunately, some profiles are missing:' mod='paypal'}
+<ul>
+	<li>Website Payments Standard: {$standardProfile|escape:'htmlall':'UTF-8'}</li>
+	<li>Website Payments Plus: {$plusProfile|escape:'htmlall':'UTF-8'}</li>
+	<li>Express Checkout: {$expressCheckoutProfile|escape:'htmlall':'UTF-8'}</li>
+</ul>

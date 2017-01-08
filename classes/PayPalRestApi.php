@@ -40,6 +40,10 @@ class PayPalRestApi
     const PATH_EXECUTE_PAYMENT = '/v1/payments/payment/';
     const PATH_EXECUTE_REFUND = '/v1/payments/sale/';
 
+    const STANDARD_PROFILE = 1;
+    const PLUS_PROFILE = 2;
+    const EXPRESS_CHECKOUT_PROFILE = 3;
+
     /** @var \Context $context */
     protected $context;
 
@@ -49,14 +53,26 @@ class PayPalRestApi
     /** @var \Customer $customer */
     protected $customer;
 
+    /** @var string $clientId */
+    protected $clientId;
+
+    /** @var string $secret */
+    protected $secret;
+
+    /** @var null|string $accessToken  */
+    protected $accessToken = null;
+
     /**
      * ApiPaypalPlus constructor.
      */
-    public function __construct()
+    public function __construct($clientId = null, $secret = null)
     {
         $this->context = \Context::getContext();
         $this->cart = $this->context->cart;
         $this->customer = $this->context->customer;
+
+        $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
+        $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
     }
 
     /**
@@ -68,6 +84,10 @@ class PayPalRestApi
      */
     public function getToken()
     {
+        if ($this->accessToken) {
+            return $this->accessToken;
+        }
+
         $result = $this->sendWithCurl(self::PATH_CREATE_TOKEN, ['grant_type' => 'client_credentials'], false, true);
 
         /*
@@ -88,23 +108,29 @@ class PayPalRestApi
             $this->context->cookie->paypal_access_token_access_token = $accessToken;
             $this->context->cookie->write();
 
+            if (!$this->accessToken) {
+                $this->accessToken = $accessToken;
+            }
+
             return $accessToken;
         }
     }
 
     /**
-     * @return bool
+     * @param int $type
+     *
+     * @return bool|array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getWebProfile()
+    public function getWebProfile($type = self::STANDARD_PROFILE)
     {
         $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $data = $this->createWebProfile();
+            $data = $this->createWebProfile($type);
 
             $header = [
                 'Content-Type:application/json',
@@ -115,16 +141,6 @@ class PayPalRestApi
 
             if (isset($result->id)) {
                 return $result->id;
-            } else {
-                $results = $this->getListProfile();
-
-                foreach ($results as $result) {
-                    if (isset($result->id) && $result->name == \Configuration::get('PS_SHOP_NAME')) {
-                        return $result->id;
-                    }
-                }
-
-                return false;
             }
         }
 
@@ -155,7 +171,7 @@ class PayPalRestApi
     }
 
     /**
-     * @return array
+     * @return bool
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -298,8 +314,8 @@ class PayPalRestApi
         $payment->transactions = [$transaction];
         $payment->payer = $payer;
         $payment->intent = 'sale';
-        if (\Configuration::get(\PayPal::WEBSITE_PROFILE_ID)) {
-            $payment->experience_profile_id = \Configuration::get(\PayPal::WEBSITE_PROFILE_ID);
+        if (\Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID)) {
+            $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
         }
         $payment->redirect_urls = $redirectUrls;
 
@@ -346,71 +362,112 @@ class PayPalRestApi
 
         if ($ch) {
             if (!\Configuration::get(\PayPal::LIVE)) {
-                curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
+                @curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
             } else {
-                curl_setopt($ch, CURLOPT_URL, 'https://api.paypal.com'.$url);
+                @curl_setopt($ch, CURLOPT_URL, 'https://api.paypal.com'.$url);
             }
 
             if ($identify) {
-                curl_setopt($ch, CURLOPT_USERPWD, \Configuration::get(\PayPal::CLIENT_ID).':'.\Configuration::get(\PayPal::SECRET));
+                @curl_setopt($ch, CURLOPT_USERPWD, $this->clientId.':'.$this->secret);
             }
 
             if ($httpHeader) {
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
+                @curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
             }
             if (!$requestType && $body) {
-                curl_setopt($ch, CURLOPT_POST, true);
+                @curl_setopt($ch, CURLOPT_POST, true);
                 if ($identify) {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($body));
+                    @curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($body));
                 } else {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+                    @curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
                 }
             } elseif ($requestType) {
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $requestType);
+                @curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $requestType);
             }
 
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HEADER, false);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-            curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/../cacert.pem');
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-            curl_setopt($ch, CURLOPT_SSLVERSION, 6);
-            curl_setopt($ch, CURLOPT_VERBOSE, false);
+            @curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            @curl_setopt($ch, CURLOPT_HEADER, false);
+            @curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            @curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/../cacert.pem');
+            @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+            @curl_setopt($ch, CURLOPT_SSLVERSION, 6);
+            @curl_setopt($ch, CURLOPT_VERBOSE, false);
 
-            $result = curl_exec($ch);
+            $result = @curl_exec($ch);
 
-            curl_close($ch);
+            @curl_close($ch);
         }
 
         return isset($result) ? $result : false;
     }
 
     /**
+     * @param int $type
+     *
      * @return array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function createWebProfile()
+    protected function createWebProfile($type)
     {
-        return [
-            'name' => \Configuration::get('PS_SHOP_NAME'),
-            'presentation' => [
-                'brand_name' => \Configuration::get('PS_SHOP_NAME'),
-                'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                'locale_code' => $this->context->language->iso_code,
-            ],
-            'input_fields' => [
-                'allow_note' => true,
-                'no_shipping' => 2,
-                'address_override' => 0,
-            ],
-            'flow_config' => [
-                'landing_page_type' => 'billing',
-            ],
-        ];
+        $name = 'ThirtyBees_'.(int) $this->context->shop->id.'_'.(int) $type;
+
+        switch ($type) {
+            case self::PLUS_PROFILE:
+                return [
+                    'name' => $name,
+                    'presentation' => [
+                        'brand_name' => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note' => false,
+                        'no_shipping' => 1,
+                        'address_override' => 1,
+                    ],
+                    'flow_config' => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+            case self::EXPRESS_CHECKOUT_PROFILE:
+                return [
+                    'name' => $name,
+                    'presentation' => [
+                        'brand_name' => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note' => false,
+                        'no_shipping' => 2,
+                        'address_override' => 0,
+                    ],
+                    'flow_config' => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+            default:
+                return [
+                    'name' => $name,
+                    'presentation' => [
+                        'brand_name' => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note' => false,
+                        'no_shipping' => 1,
+                        'address_override' => 1,
+                    ],
+                    'flow_config' => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+        }
     }
 
     /**

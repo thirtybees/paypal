@@ -44,10 +44,6 @@ class PayPalConfirmModuleFrontController extends \ModuleFrontController
      */
     public function initContent()
     {
-        if (!$this->context->customer->isLogged(true) || empty($this->context->cart)) {
-            \Tools::redirect('index.php');
-        }
-
         parent::initContent();
 
         $this->context = \Context::getContext();

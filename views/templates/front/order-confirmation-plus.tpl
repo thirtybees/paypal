@@ -33,8 +33,6 @@
 {$paypal_cart_summary|escape:'UTF-8'}
 <div class="inforeturn"></div>
 <div class="confirm_PPP">
-
-
 	{if $state == 'approved' || $state == 'created'}
 		<h2>{l s='Order Confirmation ?' mod='paypal'}</h2>
 		<p>{l s='Do you want to confirm your order for total amount of ' mod='paypal'}{$totalAmount|escape:'htmlall':'UTF-8'}</p>
@@ -43,8 +41,8 @@
 			<input type="hidden" name="paymentId" value="{$paymentId|escape:'htmlall':'UTF-8'}"/>
 			<input type="hidden" name="id_cart" value="{$id_cart|escape:'htmlall':'UTF-8'}"/>
 
-			<input id="cancel" class="{if $smarty.const._PS_VERSION_ < 1.5}button_large{else}button btn btn-large{/if}" type="submit" name="confirmCancel" value="{l s='Cancel your order' mod='paypal'}"/>
-			<input id="confirm" class="{if $smarty.const._PS_VERSION_ < 1.5}button_large{else}button btn btn-large{/if}" type="submit" name="confirmPayment" value="{l s='Confirm your payment' mod='paypal'}"/>
+			<input id="cancel" class="button btn btn-large" type="submit" name="confirmCancel" value="{l s='Cancel your order' mod='paypal'}"/>
+			<input id="confirm" class="button btn btn-large" type="submit" name="confirmPayment" value="{l s='Confirm your payment' mod='paypal'}"/>
 		</form>
 		<script type="text/javascript">
 
@@ -108,7 +106,7 @@
 			{/if}
 		</div>
 	{elseif $state == 'failed' || $state == 'expired'}
-		<p class="alert alert-warning paypal-error">{l s='An error occured during your payment' mod='paypal'}</p>
+		<p class="alert alert-warning paypal-error">{l s='An error occurred during the payment' mod='paypal'}</p>
 	{elseif $state == 'canceled'}
 		<p class="alert alert-warning paypal-error">{l s='Your order has been canceled' mod='paypal'}</p>
 	{/if}

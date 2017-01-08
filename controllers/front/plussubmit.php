@@ -45,11 +45,11 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
     /** @var int $idOrder */
     public $idOrder;
 
-    /** @var int $idCart */
-    public $idCart;
-
     /** @var string $paymentId */
     public $paymentId;
+
+    /** @var string $payerId */
+    public $payerId;
 
     /** @var \PayPal $module */
     public $module;
@@ -83,11 +83,12 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
         parent::initContent();
 
         $this->idModule = (int) \Tools::getValue('id_module');
-        $this->idCart = \Tools::getValue('id_cart');
         $this->paymentId = \Tools::getValue('paymentId');
+        $this->payerId = \Tools::getValue('PayerID');
         $this->token = \Tools::getValue('token');
+        $idCart = $this->context->cart->id;
 
-        if ($this->idCart && $this->paymentId && $this->token) {
+        if ($this->paymentId && $this->payerId && $this->token) {
             $rest = new PayPalRestApi();
             $payment = $rest->lookUpPayment($this->paymentId);
 
@@ -109,15 +110,15 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                         $this->context->smarty->assign([
                             'PayerID' => $payment->payer->payer_info->payer_id,
                             'paymentId' => $this->paymentId,
-                            'id_cart' => $this->idCart,
-                            'totalAmount' => \Tools::displayPrice(\Cart::getTotalCart($this->idCart)),
+                            'id_cart' => $idCart,
+                            'totalAmount' => \Tools::displayPrice(\Cart::getTotalCart($idCart)),
                             'linkSubmitPlus' => $this->context->link->getModuleLink('paypal', 'plussubmit', [], \Tools::usingSecureMode()),
                         ]);
                         break;
                     case 'canceled':
                         /* LookUp cancel */
                         $this->module->validateOrder(
-                            $this->idCart,
+                            $idCart,
                             $this->getOrderStatus('order_canceled'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -128,7 +129,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                     default:
                         /* Payment error */
                         $this->module->validateOrder(
-                            $this->idCart,
+                            $idCart,
                             $this->getOrderStatus('payment_error'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -152,13 +153,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
         }
 
         $this->module->assignCartSummary();
-
-        if ($this->context->getMobileDevice() == true) {
-            $this->setTemplate('order-confirmation-plus-mobile.tpl');
-        } else {
-            $this->setTemplate('order-confirmation-plus.tpl');
-        }
-
+        $this->setTemplate('order-confirmation-plus.tpl');
     }
 
     /**
@@ -216,6 +211,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
             $payment = $callApiPaypalPlus->executePayment($payerID, $paymentId);
 
             if (isset($payment->state)) {
+                /** @var \PayPal $paypal */
                 $paypal = \Module::getInstanceByName('paypal');
 
                 $transaction = [
@@ -231,7 +227,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                 if ($submit == 'confirmPayment') {
                     if ($payment->state == 'approved') {
                         $paypal->validateOrder(
-                            $this->idCart,
+                            $idCart,
                             $this->getOrderStatus('payment'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -241,7 +237,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                         $return['success'][] = $this->module->l('Your payment has been taken into account');
                     } else {
                         $paypal->validateOrder(
-                            $this->idCart,
+                            $idCart,
                             $this->getOrderStatus('payment_error'),
                             $payment->transactions[0]->amount->total,
                             $payment->payer->payment_method,
@@ -252,7 +248,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                     }
                 } elseif ($submit == 'confirmCancel') {
                     $paypal->validateOrder(
-                        $this->idCart,
+                        $idCart,
                         $this->getOrderStatus('order_canceled'),
                         $payment->transactions[0]->amount->total,
                         $payment->payer->payment_method,

@@ -22,14 +22,25 @@
 <div id="ppplus"></div>
 
 {literal}
-    <script type="application/javascript">
-        var ppp = PAYPAL.apps.PPP({
-            "approvalUrl": "{/literal}{$approval_url}{literal}",
-            "placeholder": "ppplus",
-            "mode": "{/literal}{$mode|escape:'htmlall':'UTF-8'}{literal}",
-            "language": "{/literal}{$language|escape:'htmlall':'UTF-8'}{literal}",
-            "country": "{/literal}{$country|escape:'htmlall':'UTF-8'}{literal}",
-        });
-    </script>
+<script type="application/javascript">
+	(function () {
+		function initPayPalPlus() {
+			if (typeof PAYPAL === 'undefined' || typeof PAYPAL.apps === 'undefined' || typeof PAYPAL.apps.PPP === 'undefined') {
+				setTimeout(initPayPalPlus, 100);
+				return;
+			}
+
+			var ppp = PAYPAL.apps.PPP({
+				"approvalUrl": "{/literal}{$approval_url}{literal}",
+				"placeholder": "ppplus",
+				"mode": "{/literal}{$mode|escape:'htmlall':'UTF-8'}{literal}",
+				"language": "{/literal}{$language|escape:'htmlall':'UTF-8'}{literal}",
+				"country": "{/literal}{$country|escape:'htmlall':'UTF-8'}{literal}",
+			});
+		}
+
+		initPayPalPlus();
+	})();
+</script>
 {/literal}
 

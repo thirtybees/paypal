@@ -1,5 +1,5 @@
 {*
- * 2016 Michael Dekker
+ * 2017 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -9,10 +9,10 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@michaeldekker.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Michael Dekker <prestashop@michaeldekker.com>
- *  @copyright 2016 Michael Dekker
+ *  @author    Thirty Bees <modules@thirtybees.com>
+ *  @copyright 2017 Thirty Bees
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 <div class="panel">

@@ -36,7 +36,8 @@ class PayPalLogin
     protected $logs = [];
     protected $enableLog = false;
 
-    protected $paypalConnect = null;
+    /** @var PayPalRestApi $rest */
+    protected $rest;
 
     /**
      * PayPalLogin constructor.
@@ -47,7 +48,7 @@ class PayPalLogin
      */
     public function __construct()
     {
-        $this->paypalConnect = new PayPalConnect();
+        $this->rest = new PayPalRestApi();
     }
 
     /**
@@ -134,12 +135,11 @@ class PayPalLogin
             'redirect_url' => PayPalLogin::getReturnLink(),
         ];
 
-        $request = http_build_query($params, '', '&');
-        $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
+        $result = $this->rest->sendWithCurl($this->getTokenServiceEndpoint(), $params, false, true);
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
-            fwrite($handle, "Request => ".print_r($request, true)."\r\n");
+            fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
             fwrite($handle, "Result => ".print_r($result, true)."\r\n");
             fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
             fclose($handle);
@@ -150,7 +150,7 @@ class PayPalLogin
         if ($result && isset($result->access_token)) {
             $login = new PayPalLoginUser();
 
-            $customer = $this->getUserInformations($result->access_token, $login);
+            $customer = $this->getUserInformation($result->access_token, $login);
 
             if (!$customer) {
                 return false;
@@ -198,12 +198,11 @@ class PayPalLogin
             'refresh_token' => $login->refresh_token,
         ];
 
-        $request = http_build_query($params, '', '&');
-        $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getTokenServiceEndpoint(), $request, false, false, true);
+        $result = $this->rest->sendWithCurl($this->getTokenServiceEndpoint(), $params, false, true);
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
-            fwrite($handle, "Request => ".print_r($request, true)."\r\n");
+            fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
             fwrite($handle, "Result => ".print_r($result, true)."\r\n");
             fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
             fclose($handle);
@@ -232,11 +231,11 @@ class PayPalLogin
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function getUserInformations($accessToken, &$login)
+    protected function getUserInformation($accessToken, &$login)
     {
         unset($this->logs);
         $headers = [
-            // 'Content-Type:application/json',
+            'Content-Type:application/json',
             'Authorization: Bearer '.$accessToken,
         ];
 
@@ -244,12 +243,11 @@ class PayPalLogin
             'schema' => 'openid',
         ];
 
-        $request = http_build_query($params, '', '&');
-        $result = $this->paypalConnect->makeConnection($this->getIdentityAPIURL(), $this->getUserInfoEndpoint(), $request, false, $headers, true);
+        $result = $this->rest->sendWithCurl($this->getUserInfoEndpoint().'?'.http_build_query($params, '', '&'), false, $headers, false);
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
-            fwrite($handle, "Request => ".print_r($request, true)."\r\n");
+            fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
             fwrite($handle, "Result => ".print_r($result, true)."\r\n");
             fwrite($handle, "Headers => ".print_r($headers, true)."\r\n");
             fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
@@ -292,9 +290,8 @@ class PayPalLogin
         $customer = new \Customer();
         $customer->firstname = $result->given_name;
         $customer->lastname = $result->family_name;
-        if (version_compare(_PS_VERSION_, '1.5.3.1', '>')) {
-            $customer->id_lang = \Language::getIdByIso(strstr($result->language, '_', true));
-        }
+        $customer->id_lang = \Language::getIdByIso(strstr($result->language, '_', true));
+
 
         $customer->birthday = $result->birthday;
         $customer->email = $result->email;

@@ -30,15 +30,14 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/classes/autoload.php';
 
-use PayPalModule\AvailablePaymentMethods;
 use PayPalModule\CallPayPalPlusApi;
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
-use PayPalModule\PayPalLib;
 use PayPalModule\PayPalLogin;
 use PayPalModule\PayPalLoginUser;
 use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalOrder;
+use PayPalModule\PayPalRestApi;
 use PayPalModule\PayPalTools;
 
 /**
@@ -90,31 +89,16 @@ class PayPal extends \PaymentModule
 
     const MIN_PHP_VERSION = 50500;
 
-    const BACKWARD_REQUIREMENT = '0.4';
-    const ONLY_PRODUCTS = 1;
-    const ONLY_DISCOUNTS = 2;
-    const BOTH = 3;
-    const BOTH_WITHOUT_SHIPPING = 4;
-    const ONLY_SHIPPING = 5;
-    const ONLY_WRAPPING = 6;
-    const ONLY_PRODUCTS_WITHOUT_SHIPPING = 7;
-
     const LIVE = 'PAYPAL_LIVE';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
     const STORE_COUNTRY = 'PAYPAL_COUNTRY_DEFAULT';
 
-    const LOGIN = 'PAYPAL_LOGIN';
-    const LOGIN_THEME = 'PAYPAL_LOGIN_TPL';
-    const EXPRESS_CHECKOUT_SHORTCUT = 'PAYPAL_EXPRESS_CHECKOUT_SHORTCUT';
-
     const CLIENT_ID = 'PAYPAL_CLIENT_ID';
     const SECRET = 'PAYPAL_SECRET';
 
-    const IN_CONTEXT_CHECKOUT = 'PAYPAL_IN_CONTEXT_CHECKOUT';
-
-    const WEBSITE_PROFILE_ID = 'PAYPAL_WEB_PROFILE_ID';
-    const UPDATED_COUNTRIES_OK = 'PAYPAL_UPDATED_COUNTRIES_OK';
-    const CONFIGURATION_OK = 'PAYPAL_CONFIGURATION_OK';
+    const STANDARD_WEBSITE_PROFILE_ID = 'PAYPAL_WEB_PROFILE_ID';
+    const EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID = 'PAYPAL_EC_WEB_PROFILE_ID';
+    const PLUS_WEBSITE_PROFILE_ID = 'PAYPAL_WPP_WEB_PROFILE_ID';
 
     const WPS = 1; // Website Payments Standard
     const EC = 4; // Express Checkout
@@ -148,6 +132,7 @@ class PayPal extends \PaymentModule
     const WEBSITE_PAYMENTS_PLUS_ENABLED = 'PAYPAL_WPP_ENABLED';
     const EXPRESS_CHECKOUT_ENABLED = 'PAYPAL_EC_ENABLED';
     const LOGIN_ENABLED = 'PAYPAL_LOGIN_ENABLED';
+    const LOGIN_THEME = 'PAYPAL_LOGIN_TPL';
 
     const TLS_OK = 'PAYPAL_TLS_OK';
     const TLS_LAST_CHECK = 'PAYPAL_TLS_LAST_CHECK';
@@ -294,15 +279,11 @@ class PayPal extends \PaymentModule
         \Configuration::deleteByName(self::DEBUG_MODE);
         \Configuration::deleteByName(self::STORE_COUNTRY);
 
-        /* USE PAYPAL LOGIN */
-        \Configuration::deleteByName(self::LOGIN);
+
+        \Configuration::deleteByName(self::LOGIN_ENABLED);
         \Configuration::deleteByName(self::CLIENT_ID);
         \Configuration::deleteByName(self::SECRET);
         \Configuration::deleteByName(self::LOGIN_THEME);
-        /* /USE PAYPAL LOGIN */
-
-        // PayPal v3 configuration
-        \Configuration::deleteByName(self::EXPRESS_CHECKOUT_SHORTCUT);
     }
 
     /**
@@ -362,7 +343,6 @@ class PayPal extends \PaymentModule
      */
     protected function loadDefaults()
     {
-        $this->loadLangDefault();
         $this->paypalLogos = new PayPalLogos($this->iso_code);
         $orderProcessType = (int) \Configuration::get('PS_ORDER_PROCESS_TYPE');
 
@@ -516,6 +496,26 @@ class PayPal extends \PaymentModule
 
     protected function getRestApiForm()
     {
+        $standardProfile = (string) \Configuration::get(self::STANDARD_WEBSITE_PROFILE_ID);
+        $plusProfile = (string) \Configuration::get(self::PLUS_WEBSITE_PROFILE_ID);
+        $expressCheckoutProfile = (string) \Configuration::get(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+
+        if (!$this->context->smarty->getTemplateVars(self::STANDARD_WEBSITE_PROFILE_ID)) {
+            $this->context->smarty->assign([
+                'standardProfile' => $standardProfile,
+                'plusProfile' => $plusProfile,
+                'expressCheckoutProfile' => $expressCheckoutProfile,
+            ]);
+        }
+
+        if ($standardProfile && $plusProfile && $expressCheckoutProfile) {
+            $profileType = 'confirmation';
+            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_correct.tpl');
+        } else {
+            $profileType = 'error';
+            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_missing.tpl');
+        }
+
         return [
             'form' => [
                 'legend' => [
@@ -536,10 +536,10 @@ class PayPal extends \PaymentModule
                         'desc' => $this->l('Enter the SECRET'),
                     ],
                     [
-                        'type' => 'text',
-                        'label' => $this->l('Website Profile ID'),
-                        'name' => self::WEBSITE_PROFILE_ID,
-                        'desc' => $this->l('Enter the website profile ID'),
+                        'type' => $profileType,
+                        'label' => $this->l('Website Profiles'),
+                        'name' => self::STANDARD_WEBSITE_PROFILE_ID,
+                        'text' => $profileText,
                     ],
                 ],
                 'submit' => [
@@ -690,7 +690,7 @@ class PayPal extends \PaymentModule
         return [
             self::STORE_COUNTRY => (int) \Configuration::get(self::STORE_COUNTRY),
             self::LIVE => \Configuration::get(self::LIVE),
-            self::WEBSITE_PROFILE_ID => \Configuration::get(self::WEBSITE_PROFILE_ID),
+            self::STANDARD_WEBSITE_PROFILE_ID => \Configuration::get(self::STANDARD_WEBSITE_PROFILE_ID),
 
             self::WEBSITE_PAYMENTS_STANDARD_ENABLED => \Configuration::get(self::WEBSITE_PAYMENTS_STANDARD_ENABLED),
             self::WEBSITE_PAYMENTS_PLUS_ENABLED => \Configuration::get(self::WEBSITE_PAYMENTS_PLUS_ENABLED),
@@ -721,17 +721,15 @@ class PayPal extends \PaymentModule
         ]);
 
         $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
-        if ($this->useInContextCheckout()) {
-            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
-        }
+        $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
+
 
         if ((
             (method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
                 == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc'))
             || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name']
                 == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
-            &&
-            (int) \Configuration::get('PAYPAL_LOGIN') == 1) {
+            && \Configuration::get(self::LOGIN_ENABLED)) {
             $this->context->smarty->assign([
                 'paypal_locale' => $this->getLocale(),
                 'client_id' => \Configuration::get(self::CLIENT_ID),
@@ -746,11 +744,6 @@ class PayPal extends \PaymentModule
         }
 
         return $process;
-    }
-
-    public function useInContextCheckout()
-    {
-        return \Configuration::get(self::IN_CONTEXT_CHECKOUT);
     }
 
     public function getLocalePayPalPlus()
@@ -862,13 +855,15 @@ class PayPal extends \PaymentModule
     /**
      * Product Footer hook
      *
-     * @return string Hook HTML
+     * @return null|string Hook HTML
      */
     public function hookProductFooter()
     {
-        $content = (!$this->context->getMobileDevice()) ? $this->renderExpressCheckoutButton('product') : null;
+        if (!\Configuration::get(self::EXPRESS_CHECKOUT_ENABLED)) {
+            return null;
+        }
 
-        return $content.$this->renderExpressCheckoutForm('product');
+        return $this->renderExpressCheckoutForm('product');
     }
 
     /**
@@ -878,14 +873,6 @@ class PayPal extends \PaymentModule
      */
     public function hookPayment()
     {
-        if (!$this->canBeUsed()) {
-            return null;
-        }
-
-//        if (isset($this->context->cookie->express_checkout)) {
-//            $this->redirectToConfirmation();
-//        }
-
         $isoLang = [
             'en' => 'en_US',
             'fr' => 'fr_FR',
@@ -900,7 +887,42 @@ class PayPal extends \PaymentModule
             'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
         ]);
 
-        return $this->display(__FILE__, 'express_checkout_payment.tpl');
+        $output = '';
+        if (Configuration::get(self::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+            $output .= $this->display(__FILE__, 'express_checkout_payment.tpl');
+        }
+
+        if (Configuration::get(self::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+            $rest = new PayPalRestApi();
+            $payment = $rest->createPayment(
+                $this->context->link->getModuleLink($this->name, 'plussubmit', [], \Tools::usingSecureMode()),
+                $this->context->link->getModuleLink($this->name, 'pluscancel', [], \Tools::usingSecureMode())
+            );
+
+            $approvalUrl = '';
+            if ($payment->id) {
+                foreach ($payment->links as $link) {
+                    if ($link->rel === 'approval_url') {
+                        $approvalUrl = $link->href;
+                        break;
+                    }
+                }
+            }
+
+            $this->context->smarty->assign([
+                'approval_url' => $approvalUrl,
+                'mode' => \Configuration::get(self::LIVE) ? 'live' : 'sandbox',
+                'language' => $this->getLocalePayPalPlus(),
+                'country' => $this->getCountryCode(),
+            ]);
+
+            if ($approvalUrl) {
+                $output .= '<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
+                $output .= $this->display(__FILE__, 'paypal_plus_payment.tpl');
+            }
+        }
+
+        return $output;
     }
 
     /**
@@ -935,10 +957,7 @@ class PayPal extends \PaymentModule
     public function hookShoppingCartExtra()
     {
         if (!$this->active
-            || (!$this->context->getMobileDevice())
-            || !\Configuration::get(self::EXPRESS_CHECKOUT_SHORTCUT)
-            || !in_array(self::EC, $this->getPaymentMethods())
-            || isset($this->context->cookie->express_checkout)) {
+            || !\Configuration::get(self::EXPRESS_CHECKOUT_ENABLED)) {
             return null;
         }
 
@@ -1010,14 +1029,6 @@ class PayPal extends \PaymentModule
         }
 
         return null;
-    }
-
-    /**
-     * Set PayPal as configured
-     */
-    public function setPayPalAsConfigured()
-    {
-        \Configuration::updateValue(self::CONFIGURATION_OK, true);
     }
 
     /**
@@ -1214,12 +1225,6 @@ class PayPal extends \PaymentModule
      */
     public function renderExpressCheckoutForm($type)
     {
-        if ((!\Configuration::get(self::EXPRESS_CHECKOUT_SHORTCUT) && !$this->context->getMobileDevice())
-            || !in_array(self::EC, $this->getPaymentMethods()) ||
-            (!$this->context->getMobileDevice())) {
-            return null;
-        }
-
         $idProduct = (int) \Tools::getValue('id_product');
         $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
         if ($idProductAttribute) {
@@ -1237,7 +1242,7 @@ class PayPal extends \PaymentModule
             'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], \Tools::usingSecureMode()),
         ]);
 
-        return $this->display(__FILE__, 'express_checkout_shortcut_form.tpl');
+        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
     }
 
     /**
@@ -1259,7 +1264,7 @@ class PayPal extends \PaymentModule
 
         //Get Seamless checkout
         $loginUser = false;
-        if (\Configuration::get('PAYPAL_LOGIN')) {
+        if (\Configuration::get(self::LOGIN_ENABLED)) {
             $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
 
             if ($loginUser && $loginUser->expires_in <= time()) {
@@ -1360,20 +1365,6 @@ class PayPal extends \PaymentModule
     public function getAPIScript()
     {
         return '/nvp';
-    }
-
-    /**
-     * @return bool|mixed
-     */
-    public function getPaymentMethods()
-    {
-        if (\Configuration::get(self::UPDATED_COUNTRIES_OK)) {
-            return AvailablePaymentMethods::authenticatePaymentMethodByLang(\Tools::strtoupper($this->context->language->iso_code));
-        } else {
-            $country = new \Country((int) \Configuration::get('PS_COUNTRY_DEFAULT'));
-
-            return AvailablePaymentMethods::authenticatePaymentMethodByCountry($country->iso_code);
-        }
     }
 
     /**
@@ -1514,13 +1505,13 @@ class PayPal extends \PaymentModule
 
     protected function tlsCheck()
     {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://tlstest.paypal.com/');
-        curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/cacert.pem');
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($ch, CURLOPT_SSLVERSION, 6);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $ch = @curl_init();
+        @curl_setopt($ch, CURLOPT_URL, 'https://tlstest.paypal.com/');
+        @curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/cacert.pem');
+        @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        @curl_setopt($ch, CURLOPT_SSLVERSION, 6);
+        @curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         @curl_exec($ch);
 
         if (curl_error($ch)) {
@@ -1553,6 +1544,23 @@ class PayPal extends \PaymentModule
             \Configuration::updateValue(self::CLIENT_ID, \Tools::getValue(self::CLIENT_ID));
             \Configuration::updateValue(self::SECRET, \Tools::getValue(self::SECRET));
 
+            if (\Tools::getValue(self::CLIENT_ID) && \Tools::getValue(self::SECRET)) {
+                $rest = new PayPalRestApi(\Tools::getValue(self::CLIENT_ID), \Tools::getValue(self::SECRET));
+                $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
+                $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
+                $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
+
+                if ($standardProfile) {
+                    \Configuration::updateValue(self::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                }
+                if ($plusProfile) {
+                    \Configuration::updateValue(self::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                }
+                if ($expressCheckoutProfile) {
+                    \Configuration::updateValue(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                }
+            }
+
             // Website Payments Standard
             \Configuration::updateValue(self::WEBSITE_PAYMENTS_STANDARD_ENABLED, \Tools::getValue(self::WEBSITE_PAYMENTS_STANDARD_ENABLED));
 
@@ -1577,6 +1585,8 @@ class PayPal extends \PaymentModule
      */
     protected function doRefund($idTransaction, $idOrder, $amt = false)
     {
+        // FIXME: not working
+        return [];
         if (!$this->isPayPalAPIAvailable()) {
             die(\Tools::displayError('Fatal Error: no API Credentials are available'));
         } elseif (!$idTransaction) {
@@ -1605,13 +1615,12 @@ class PayPal extends \PaymentModule
                 ];
             }
 
-            $paypalLib = new PayPalLib();
+            $paypalLib = new PayPalRestApi();
 
-            return $paypalLib->makeCall(
-                $this->getAPIURL(),
-                $this->getAPIScript(),
-                'RefundTransaction',
-                '&'.http_build_query($params, '', '&')
+            return $paypalLib->sendWithCurl(
+                $this->getAPIScript().'&'.http_build_query($params, '', '&'),
+                'RefundTransaction'
+
             );
         } else {
             if (!$amt) {
@@ -1675,6 +1684,8 @@ class PayPal extends \PaymentModule
      */
     protected function doFullRefund($idOrder)
     {
+        // FIXME: not working
+        return [];
         $paypalOrder = PayPalOrder::getOrderById((int) $idOrder);
         if (!$this->isPayPalAPIAvailable() || !$paypalOrder) {
             return false;
@@ -1756,6 +1767,8 @@ class PayPal extends \PaymentModule
      */
     protected function doCapture($idOrder, $captureAmount = false, $isComplete = false)
     {
+        // FIXME: not working
+        return [];
         $paypalOrder = PayPalOrder::getOrderById((int) $idOrder);
         if (!$this->isPayPalAPIAvailable() || !$paypalOrder) {
             return false;
@@ -1863,26 +1876,6 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * Load default language
-     */
-    protected function loadLangDefault()
-    {
-        if (\Configuration::get(self::UPDATED_COUNTRIES_OK)) {
-            $this->iso_code = \Tools::strtoupper($this->context->language->iso_code);
-            if ($this->iso_code == 'EN') {
-                $isoCode = 'GB';
-            } else {
-                $isoCode = $this->iso_code;
-            }
-            $this->defaultCountry = \Country::getByIso($isoCode);
-        } else {
-            $this->defaultCountry = (int) \Configuration::get('PS_COUNTRY_DEFAULT');
-            $country = new \Country($this->defaultCountry);
-            $this->iso_code = \Tools::strtoupper($country->iso_code);
-        }
-    }
-
-    /**
      * Format message
      *
      * @param array  $response
@@ -1964,8 +1957,6 @@ class PayPal extends \PaymentModule
             if (count($transaction) > 0) {
                 PayPalOrder::saveOrder((int) $this->currentOrder, $transaction);
             }
-
-            $this->setPayPalAsConfigured();
         }
 
         return true;

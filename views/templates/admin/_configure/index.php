@@ -1,5 +1,7 @@
-{*
+<?php
+/**
  * 2017 Thirty Bees
+ * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
  *
@@ -12,18 +14,18 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
+ *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2017 Thirty Bees
+ *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-*}
-<div class="panel">
-	<h3><i class="icon icon-puzzle-piece"></i> {l s='PayPal' mod='paypal'}</h3>
-	<strong>{l s='Accept payments with PayPal' mod='paypal'}</strong>
-	<p>
-		{l s='Thank you for using this module!' mod='paypal'}
-	</p>
-	<strong>{l s='Quick start' mod='paypal'}</strong>
-	<ol>
-		<li>{l s='Visit' mod='paypal'} <a href="https://developer.paypal.com/">https://developer.paypal.com/</a> {l s='and create a new CLIENT ID and SECRET for the REST API.' mod='paypal'}</li>
-		<li>{l s='Enter those credentials on this page' mod='paypal'}</li>
-	</ol>
-</div>
+ */
+
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT");
+
+header("Cache-Control: no-store, no-cache, must-revalidate");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+header("Location: ../");
+exit;
