@@ -66,21 +66,7 @@ class PayPalConnect
     {
         $this->logs[] = $this->paypal->l('Making new connection to').' \''.$host.$script.'\'';
 
-        if (function_exists('curl_exec')) {
-            $return = $this->sendWithCurl($host.$script, $body, $httpHeader, $identify);
-        }
-
-        if (isset($return) && $return) {
-            return $return;
-        }
-
-        $tmp = $this->connectWithFsock($host, $script, $body);
-
-        if (!$simpleMode || !preg_match('/[A-Z]+=/', $tmp, $result)) {
-            return $tmp;
-        }
-
-        return \Tools::substr($tmp, strpos($tmp, $result[0]));
+        return $this->sendWithCurl($host.$script, $body, $httpHeader, $identify);
     }
 
     /**
@@ -137,7 +123,7 @@ class PayPalConnect
             @curl_setopt($ch, CURLOPT_TIMEOUT, 30);
             @curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/../cacert.pem');
             @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
+            @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             @curl_setopt($ch, CURLOPT_SSLVERSION, 6);
 
             @curl_setopt($ch, CURLOPT_VERBOSE, false);
@@ -161,46 +147,6 @@ class PayPalConnect
         }
 
         return (isset($result) && $result) ? $result : false;
-    }
-
-    /**
-     * @param $host
-     * @param $script
-     * @param $body
-     *
-     * @return bool|string
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function connectWithFsock($host, $script, $body)
-    {
-        $fp = @fsockopen('tls://'.$host, 443, $errno, $errstr, 4);
-
-        if (!$fp) {
-            $this->logs[] = $this->paypal->l('Connect failed with fsockopen method');
-        } else {
-            $header = $this->createHeader($host, $script, \Tools::strlen($body));
-            $this->logs[] = $this->paypal->l('Sending this params:').' '.$header.$body;
-
-            @fputs($fp, $header.$body);
-
-            $tmp = '';
-            while (!feof($fp)) {
-                $tmp .= trim(fgets($fp, 1024));
-            }
-
-            fclose($fp);
-
-            if (!isset($tmp) || $tmp == false) {
-                $this->logs[] = $this->paypal->l('Send with fsockopen method failed !');
-            } else {
-                $this->logs[] = $this->paypal->l('Send with fsockopen method successful');
-            }
-        }
-
-        return isset($tmp) ? $tmp : false;
     }
 
     /**

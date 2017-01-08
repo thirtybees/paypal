@@ -1517,8 +1517,10 @@ class PayPal extends \PaymentModule
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, 'https://tlstest.paypal.com/');
         curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/cacert.pem');
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
         curl_setopt($ch, CURLOPT_SSLVERSION, 6);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         @curl_exec($ch);
 
         if (curl_error($ch)) {
