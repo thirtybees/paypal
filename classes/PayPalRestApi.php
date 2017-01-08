@@ -62,6 +62,9 @@ class PayPalRestApi
     /** @var null|string $accessToken  */
     protected $accessToken = null;
 
+    /** @var null|\stdClass $profiles */
+    protected $profiles = null;
+
     /**
      * ApiPaypalPlus constructor.
      */
@@ -137,6 +140,21 @@ class PayPalRestApi
                 'Authorization:Bearer '.$accessToken,
             ];
 
+            if ($this->profiles) {
+                $profileId = '';
+                foreach ($this->profiles as $profile) {
+                    if ($profile->name == $data['name']) {
+                        $profileId = $profile->id;
+                    }
+                }
+
+                if ($profileId) {
+                    // DELETE first
+                    $this->sendWithCurl(self::PATH_WEBPROFILES.'/'.$profileId, false, $header, false, 'DELETE');
+                }
+            }
+
+            // Then create
             $result = json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, json_encode($data), $header));
 
             if (isset($result->id)) {
@@ -164,7 +182,9 @@ class PayPalRestApi
                 'Authorization:Bearer '.$accessToken,
             ];
 
-            return json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, false, $header));
+            $this->profiles = json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, false, $header));
+
+            return $this->profiles;
         }
 
         return [];
@@ -211,7 +231,7 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPaymentObject($returnUrl = false, $cancelUrl = false)
+    public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
         $cart = $this->cart;
         $customer = $this->customer;
@@ -314,24 +334,52 @@ class PayPalRestApi
         $payment->transactions = [$transaction];
         $payment->payer = $payer;
         $payment->intent = 'sale';
-        if (\Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID)) {
-            $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+        if (\Configuration::get(\PayPal::LIVE)) {
+            switch ($profile) {
+                case self::PLUS_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    break;
+                case self::EXPRESS_CHECKOUT_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    break;
+                default:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    break;
+            }
+        } else {
+            switch ($profile) {
+                case self::PLUS_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    break;
+                case self::EXPRESS_CHECKOUT_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    break;
+                default:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    break;
+            }
         }
+
+
+
         $payment->redirect_urls = $redirectUrls;
 
         return $payment;
     }
 
     /**
-     * @return mixed
+     * @param bool|string $returnUrl
+     * @param bool|string $cancelUrl
+     * @param int         $profile
      *
+     * @return mixed
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPayment($returnUrl = false, $cancelUrl = false)
+    public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
-        $data = $this->createPaymentObject($returnUrl, $cancelUrl);
+        $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
 
         $header = [
             'Content-Type:application/json',
@@ -426,7 +474,7 @@ class PayPalRestApi
                     ],
                     'input_fields' => [
                         'allow_note' => false,
-                        'no_shipping' => 1,
+                        'no_shipping' => 2,
                         'address_override' => 1,
                     ],
                     'flow_config' => [
@@ -443,7 +491,7 @@ class PayPalRestApi
                     ],
                     'input_fields' => [
                         'allow_note' => false,
-                        'no_shipping' => 2,
+                        'no_shipping' => 1,
                         'address_override' => 0,
                     ],
                     'flow_config' => [
@@ -460,7 +508,7 @@ class PayPalRestApi
                     ],
                     'input_fields' => [
                         'allow_note' => false,
-                        'no_shipping' => 1,
+                        'no_shipping' => 2,
                         'address_override' => 1,
                     ],
                     'flow_config' => [

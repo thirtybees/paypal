@@ -1,5 +1,6 @@
 <?php
 /**
+ * 2017 Thirty Bees
  * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
@@ -10,18 +11,13 @@
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
- * to license@prestashop.com so we can send you a copy immediately.
+ * to license@thirtybees.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
+ *  @author    Thirty Bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
+ *  @copyright 2017 Thirty Bees
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -99,6 +95,10 @@ class PayPal extends \PaymentModule
     const STANDARD_WEBSITE_PROFILE_ID = 'PAYPAL_WEB_PROFILE_ID';
     const EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID = 'PAYPAL_EC_WEB_PROFILE_ID';
     const PLUS_WEBSITE_PROFILE_ID = 'PAYPAL_WPP_WEB_PROFILE_ID';
+
+    const STANDARD_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_WEB_PROFILE_ID_LIVE';
+    const EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_EC_WEB_PROFILE_ID_LIVE';
+    const PLUS_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_WPP_WEB_PROFILE_ID_LIVE';
 
     const WPS = 1; // Website Payments Standard
     const EC = 4; // Express Checkout
@@ -496,11 +496,17 @@ class PayPal extends \PaymentModule
 
     protected function getRestApiForm()
     {
-        $standardProfile = (string) \Configuration::get(self::STANDARD_WEBSITE_PROFILE_ID);
-        $plusProfile = (string) \Configuration::get(self::PLUS_WEBSITE_PROFILE_ID);
-        $expressCheckoutProfile = (string) \Configuration::get(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+        if (\Configuration::get(self::LIVE)) {
+            $standardProfile = (string) \Configuration::get(self::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+            $plusProfile = (string) \Configuration::get(self::PLUS_WEBSITE_PROFILE_ID_LIVE);
+            $expressCheckoutProfile = (string) \Configuration::get(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+        } else {
+            $standardProfile = (string) \Configuration::get(self::STANDARD_WEBSITE_PROFILE_ID);
+            $plusProfile = (string) \Configuration::get(self::PLUS_WEBSITE_PROFILE_ID);
+            $expressCheckoutProfile = (string) \Configuration::get(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+        }
 
-        if (!$this->context->smarty->getTemplateVars(self::STANDARD_WEBSITE_PROFILE_ID)) {
+        if (!$this->context->smarty->getTemplateVars('standardProfile')) {
             $this->context->smarty->assign([
                 'standardProfile' => $standardProfile,
                 'plusProfile' => $plusProfile,
@@ -677,6 +683,27 @@ class PayPal extends \PaymentModule
                             ],
                         ],
                     ],
+                    [
+                        'type'      => 'radio',
+                        'label'     => $this->l('Theme'),
+                        'desc'      => $this->l('Choose the button style'),
+                        'name'      => self::LOGIN_THEME,
+                        'is_bool'   => true,
+                        'values'    => [
+                            [
+                                'id'    => 'neutral',
+                                'value' => 0,
+                                'label' => $this->l('Neutral'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_grey.png'),
+                            ],
+                            [
+                                'id'    => 'blue',
+                                'value' => 1,
+                                'label' => $this->l('Blue'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_blue.png'),
+                            ],
+                        ],
+                    ],
                 ],
                 'submit' => [
                     'title' => $this->l('Save'),
@@ -696,6 +723,7 @@ class PayPal extends \PaymentModule
             self::WEBSITE_PAYMENTS_PLUS_ENABLED => \Configuration::get(self::WEBSITE_PAYMENTS_PLUS_ENABLED),
             self::EXPRESS_CHECKOUT_ENABLED => \Configuration::get(self::EXPRESS_CHECKOUT_ENABLED),
             self::LOGIN_ENABLED => \Configuration::get(self::LOGIN_ENABLED),
+            self::LOGIN_THEME => \Configuration::get(self::LOGIN_THEME),
 
             self::CLIENT_ID => \Configuration::get(self::CLIENT_ID),
             self::SECRET => \Configuration::get(self::SECRET),
@@ -709,6 +737,7 @@ class PayPal extends \PaymentModule
      */
     public function hookHeader()
     {
+        // TODO: check if this module should be hooked
         if (isset($this->context->cart) && $this->context->cart->id) {
             $this->context->smarty->assign('id_cart', (int) $this->context->cart->id);
         }
@@ -718,6 +747,7 @@ class PayPal extends \PaymentModule
         $smarty = $this->context->smarty;
         $smarty->assign([
             self::LIVE => \Configuration::get(self::LIVE),
+            'confirmationPage' => $this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode()).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
         ]);
 
         $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
@@ -896,7 +926,8 @@ class PayPal extends \PaymentModule
             $rest = new PayPalRestApi();
             $payment = $rest->createPayment(
                 $this->context->link->getModuleLink($this->name, 'plussubmit', [], \Tools::usingSecureMode()),
-                $this->context->link->getModuleLink($this->name, 'pluscancel', [], \Tools::usingSecureMode())
+                $this->context->link->getModuleLink($this->name, 'pluscancel', [], \Tools::usingSecureMode()),
+                PayPalRestApi::PLUS_PROFILE
             );
 
             $approvalUrl = '';
@@ -980,13 +1011,37 @@ class PayPal extends \PaymentModule
     /**
      * @return null|string
      */
-    public function hookPaymentReturn()
+    public function hookPaymentReturn($params)
     {
         if (!$this->active) {
             return null;
         }
 
-        return $this->display(__FILE__, 'confirmation.tpl');
+        /** @var Order $order */
+        $order = $params['order'];
+
+        $currency = new Currency($order->id_currency);
+
+        if (isset($order->reference) && $order->reference) {
+            $totalToPay = (float) $order->getTotalPaid($currency);
+            $reference = $order->reference;
+        } else {
+            $totalToPay = $order->total_paid_tax_incl;
+            $reference = $this->l('Unknown');
+        }
+
+        if ($order->getCurrentOrderState()->id != Configuration::get('PS_OS_ERROR')) {
+            $this->context->smarty->assign('status', 'ok');
+        }
+
+        $this->context->smarty->assign(array(
+            'id_order' => $order->id,
+            'reference' => $reference,
+            'params' => $params,
+            'total' => Tools::displayPrice($totalToPay, $currency, false),
+        ));
+
+        return $this->display(__FILE__, 'views/templates/front/confirmation.tpl');
     }
 
     /**
@@ -1546,18 +1601,31 @@ class PayPal extends \PaymentModule
 
             if (\Tools::getValue(self::CLIENT_ID) && \Tools::getValue(self::SECRET)) {
                 $rest = new PayPalRestApi(\Tools::getValue(self::CLIENT_ID), \Tools::getValue(self::SECRET));
+                $rest->getListProfile();
                 $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
                 $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
                 $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
 
-                if ($standardProfile) {
-                    \Configuration::updateValue(self::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
-                }
-                if ($plusProfile) {
-                    \Configuration::updateValue(self::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
-                }
-                if ($expressCheckoutProfile) {
-                    \Configuration::updateValue(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                if (\Tools::getValue(self::LIVE)) {
+                    if ($standardProfile) {
+                        \Configuration::updateValue(self::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                    }
+                    if ($plusProfile) {
+                        \Configuration::updateValue(self::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                    }
+                    if ($expressCheckoutProfile) {
+                        \Configuration::updateValue(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                    }
+                } else {
+                    if ($standardProfile) {
+                        \Configuration::updateValue(self::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                    }
+                    if ($plusProfile) {
+                        \Configuration::updateValue(self::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                    }
+                    if ($expressCheckoutProfile) {
+                        \Configuration::updateValue(self::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                    }
                 }
             }
 

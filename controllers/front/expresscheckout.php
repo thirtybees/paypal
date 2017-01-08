@@ -74,9 +74,9 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     public function preparePayment()
     {
         $rest = new PayPalRestApi();
-        $payment = $rest->createPayment();
+        $payment = $rest->createPayment(false, false, PayPalRestApi::STANDARD_PROFILE);
 
-        if ($payment->id) {
+        if (isset($payment->id) && $payment->id) {
             foreach ($payment->links as $link) {
                 if ($link->rel === 'approval_url') {
                     Tools::redirectLink($link->href);

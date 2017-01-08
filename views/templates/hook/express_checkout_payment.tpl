@@ -23,7 +23,7 @@
 	<div class="col-xs-12 col-md-12">
 		<p class="payment_module paypal">
 			<a href="{$link->getModuleLink('paypal', 'expresscheckout', [], Tools::usingSecureMode())|escape:'htmlall':'UTF-8'}" title="{l s='Pay with PayPal' mod='paypal'}">
-				<img src="{$logos.LocalPayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}}" height="48px"/>
+				<img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/default_logos/default_horizontal_large.png" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" width="220px" height="64px"/>
 				{l s='Pay with your card or your PayPal account' mod='paypal'}
 			</a>
 		</p>

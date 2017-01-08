@@ -92,7 +92,7 @@
 					})
 					.then(function(data) {
 						if (data.success) {
-							window.location.replace('{$link->getModuleLink('paypal', 'confirm', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}');
+							window.location.replace(data.confirmUrl);
 							return;
 						} else {
 							alert('fail');
@@ -110,7 +110,7 @@
 				var id_product_attribute = $('input[name="id_product_attribute"]').val();
 				$.ajax({
 					type: 'GET',
-					url: '{$link->getModuleLink('paypal', 'incontextajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
+					url: '{$confirmationPage|escape:'javascript':'UTF-8'}',
 					data: {
 						get_qty: '1',
 						id_product: id_product,

@@ -64,21 +64,6 @@ class PayPalincontextconfirmModuleFrontController extends ModuleFrontController
                     'shipping' => 0,
                 ];
 
-                // TODO: find out why secure key has to be forced
-                if (!$secureKey = $this->context->cart->secure_key) {
-                    $sql = new DbQuery();
-                    $sql->select('`secure_key`');
-                    $sql->from('cart');
-                    $sql->where('`id_cart` = '.(int) $this->context->cart->id);
-
-                    if (!$secureKey = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql)) {
-                        $secureKey = md5(Tools::encrypt('lkasjdf'));
-
-                        $this->context->cart->secure_key = $secureKey;
-                        $this->context->cart->update();
-                    }
-                }
-
                 $this->module->validateOrder(
                     $this->context->cart->id,
                     (int) \Configuration::get('PS_OS_PAYMENT'),
@@ -88,11 +73,14 @@ class PayPalincontextconfirmModuleFrontController extends ModuleFrontController
                     $transaction,
                     null,
                     false,
-                    $secureKey
+                    $this->context->cart->secure_key
                 );
 
                 header('Content-Type: application/json');
-                die(json_encode(['success' => true]));
+                die(json_encode([
+                    'success' => true,
+                    'confirmUrl' => $this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode())."?id_cart={$this->context->cart->id}&secure_key={$this->context->cart->secure_key}&id_module={$this->module->id}",
+                ]));
             } else {
                 if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
                     /* If guest we clear the cookie for security reason */

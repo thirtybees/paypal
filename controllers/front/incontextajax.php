@@ -48,7 +48,7 @@ class PayPalIncontextajaxModuleFrontController extends \ModuleFrontController
         }
 
         $rest = new PayPalRestApi();
-        $payment = $rest->createPayment();
+        $payment = $rest->createPayment(false, false, PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
 
         if (isset($payment->id)) {
             header('Content-Type: application/json');
@@ -84,6 +84,8 @@ class PayPalIncontextajaxModuleFrontController extends \ModuleFrontController
             /** array $product */
             $cart->deleteProduct($product['id_product'], $product['id_product_attribute']);
         }
+
+        $cart->secure_key = \Tools::encrypt(\Tools::passwdGen(20, 'RANDOM'));
 
         // Add product to cart
         if ($cart->updateQty(1, $idProduct, $idProductAttribute) && $cart->update()) {
