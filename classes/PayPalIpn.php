@@ -242,7 +242,7 @@ class PayPalIpn extends \PayPal
      */
     public function getResult()
     {
-        if (\Configuration::get('PAYPAL_SANDBOX')) {
+        if (!\Configuration::get(self::LIVE)) {
             $actionUrl = 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
         } else {
             $actionUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_notify-validate';

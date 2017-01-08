@@ -21,6 +21,7 @@
  */
 
 use PayPalModule\CallPayPalPlusApi;
+use PayPalModule\PayPalRestApi;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -87,8 +88,8 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
         $this->token = \Tools::getValue('token');
 
         if ($this->idCart && $this->paymentId && $this->token) {
-            $callApiPaypalPlus = new CallPayPalPlusApi();
-            $payment = json_decode($callApiPaypalPlus->lookUpPayment($this->paymentId));
+            $rest = new PayPalRestApi();
+            $payment = $rest->lookUpPayment($this->paymentId);
 
             if (isset($payment->state)) {
                 $this->context->smarty->assign('state', $payment->state);
@@ -105,9 +106,6 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
 
                 switch ($payment->state) {
                     case 'created':
-                        /* LookUp OK */
-                        /* Affichage bouton confirmation */
-
                         $this->context->smarty->assign([
                             'PayerID' => $payment->payer->payer_info->payer_id,
                             'paymentId' => $this->paymentId,
@@ -200,7 +198,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
         $ajax = \Tools::getValue('ajax');
         $return = [];
         if (!$ajax) {
-            $return['error'][] = $this->module->l('An error occured during the payment');
+            $return['error'][] = $this->module->l('An error occurred during the payment');
             echo json_encode($return);
             die();
         }
@@ -215,7 +213,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
             !empty($paymentId) &&
             !empty($submit)) {
             $callApiPaypalPlus = new CallPayPalPlusApi();
-            $payment = json_decode($callApiPaypalPlus->executePayment($payerID, $paymentId));
+            $payment = $callApiPaypalPlus->executePayment($payerID, $paymentId);
 
             if (isset($payment->state)) {
                 $paypal = \Module::getInstanceByName('paypal');

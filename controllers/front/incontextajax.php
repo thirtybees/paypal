@@ -20,18 +20,85 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+use PayPalModule\PayPalRestApi;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalExpresscheckoutajaxModuleFrontController extends \ModuleFrontController
+/**
+ * Class PayPalIncontextajaxModuleFrontController
+ */
+class PayPalIncontextajaxModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
 
+    /**
+     * Initialize content
+     */
     public function initContent()
+    {
+        if (\Tools::isSubmit('updateCart')) {
+            return $this->updateCart();
+        } elseif (\Tools::isSubmit('get_qty')) {
+            return $this->checkQuantity();
+        }
+
+        $rest = new PayPalRestApi();
+        $payment = $rest->createPayment();
+
+        if (isset($payment->id)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'paymentID' => $payment->id,
+            ]);
+            die();
+        }
+
+        die('{}');
+    }
+
+    /**
+     * Update the cart before incontext checkout
+     */
+    protected function updateCart()
+    {
+        $idProduct = (int) \Tools::getValue('idProduct');
+        $idProductAttribute = (int) \Tools::getValue('idProductAttribute');
+        if (!$idProductAttribute) {
+            $idProductAttribute = null;
+        }
+
+        /** @var \Cart $cart */
+        $cart = $this->context->cart;
+
+        // Empty cart
+        foreach ($cart->getProducts(true) as $product) {
+            /** array $product */
+            $cart->deleteProduct($product['id_product'], $product['id_product_attribute']);
+        }
+
+        // Add product to cart
+        if ($cart->updateQty(1, $idProduct, $idProductAttribute) && $cart->save()) {
+            $this->context->cookie->id_cart = $cart->id;
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+            ]);
+            die();
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+        ]);
+        die();
+    }
+
+    protected function checkQuantity()
     {
         // Ajax query
         $quantity = \Tools::getValue('get_qty');

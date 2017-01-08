@@ -33,12 +33,21 @@ if (!defined('_PS_VERSION_')) {
  */
 class PayPalRestApi
 {
-    const URL_PPP_CREATE_TOKEN = '/v1/oauth2/token';
-    const URL_PPP_CREATE_PAYMENT = '/v1/payments/payment';
-    const URL_PPP_LOOK_UP = '/v1/payments/payment/';
-    const URL_PPP_WEBPROFILE = '/v1/payment-experience/web-profiles';
-    const URL_PPP_EXECUTE_PAYMENT = '/v1/payments/payment/';
-    const URL_PPP_EXECUTE_REFUND = '/v1/payments/sale/';
+    const PATH_CREATE_TOKEN = '/v1/oauth2/token';
+    const PATH_CREATE_PAYMENT = '/v1/payments/payment';
+    const PATH_LOOK_UP = '/v1/payments/payment/';
+    const PATH_WEBPROFILES = '/v1/payment-experience/web-profiles';
+    const PATH_EXECUTE_PAYMENT = '/v1/payments/payment/';
+    const PATH_EXECUTE_REFUND = '/v1/payments/sale/';
+
+    /** @var \Context $context */
+    protected $context;
+
+    /** @var \Cart $cart */
+    protected $cart;
+
+    /** @var \Customer $customer */
+    protected $customer;
 
     /**
      * ApiPaypalPlus constructor.
@@ -46,21 +55,20 @@ class PayPalRestApi
     public function __construct()
     {
         $this->context = \Context::getContext();
+        $this->cart = $this->context->cart;
+        $this->customer = $this->context->customer;
     }
 
     /**
-     * @param string $url
-     * @param string $body
-     *
      * @return bool
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getToken($url, $body)
+    public function getToken()
     {
-        $result = $this->sendWithCurl($url, $body, false, true);
+        $result = $this->sendWithCurl(self::PATH_CREATE_TOKEN, ['grant_type' => 'client_credentials'], false, true);
 
         /*
          * Init variable
@@ -76,8 +84,8 @@ class PayPalRestApi
             /*
              * Set Token in Cookie
              */
-            $this->context->cookie->__set('paypal_access_token_time_max', $timeMax);
-            $this->context->cookie->__set('paypal_access_token_access_token', $accessToken);
+            $this->context->cookie->paypal_access_token_time_max = $timeMax;
+            $this->context->cookie->paypal_access_token_access_token = $accessToken;
             $this->context->cookie->write();
 
             return $accessToken;
@@ -93,7 +101,7 @@ class PayPalRestApi
      */
     public function getWebProfile()
     {
-        $accessToken = $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+        $accessToken = $this->getToken();
 
         if ($accessToken) {
             $data = $this->createWebProfile();
@@ -103,7 +111,7 @@ class PayPalRestApi
                 'Authorization:Bearer '.$accessToken,
             ];
 
-            $result = json_decode($this->sendWithCurl(self::URL_PPP_WEBPROFILE, json_encode($data), $header));
+            $result = json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, json_encode($data), $header));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -132,7 +140,7 @@ class PayPalRestApi
      */
     public function getListProfile()
     {
-        $accessToken = $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+        $accessToken = $this->getToken();
 
         if ($accessToken) {
             $header = [
@@ -140,7 +148,7 @@ class PayPalRestApi
                 'Authorization:Bearer '.$accessToken,
             ];
 
-            return json_decode($this->sendWithCurl(self::URL_PPP_WEBPROFILE, false, $header));
+            return json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, false, $header));
         }
 
         return [];
@@ -153,12 +161,12 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function deleteProfile($idProfile)
+    public function deleteProfile()
     {
-        $accessToken = $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+        $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $this->sendWithCurl(self::URL_PPP_WEBPROFILE, false, false, false, 'DELETE');
+            $this->sendWithCurl(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
         }
 
         return true;
@@ -174,26 +182,34 @@ class PayPalRestApi
     public function refreshToken()
     {
         if ($this->context->cookie->paypal_access_token_time_max < time()) {
-            return $this->getToken(self::URL_PPP_CREATE_TOKEN, ['grant_type' => 'client_credentials']);
+            return $this->getToken();
         } else {
             return $this->context->cookie->paypal_access_token_access_token;
         }
     }
 
     /**
-     * @param \Customer $customer
-     * @param \Cart     $cart
-     *
      * @return \stdClass
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPaymentObject(\Customer $customer, \Cart $cart)
+    public function createPaymentObject($returnUrl = false, $cancelUrl = false)
     {
-        $oCurrency = new \Currency($cart->id_currency);
-        $address = new \Address((int) $cart->id_address_invoice);
+        $cart = $this->cart;
+        $customer = $this->customer;
+
+        if (!$returnUrl) {
+            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
+        }
+
+        if (!$cancelUrl) {
+            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
+        }
+
+        $oCurrency = new \Currency($this->cart->id_currency);
+        $address = new \Address((int) $this->cart->id_address_invoice);
 
         $country = new \Country((int) $address->id_country);
         $isoCode = $country->iso_code;
@@ -274,16 +290,16 @@ class PayPalRestApi
 
         /* Redirect Url */
         $redirectUrls = new \stdClass();
-        $redirectUrls->cancel_url = $this->context->link->getModuleLink('paypal', 'pluscancel', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
-        $redirectUrls->return_url = $this->context->link->getModuleLink('paypal', 'plussubmit', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
+        $redirectUrls->cancel_url = $cancelUrl;
+        $redirectUrls->return_url = $returnUrl;
 
         /* Payment */
         $payment = new \stdClass();
         $payment->transactions = [$transaction];
         $payment->payer = $payer;
         $payment->intent = 'sale';
-        if (\Configuration::get('PAYPAL_WEB_PROFILE_ID')) {
-            $payment->experience_profile_id = \Configuration::get('PAYPAL_WEB_PROFILE_ID');
+        if (\Configuration::get(\PayPal::WEBSITE_PROFILE_ID)) {
+            $payment->experience_profile_id = \Configuration::get(\PayPal::WEBSITE_PROFILE_ID);
         }
         $payment->redirect_urls = $redirectUrls;
 
@@ -291,26 +307,22 @@ class PayPalRestApi
     }
 
     /**
-     * @param \Customer $customer
-     * @param \Cart     $cart
-     * @param string    $accessToken
-     *
      * @return mixed
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPayment(\Customer $customer, \Cart $cart, $accessToken)
+    public function createPayment($returnUrl = false, $cancelUrl = false)
     {
-        $data = $this->createPaymentObject($customer, $cart);
+        $data = $this->createPaymentObject($returnUrl, $cancelUrl);
 
         $header = [
             'Content-Type:application/json',
-            'Authorization:Bearer '.$accessToken,
+            'Authorization:Bearer '.$this->getToken(),
         ];
 
-        $result = $this->sendWithCurl(self::URL_PPP_CREATE_PAYMENT, json_encode($data), $header);
+        $result = json_decode($this->sendWithCurl(self::PATH_CREATE_PAYMENT, json_encode($data), $header));
 
         return $result;
     }
@@ -333,7 +345,7 @@ class PayPalRestApi
         $ch = curl_init();
 
         if ($ch) {
-            if (\Configuration::get(\PayPal::SANDBOX)) {
+            if (!\Configuration::get(\PayPal::LIVE)) {
                 curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
             } else {
                 curl_setopt($ch, CURLOPT_URL, 'https://api.paypal.com'.$url);
@@ -398,5 +410,97 @@ class PayPalRestApi
                 'landing_page_type' => 'billing',
             ],
         ];
+    }
+
+    /**
+     * @param array $params
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function setParams($params)
+    {
+        $this->cart = new \Cart($params['cart']->id);
+        $this->customer = new \Customer($params['cookie']->id_customer);
+    }
+
+    /**
+     * @param string $paymentId
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function lookUpPayment($paymentId)
+    {
+        if ($paymentId == 'NULL') {
+            return false;
+        }
+
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type:application/json',
+            'Authorization:Bearer '.$accessToken,
+        ];
+
+        return json_decode($this->sendWithCurl(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
+    }
+
+    /**
+     * @param string $payerId
+     * @param string $paymentId
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function executePayment($payerId, $paymentId)
+    {
+        if ($payerId == 'NULL' || $paymentId == 'NULL') {
+            return false;
+        }
+
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type:application/json',
+            'Authorization:Bearer '.$accessToken,
+        ];
+
+        $data = ['payer_id' => $payerId];
+
+        return json_decode($this->sendWithCurl(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header));
+    }
+
+    /**
+     * @param string    $paymentId
+     * @param \stdClass $data
+     *
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function executeRefund($paymentId, $data)
+    {
+        if ($paymentId == 'NULL' || !is_object($data)) {
+            return false;
+        }
+
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type:application/json',
+            'Authorization:Bearer '.$accessToken,
+        ];
+
+        return json_decode($this->sendWithCurl(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
     }
 }

@@ -55,7 +55,7 @@ class PayPalConfirmModuleFrontController extends \ModuleFrontController
         $this->module->assignCartSummary();
 
         $this->context->smarty->assign([
-            'form_action' => $this->context->link->getModuleLink($this->module->name, 'expresscheckoutpayment', [], \Tools::usingSecureMode()),
+            'form_action' => $this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode(), '&id_cart='.$this->context->cart->id.'&id_module='.$this->module->id.'&key='.$this->context->customer->secure_key),
         ]);
 
         $this->setTemplate('order-summary.tpl');

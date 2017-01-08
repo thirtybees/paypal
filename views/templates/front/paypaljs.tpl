@@ -21,7 +21,11 @@
 <script type="text/javascript">
 	(function () {
 		function initPayPalJs() {
-			if (typeof $ === 'undefined' || !$('#payment_paypal_express_checkout').length{if $use_paypal_in_context} || typeof window.paypal  === 'undefined' || typeof window.paypal.checkout === 'undefined'{/if}) {
+			if (typeof $ === 'undefined'
+				|| !$('#payment_paypal_express_checkout').length
+				|| typeof window.paypal  === 'undefined'
+				|| typeof window.paypal.checkout === 'undefined'
+			) {
 				setTimeout(initPayPalJs, 100);
 				return;
 			}
@@ -36,55 +40,77 @@
 
 			$('body').on('submit', "#paypal_payment_form", updateFormDatas);
 
-			{if $use_paypal_in_context}
-				$('#container_express_checkout').empty();
-				paypal.Button.render({
-					env: {if $PAYPAL_SANDBOX}'sandbox'{else}'production'{/if}, // Optional: specify 'sandbox' environment
-					payment: function(resolve, reject) {
-						var CREATE_PAYMENT_URL = '{Context::getContext()->link->getModuleLink('paypal', 'incontextcheckoutajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}';
-						paypal.request.post(CREATE_PAYMENT_URL, {
-							requestForInContext: true,
-						})
-						.then(function(data) { resolve(data.paymentID); })
-						.catch(function(err) { reject(err); });
-					},
-					onAuthorize: function(data) {
-						// Note: you can display a confirmation page before executing
+			$('#container_express_checkout').empty();
+			paypal.Button.render({
+				env: {if $PAYPAL_LIVE}'production'{else}'sandbox'{/if}, // Optional: specify 'sandbox' environment
+				payment: function(resolve, reject) {
+					// Prepare the cart first
+					var idProduct = $('input[name="id_product"]').val();
+					var idProductAttribute = $('input[name="id_product_attribute"]').val();
+					$.ajax({
+						type: 'GET',
+						url: '{$link->getModuleLink('paypal', 'incontextajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
+						data: {
+							updateCart: true,
+							idProduct: idProduct,
+							idProductAttribute: idProductAttribute,
+						},
+						cache: false,
+						success: function (result) {
+							if (result && result.success) {
+								// Update cart display
+								if (ajaxCart && typeof ajaxCart.refresh === 'function') {
+									ajaxCart.refresh();
+								}
 
-						var EXECUTE_PAYMENT_URL = '{Context::getContext()->link->getModuleLink('paypal', 'incontextsubmit', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}';
-						paypal.request.post(EXECUTE_PAYMENT_URL, {
-							paymentID: data.paymentID,
-							payerID: data.payerID
-						})
-						.then(function(data) {
-							if (data.success) {
-								window.location.replace('{Context::getContext()->link->getModuleLink('paypal', 'confirm', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}');
-								return;
+								// Then create a payment
+								paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}', {
+									requestForInContext: true,
+								})
+									.then(function (data) {
+										resolve(data.paymentID);
+									})
+									.catch(function (err) {
+										reject(err);
+									});
 							} else {
-								alert('fail');
+								reject('Couldn\'t update cart');
 							}
-						})
-						.catch(function(err) {
-							alert('Payment failure');
-						});
-					}
+						},
+						error: function() {
+							reject('Couldn\'t update cart');
+						}
+					});
+				},
+				onAuthorize: function(data) {
+					// Note: you can display a confirmation page before executing
 
-				}, '#container_express_checkout');
-			{/if}
+					var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextconfirm', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}';
+					paypal.request.post(EXECUTE_PAYMENT_URL, {
+						paymentID: data.paymentID,
+						payerID: data.payerID
+					})
+					.then(function(data) {
+						if (data.success) {
+							window.location.replace('{$link->getModuleLink('paypal', 'confirm', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}');
+							return;
+						} else {
+							alert('fail');
+						}
+					})
+					.catch(function(err) {
+						alert('Payment failure');
+					});
+				}
 
-			{if !$use_paypal_in_context}
-			$('#payment_paypal_express_checkout').click(function () {
-				$('#paypal_payment_form').submit();
-				return false;
-			});
-			{/if}
+			}, '#container_express_checkout');
 
 			function displayExpressCheckoutShortcut() {
 				var id_product = $('input[name="id_product"]').val();
 				var id_product_attribute = $('input[name="id_product_attribute"]').val();
 				$.ajax({
 					type: 'GET',
-					url: '{Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
+					url: '{$link->getModuleLink('paypal', 'incontextajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
 					data: {
 						get_qty: '1',
 						id_product: id_product,
@@ -179,14 +205,14 @@
 			{if isset($id_cart)}
 			function getOrdersCount() {
 				$.get(
-					'{Context::getContext()->link->getModuleLink('paypal', 'confirm')|escape:'javascript':'UTF-8'}',
+					'{$link->getModuleLink('paypal', 'confirm')|escape:'javascript':'UTF-8'}',
 					{
 						id_cart: '{$id_cart|intval}'
 					},
 					function (data) {
 						if ((typeof(data) != 'undefined') && (data > 0)) {
 							clearInterval(confirmTimer);
-							window.location.replace('{Context::getContext()->link->getModuleLink('paypal', 'submit', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
+							window.location.replace('{$link->getModuleLink('paypal', 'submit', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
 							$('p.payment_module, p.cart_navigation').hide();
 						}
 					}

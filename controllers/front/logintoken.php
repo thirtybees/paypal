@@ -36,7 +36,6 @@ class PayPalLogintokenModuleFrontController extends \ModuleFrontController
     public function initContent()
     {
         $login = new PayPalLogin();
-
         $obj = $login->getAuthorizationCode();
         if ($obj) {
             $context = \Context::getContext();

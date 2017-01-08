@@ -111,25 +111,25 @@ class PayPalOrder extends PayPalObjectModel
      */
 
     /**
-     * @param PayPalExpressCheckout|null $ppec
-     * @param bool                       $paymentStatus
+     * @param \stdClass|null $payment
      *
      * @return array
      */
-    public static function getTransactionDetails(PayPalExpressCheckout $ppec = null, $paymentStatus = false)
+    public static function getTransactionDetails($payment = null)
     {
-        if ($ppec && $paymentStatus) {
-            $transactionId = pSQL($ppec->result['PAYMENTINFO_0_TRANSACTIONID']);
+        if ($payment) {
+            $transactionId = pSQL($payment->id);
+            $transaction = $payment->transactions[0];
 
             return [
-                'currency' => pSQL($ppec->result['PAYMENTINFO_0_CURRENCYCODE']),
+                'currency' => pSQL($payment->transactions[0]->amount->currency),
                 'id_invoice' => null,
                 'id_transaction' => $transactionId,
                 'transaction_id' => $transactionId,
-                'total_paid' => (float) $ppec->result['PAYMENTINFO_0_AMT'],
-                'shipping' => (float) $ppec->result['PAYMENTREQUEST_0_SHIPPINGAMT'],
-                'payment_date' => pSQL($ppec->result['PAYMENTINFO_0_ORDERTIME']),
-                'payment_status' => pSQL($paymentStatus),
+                'total_paid' => (float) $transaction->amount->total,
+                'shipping' => isset($transaction->amount->details->shipping) ? (float) $transaction->amount->details->shipping : 0,
+                'payment_date' => pSQL($payment->update_time),
+                'payment_status' => pSQL($payment->state),
             ];
         } else {
             $transactionId = pSQL(\Tools::getValue(self::ID_TRANSACTION));
@@ -142,7 +142,7 @@ class PayPalOrder extends PayPalObjectModel
                 'total_paid' => (float) \Tools::getValue(self::TOTAL_PAID),
                 'shipping' => (float) \Tools::getValue(self::SHIPPING),
                 'payment_date' => pSQL(\Tools::getValue(self::PAYMENT_DATE)),
-                'payment_status' => pSQL($paymentStatus),
+                'payment_status' => pSQL($payment->state),
             ];
         }
     }
@@ -230,7 +230,7 @@ class PayPalOrder extends PayPalObjectModel
 			WHERE `id_order` = \''.(int) $idOrder.'\'
 				AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\'
 				AND `currency` = \''.pSQL($transaction['currency']).'\'';
-        if (!\Configuration::get('PAYPAL_SANDBOX')) {
+        if (\Configuration::get(\PayPal::LIVE)) {
             $sql .= 'AND `total_paid` = \''.$transaction['total_paid'].'\'
 				AND `shipping` = \''.(float) $transaction['shipping'].'\';';
         }

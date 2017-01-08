@@ -44,12 +44,12 @@
 
 			window.paypal.loginUtils.applyStyles();
 			window.paypal.login.render({
-				appid: '{${PayPal::CLIENT_ID}|escape:'javascript':'UTF-8'}',
-				authend: {if $PAYPAL_SANDBOX}'sandbox'{else}''{/if},
+				appid: '{$client_id|escape:'javascript':'UTF-8'}',
+				authend: {if !$live}'sandbox'{else}''{/if},
 				scopes: 'openid profile email address phone https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/expresscheckout',
 				containerid: 'buttonPaypalLogin1',
-				theme: {if ${PayPal::LOGIN_TPL} == 2}'neutral'{else}'blue'{/if},
-				returnurl: '{$PAYPAL_RETURN_LINK|escape:'javascript':'UTF-8'}?{$page_name|escape:'javascript':'UTF-8'}',
+				theme: {if $login_theme == 2}'neutral'{else}'blue'{/if},
+				returnurl: '{$return_link|escape:'javascript':'UTF-8'}?{$page_name|escape:'javascript':'UTF-8'}',
 				locale: '{$paypal_locale|escape:'javascript':'UTF-8'}',
 			});
 		}

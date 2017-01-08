@@ -19,69 +19,42 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 
-{if $smarty.const._PS_VERSION_ >= 1.6}
 <div class="row">
-	<div class="col-xs-12 col-md-6">
-        <p class="payment_module paypal">
-        	{if $use_paypal_in_context}
-				<a href="javascript:void(0)" onclick="" id="paypal_process_payment" title="{l s='Pay with PayPal' mod='paypal'}">
-			{else}
-				<a href="javascript:void(0)" onclick="$('#paypal_payment_form').submit();" title="{l s='Pay with PayPal' mod='paypal'}">
-			{/if}
-				{if isset($use_mobile) && $use_mobile}
-					<img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/logos/express_checkout_mobile/CO_{$PayPal_lang_code|escape:'htmlall':'UTF-8'}_orange_295x43.png" />
-				{else}
-					{if isset($logos.LocalPayPalHorizontalSolutionPP) && $PayPal_payment_method == $PayPal_integral}
-						<img src="{$logos.LocalPayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}}" height="48px" />
-					{else}
-						<img src="{$logos.LocalPayPalLogoMedium|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" />
-					{/if}
-					{l s='Pay with your card or your PayPal account' mod='paypal'}
-				{/if}
-				
+	<div class="col-xs-12 col-md-12">
+		<p class="payment_module paypal">
+			<a href="{$link->getModuleLink('paypal', 'expresscheckout', [], Tools::usingSecureMode())|escape:'htmlall':'UTF-8'}" title="{l s='Pay with PayPal' mod='paypal'}">
+				<img src="{$logos.LocalPayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}}" height="48px"/>
+				{l s='Pay with your card or your PayPal account' mod='paypal'}
 			</a>
 		</p>
-    </div>
+	</div>
 </div>
 
 <style>
-	p.payment_module.paypal a 
-	{ldelim}
-		padding-left:17px;
-	{rdelim}
+	p.payment_module.paypal a {
+		padding: 10px;
+		background-color: #FBFBFB;
+	}
+
+	p.payment_module.paypal img {
+		height: 64px;
+	}
+
+	p.payment_module.paypal a:hover {
+		background-color: #f6f6f6;
+	}
+
+	p.payment_module.paypal a:after {
+		display: block;
+		content: "\f054";
+		position: absolute;
+		right: 15px;
+		margin-top: -11px;
+		top: 50%;
+		font-family: "FontAwesome";
+		font-size: 25px;
+		height: 22px;
+		width: 14px;
+		color: #777777;
+	}
 </style>
-{else}
-<p class="payment_module">
-		<a href="javascript:void(0)" id="paypal_process_payment" title="{l s='Pay with PayPal' mod='paypal'}">
-		{if isset($use_mobile) && $use_mobile}
-			<img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/logos/express_checkout_mobile/CO_{$PayPal_lang_code|escape:'htmlall':'UTF-8'}_orange_295x43.png" />
-		{else}
-			{if isset($logos.LocalPayPalHorizontalSolutionPP) && $PayPal_payment_method == $PayPal_integral}
-				<img src="{$logos.LocalPayPalHorizontalSolutionPP|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" height="48px" />
-			{else}
-				<img src="{$logos.LocalPayPalLogoMedium|escape:'htmlall':'UTF-8'}" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" />
-			{/if}
-			{l s='Pay with your card or your PayPal account' mod='paypal'}	
-        {/if}
-	</a>
-</p>
-
-{/if}
-
-
-{if $use_paypal_in_context}
-	<input type="hidden" id="in_context_checkout_enabled" value="1">
-{else}
-<script>
-	$(document).ready(function(){
-		$('#paypal_process_payment').click(function(){
-			$('#paypal_payment_form').submit();
-		})
-	});
-</script>
-{/if}
-<form id="paypal_payment_form" action="{Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutpayment', [], Tools::usingSecureMode())|escape:'htmlall':'UTF-8'}" data-ajax="false" title="{l s='Pay with PayPal' mod='paypal'}" method="post">
-	<input type="hidden" name="express_checkout" value="{$PayPal_payment_type|escape:'htmlall':'UTF-8'}"/>
-	<input type="hidden" name="current_shop_url" value="{$PayPal_current_page|escape:'htmlall':'UTF-8'}" />
-	<input type="hidden" name="bn" value="{$PayPal_tracking_code|escape:'htmlall':'UTF-8'}" />
-</form>

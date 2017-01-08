@@ -111,7 +111,7 @@ class PayPalNotifier extends \PayPal
      */
     public function getResult()
     {
-        if ((int) \Configuration::get('PAYPAL_SANDBOX') == 1) {
+        if (!\Configuration::get(self::LIVE)) {
             $actionUrl = 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
         } else {
             $actionUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_notify-validate';

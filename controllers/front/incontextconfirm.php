@@ -26,9 +26,9 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-use PayPalModule\CallPayPalPlusApi;
+use PayPalModule\PayPalRestApi;
 
-class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
+class PayPalincontextconfirmModuleFrontController extends ModuleFrontController
 {
     public $ssl = true;
 
@@ -48,9 +48,9 @@ class PayPalIncontextsubmitModuleFrontController extends ModuleFrontController
         $this->paymentId = \Tools::getValue('paymentID');
 
         if ($this->payerId && $this->paymentId) {
-            $callApiPaypalPlus = new CallPayPalPlusApi();
+            $callApiPaypalPlus = new PayPalRestApi();
             $callApiPaypalPlus->getWebProfile();
-            $payment = json_decode($callApiPaypalPlus->executePayment($this->payerId, $this->paymentId));
+            $payment = $callApiPaypalPlus->executePayment($this->payerId, $this->paymentId);
             // TODO: Use the $payment object to create the customer and address first
 
             if (isset($payment->state) && $payment->state === 'approved') {

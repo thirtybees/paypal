@@ -59,7 +59,7 @@ class PayPalLogin
      */
     public function getIdentityAPIURL()
     {
-        if (\Configuration::get(\PayPal::SANDBOX)) {
+        if (!\Configuration::get(\PayPal::LIVE)) {
             //return 'www.sandbox.paypal.com';
             return 'api.sandbox.paypal.com';
         } else {
@@ -77,7 +77,7 @@ class PayPalLogin
      */
     public function getTokenServiceEndpoint()
     {
-        if (\Configuration::get(\PayPal::SANDBOX)) {
+        if (!\Configuration::get(\PayPal::LIVE)) {
             // return '/webapps/auth/protocol/openidconnect/v1/tokenservice';
             return '/v1/identity/openidconnect/tokenservice';
         } else {
