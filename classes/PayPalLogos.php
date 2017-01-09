@@ -33,34 +33,19 @@ if (!defined('_PS_VERSION_')) {
  */
 class PayPalLogos
 {
-    protected $isoCode = null;
-
     const LOCAL = 'Local';
     const HORIZONTAL = 'Horizontal';
     const VERTICAL = 'Vertical';
 
     /**
-     * PayPalLogos constructor.
-     *
      * @param string $isoCode
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function __construct($isoCode)
-    {
-        $this->isoCode = $isoCode;
-    }
-
-    /**
      * @return array|bool
-     *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getLogos()
+    public static function getLogos($isoCode)
     {
         $file = _PS_MODULE_DIR_.'paypal/'.\PayPal::_PAYPAL_LOGO_XML_;
 
@@ -77,13 +62,14 @@ class PayPalLogos
                 $logos[$tmpIsoCode] = (array) $item;
             }
 
-            if (!isset($logos[$this->isoCode])) {
-                $result = $this->getLocalLogos($logos['default'], 'default');
+            // FIXME: chances of hitting infinite recursion here
+            if (!isset($logos[$isoCode])) {
+                $result = self::getLocalLogos($logos['default'], 'default');
             } else {
-                $result = $this->getLocalLogos($logos[$this->isoCode], $this->isoCode);
+                $result = self::getLocalLogos($logos[$isoCode], $isoCode);
             }
 
-            $result['default'] = $this->getLocalLogos($logos['default'], 'default');
+            $result['default'] = self::getLocalLogos($logos['default'], 'default');
 
             return $result;
         }
@@ -92,17 +78,17 @@ class PayPalLogos
     }
 
     /**
-     * @param bool $vertical
+     * @param string $isoCode
+     * @param bool   $vertical
      *
      * @return bool|mixed|string
-     *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getCardsLogo($vertical = false)
+    public static function getCardsLogo($isoCode, $vertical = false)
     {
-        $logos = $this->getLogos();
+        $logos = self::getLogos($isoCode);
 
         if (!$logos) {
             return $logos[self::LOCAL.'PayPal'.self::HORIZONTAL.'SolutionPP'];
@@ -134,7 +120,7 @@ class PayPalLogos
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getLocalLogos(array $values, $isoCode)
+    public static function getLocalLogos(array $values, $isoCode)
     {
         foreach ($values as $key => $value) {
             if (!is_array($value)) {
@@ -143,7 +129,7 @@ class PayPalLogos
 
                 if ((count($logo) == 2) && (strstr($key, 'Local') === false)) {
                     $destination = \PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/logos/'.$isoCode.'_'.$logo[1];
-                    $this->updatePictures($logo[0], $destination);
+                    self::updatePictures($logo[0], $destination);
 
                     // Define the local path after picture have been downloaded
                     $values['Local'.$key] = _MODULE_DIR_.$destination;
@@ -177,7 +163,7 @@ class PayPalLogos
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function updatePictures($source, $destination, $force = false)
+    protected static function updatePictures($source, $destination, $force = false)
     {
         // 604800 => One week timestamp
         if (!file_exists(_PS_MODULE_DIR_.$destination) || ((time() - filemtime(_PS_MODULE_DIR_.$destination)) > 604800) || $force) {
@@ -191,7 +177,7 @@ class PayPalLogos
 
                 }
             } elseif (strstr($source, 'https')) {
-                return $this->updatePictures(str_replace('https', 'http', $source), $destination);
+                return self::updatePictures(str_replace('https', 'http', $source), $destination);
             } else {
                 return false;
             }

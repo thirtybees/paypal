@@ -20,144 +20,137 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+use PayPalModule\PayPalLogos;
+use PayPalModule\PayPalRestApi;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-use PayPalModule\PayPalRestApi;
-
-class paypalincontextconfirmModuleFrontController extends ModuleFrontController
+/**
+ * Class paypalincontextconfirmModuleFrontController
+ */
+class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
 {
-    public $ssl = true;
-
-    public $payerId;
-
-    public $paymentId;
+    // @codingStandardsIgnoreStart
+    /** @var bool $display_column_left */
+    public $display_column_left = false;
+    // @codingStandardsIgnoreEnd
 
     /** @var \PayPal $module */
     public $module;
+
+    /** @var bool $ssl */
+    public $ssl = true;
 
     /**
      * Initialize content
      */
     public function initContent()
     {
-        $this->payerId = \Tools::getValue('payerID');
-        $this->paymentId = \Tools::getValue('paymentID');
+        parent::initContent();
 
-        if ($this->payerId && $this->paymentId) {
-            $callApiPaypalPlus = new PayPalRestApi();
-            $callApiPaypalPlus->getWebProfile();
-            $payment = $callApiPaypalPlus->executePayment($this->payerId, $this->paymentId);
-            // TODO: Use the $payment object to create the customer and address first
+        if (\Tools::isSubmit('confirm')) {
+            $this->confirmOrder();
 
-            if (isset($payment->state) && $payment->state === 'approved') {
-                $transaction = [
-                    'id_transaction' => $payment->id,
-                    'payment_status' => $payment->state,
-                    'currency' => $payment->transactions[0]->amount->currency,
-                    'payment_date' => date("Y-m-d H:i:s"),
-                    'total_paid' => $payment->transactions[0]->amount->total,
-                    'id_invoice' => 0,
-                    'shipping' => 0,
-                ];
-
-                $this->module->validateOrder(
-                    $this->context->cart->id,
-                    (int) \Configuration::get('PS_OS_PAYMENT'),
-                    $payment->transactions[0]->amount->total,
-                    $payment->payer->payment_method,
-                    null,
-                    $transaction,
-                    null,
-                    false,
-                    $this->context->cart->secure_key
-                );
-
-                header('Content-Type: application/json');
-                die(json_encode([
-                    'success' => true,
-                    'confirmUrl' => $this->context->link->getPageLink('order-confirmation', true)."?id_cart={$this->context->cart->id}&secure_key={$this->context->cart->secure_key}&id_module={$this->module->id}",
-                ]));
-            } else {
-                if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-                    /* If guest we clear the cookie for security reason */
-                    $this->context->customer->mylogout();
-                }
-
-                header('Content-Type: application/json');
-                die(json_encode(['success' => false]));
-            }
+            return;
         }
+
+        if (\Tools::isSubmit('update')) {
+            $this->updateOrder();
+        }
+
+        $this->assignCartSummary();
+
+        $params = [
+            'confirm' => true,
+            'PayerID' => \Tools::getValue('PayerID'),
+            'paymentID' => \Tools::getValue('paymentID'),
+        ];
+
+        $this->context->smarty->assign([
+            'confirm_form_action' => $this->context->link->getModuleLink($this->module->name, 'incontextconfirm', $params, true),
+        ]);
+
+        $this->setTemplate('order-summary.tpl');
     }
 
     /**
-     * Set customer information
-     * Used to create user account with PayPal account information
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * Assign cart summary
      */
-    protected function setCustomerInformation($payPalExpressCheckout, $email)
+    public function assignCartSummary()
     {
-        $customer = new \Customer();
-        $customer->email = $email;
-        $customer->lastname = $payPalExpressCheckout->result['LASTNAME'];
-        $customer->firstname = $payPalExpressCheckout->result['FIRSTNAME'];
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
+        $currency = new \Currency((int) $this->context->cart->id_currency);
 
-        return $customer;
+        $this->context->smarty->assign([
+            'total' => \Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
+            'logos' => PayPalLogos::getLogos($this->module->getLocale()),
+            'use_mobile' => (bool) $this->context->getMobileDevice(),
+            'address_shipping' => new \Address($this->context->cart->id_address_delivery),
+            'address_billing' => new \Address($this->context->cart->id_address_invoice),
+            'cart' => $this->context->cart,
+            'patternRules' => ['avoid' => []],
+            'cart_image_size' => 'cart_default',
+        ]);
+
+        $this->context->smarty->assign([
+            'paypal_cart_summary' => $this->module->display(_PS_MODULE_DIR_.'paypal/paypal.php', 'views/templates/hook/paypal_cart_summary.tpl'),
+        ]);
     }
 
-    /**
-     * Set customer address (when not logged in)
-     * Used to create user address with PayPal account information
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function setCustomerAddress($payPalExpressCheckout, $customer, $id = null)
+    protected function confirmOrder()
     {
-        $address = new \Address($id);
-        $address->id_country = \Country::getByIso($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOCOUNTRYCODE']);
-        if ($id == null) {
-            $address->alias = 'Paypal_Address';
+        $payerId = \Tools::getValue('PayerID');
+        $paymentId = \Tools::getValue('paymentID');
+
+        $rest = new PayPalRestApi();
+        $payment = $rest->executePayment($payerId, $paymentId);
+
+        $transaction = [
+            'id_transaction' => $payment->id,
+            'payment_status' => $payment->state,
+            'currency' => $payment->transactions[0]->amount->currency,
+            'payment_date' => date("Y-m-d H:i:s"),
+            'total_paid' => $payment->transactions[0]->amount->total,
+            'id_invoice' => 0,
+            'shipping' => 0,
+        ];
+
+        if ($this->module->validateOrder(
+            $this->context->cart->id,
+            (int) \Configuration::get('PS_OS_PAYMENT'),
+            $payment->transactions[0]->amount->total,
+            $payment->payer->payment_method,
+            null,
+            $transaction,
+            null,
+            false,
+            $this->context->cart->secure_key
+        )) {
+            $params = [
+                'id_cart' => $this->context->cart->id,
+                'secure_key' => $this->context->cart->secure_key,
+                'id_module' => $this->module->id,
+            ];
+
+            \Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'orderconfirmation', $params, true));
+
+            return;
         }
 
-        $name = trim($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTONAME']);
-        $name = explode(' ', $name);
-        if (isset($name[1])) {
-            $firstname = $name[0];
-            unset($name[0]);
-            $lastname = implode(' ', $name);
-        } else {
-            $lastname = $payPalExpressCheckout->result['LASTNAME'];
-            $firstname = $payPalExpressCheckout->result['FIRSTNAME'];
-        }
+        // FIXME: file missing
+        \Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'error', [], true));
+    }
 
-        $address->lastname = $lastname;
-        $address->firstname = $firstname;
-        $address->address1 = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTREET'];
-        if (isset($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTREET2'])) {
-            $address->address2 = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTREET2'];
-        }
+    protected function updateOrder()
+    {
+        // TODO: implement
+    }
 
-        $address->city = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOCITY'];
-        if (\Country::containsStates($address->id_country)) {
-            $address->id_state = (int) \State::getIdByIso($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOSTATE'], $address->id_country);
-        }
-
-        $address->postcode = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOZIP'];
-        if (isset($payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOPHONENUM'])) {
-            $address->phone = $payPalExpressCheckout->result['PAYMENTREQUEST_0_SHIPTOPHONENUM'];
-        }
-
-        $address->id_customer = $customer->id;
-
-        return $address;
+    protected function cancelOrder()
+    {
+//        $this->module->cancelOrder();
     }
 }

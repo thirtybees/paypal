@@ -96,6 +96,7 @@ class paypalpluseuModuleFrontController extends \ModuleFrontController
         if ($approvalUrl) {
             $this->setTemplate('paypal_plus_payment_eu.tpl');
         } else {
+            // FIXME: file is missing
             $this->setTemplate('paypal_plus_payment_eu_failed.tpl');
         }
     }

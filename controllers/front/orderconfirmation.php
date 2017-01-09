@@ -31,7 +31,7 @@ require_once dirname(__FILE__).'/../../paypal.php';
 /**
  * Class paypalsubmitModuleFrontController
  */
-class paypalsubmitModuleFrontController extends \ModuleFrontController
+class paypalorderconfirmationModuleFrontController extends \ModuleFrontController
 {
     /** @var \PayPal $module */
     public $module;
@@ -43,14 +43,23 @@ class paypalsubmitModuleFrontController extends \ModuleFrontController
     {
         parent::initContent();
 
-        $idOrder = (int) \Tools::getValue('id_order');
-        $order = new \Order($idOrder);
-        $paypalOrder = PayPalOrder::getOrderById($idOrder);
+        if (!\Tools::isSubmit('id_cart')) {
+            $this->showError();
+
+            return;
+        }
+
+        // TODO: validate secure_key and id_module
+
+        $order = new \Order(\Order::getOrderByCartId((int) \Tools::getValue('id_cart')));
+        $paypalOrder = PayPalOrder::getOrderById($order->id);
         $price = \Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
-        $orderState = new \OrderState($idOrder);
+        $orderState = new \OrderState($order->id);
+
         if ($orderState) {
             $orderStateMessage = $orderState->template[$this->context->language->id];
         }
+
         if (!$order || !$orderState || (isset($orderStateMessage) && ($orderStateMessage == 'payment_error'))) {
             $this->context->smarty->assign([
                 'logs' => [$this->module->l('An error occurred while processing payment.')],
@@ -72,8 +81,12 @@ class paypalsubmitModuleFrontController extends \ModuleFrontController
 
             $template = 'order-confirmation.tpl';
         }
-        $this->context->smarty->assign('use_mobile', (bool) $this->context->getMobileDevice());
 
         $this->setTemplate($template);
+    }
+
+    protected function showError()
+    {
+        // TODO: implement
     }
 }

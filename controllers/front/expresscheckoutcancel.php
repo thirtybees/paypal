@@ -24,23 +24,37 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-use PayPalModule\PayPalIpn;
+use PayPalModule\PayPalCustomer;
+use PayPalModule\PayPalOrder;
+use PayPalModule\PayPalRestApi;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class paypalipnModuleFrontController extends \ModuleFrontController
+/**
+ * Class paypalexpresscheckoutcancelModuleFrontController
+ */
+class paypalexpresscheckoutcancelModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
 
+    /**
+     * Initialize content
+     */
     public function initContent()
     {
-        if (\Tools::getValue('receiver_email') == \Configuration::get('PAYPAL_BUSINESS_ACCOUNT')) {
-            if (\Tools::getIsset('custom')) {
-                $ipn = new PayPalIpn();
-                $custom = json_decode(\Tools::getValue('custom'), true);
-                $ipn->confirmOrder($custom);
-            }
-        }
+        parent::initContent();
+
+        return $this->cancelExpressCheckout();
+    }
+
+    /**
+     * Cancel Express Checkout
+     */
+    public function cancelExpressCheckout()
+    {
+        unset($this->context->cookie->express_checkout);
+
+        \Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 }

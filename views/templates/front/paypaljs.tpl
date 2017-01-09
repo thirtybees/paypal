@@ -44,6 +44,7 @@
 			paypal.Button.render({
 				env: {if $PAYPAL_LIVE}'production'{else}'sandbox'{/if}, // Optional: specify 'sandbox' environment
 				payment: function(resolve, reject) {
+					{if $incontextType == 'product'}
 					// Prepare the cart first
 					var idProduct = $('input[name="id_product"]').val();
 					var idProductAttribute = $('input[name="id_product_attribute"]').val();
@@ -62,7 +63,7 @@
 								if (ajaxCart && typeof ajaxCart.refresh === 'function') {
 									ajaxCart.refresh();
 								}
-
+					{/if}
 								// Then create a payment
 								paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}', {
 									requestForInContext: true,
@@ -73,6 +74,7 @@
 									.catch(function (err) {
 										reject(err);
 									});
+					{if $incontextType == 'product'}
 							} else {
 								reject('Couldn\'t update cart');
 							}
@@ -81,11 +83,12 @@
 							reject('Couldn\'t update cart');
 						}
 					});
+					{/if}
 				},
 				onAuthorize: function(data) {
 					// Note: you can display a confirmation page before executing
 
-					var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextconfirm', [], true)|escape:'javascript':'UTF-8'}';
+					var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript':'UTF-8'}';
 					paypal.request.post(EXECUTE_PAYMENT_URL, {
 						paymentID: data.paymentID,
 						payerID: data.payerID
@@ -205,7 +208,7 @@
 			{if isset($id_cart)}
 			function getOrdersCount() {
 				$.get(
-					'{$link->getModuleLink('paypal', 'confirm')|escape:'javascript':'UTF-8'}',
+					'{$link->getModuleLink('paypal', 'incontextconfirm')|escape:'javascript':'UTF-8'}',
 					{
 						id_cart: '{$id_cart|intval}'
 					},

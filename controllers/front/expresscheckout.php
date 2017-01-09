@@ -52,20 +52,22 @@ class paypalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
     /**
      * Initialize content
+     *
+     * @return void
      */
     public function initContent()
     {
         parent::initContent();
 
-        if (\Tools::getValue('paypal_ec_canceled')) {
-            $this->cancelExpressCheckout();
-        }
-
         if (\Tools::isSubmit('paymentId') && \Tools::isSubmit('PayerID')) {
-            return $this->processPayment();
+            $this->processPayment();
+
+            return;
         }
 
-        return $this->preparePayment();
+        $this->preparePayment();
+
+        return;
     }
 
     /**
@@ -454,16 +456,6 @@ class paypalexpresscheckoutModuleFrontController extends \ModuleFrontController
         );
 
         Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, '&id_cart='.$cart->id.'&id_module='.$this->module->id.'&key='.$customer->secure_key));
-    }
-
-    /**
-     * Cancel Express Checkout
-     */
-    public function cancelExpressCheckout()
-    {
-        unset($this->context->cookie->express_checkout);
-
-        \Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 
     /**

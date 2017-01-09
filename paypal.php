@@ -70,9 +70,6 @@ class PayPal extends \PaymentModule
     public $module_key = '336225a5988ad434b782f2d868d7bfcd';
     // @codingStandardsIgnoreEnd
 
-    /** @var PayPalLogos $paypalLogos */
-    public $paypalLogos;
-
     /** @var string $moduleUrl */
     public $moduleUrl;
 
@@ -159,18 +156,17 @@ class PayPal extends \PaymentModule
         $this->description = $this->l('Accepts payments by credit cards (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) with PayPal.');
 
         $this->controllers = [
-            'confirm',
-            'incontextajax',
             'expresscheckout',
             'expresscheckoutsubmit',
+            'standardcancel',
             'incontextajax',
+            'incontextvalidate',
             'incontextconfirm',
-            'logintoken',
-            'submit',
+            'pluseu',
             'plussubmit',
             'pluscancel',
-            'pluseu',
-            'ipn',
+            'logintoken',
+            'orderconfirmation',
         ];
 
         // Only check from Back Office
@@ -193,10 +189,6 @@ class PayPal extends \PaymentModule
                     'tab_module' => $this->tab,
                     'module_name' => $this->name,
                 ));
-        }
-
-        if (self::isInstalled($this->name)) {
-            $this->loadDefaults();
         }
     }
 
@@ -334,48 +326,7 @@ class PayPal extends \PaymentModule
             return true;
         }
 
-        // FIXME: check SOAP credentials
-
         return false;
-    }
-
-    /**
-     * Initialize default values
-     */
-    protected function loadDefaults()
-    {
-        $this->paypalLogos = new PayPalLogos($this->iso_code);
-        $orderProcessType = (int) \Configuration::get('PS_ORDER_PROCESS_TYPE');
-
-        if (\Tools::getValue('paypal_ec_canceled') || $this->context->cart === false) {
-            unset($this->context->cookie->express_checkout);
-        }
-
-        if (isset($this->context->employee->id) && $this->context->employee->id) {
-            /* Upgrade and compatibility checks */
-            $this->warningsCheck();
-        } else {
-            if (isset($this->context->cookie->express_checkout)) {
-                $this->context->smarty->assign('paypal_authorization', true);
-            }
-
-            $isECS = false;
-            if (isset($this->context->cookie->express_checkout)) {
-                $expressCheckoutCookie = unserialize($this->context->cookie->express_checkout);
-                if (isset($expressCheckoutCookie['token']) && isset($expressCheckoutCookie['payer_id'])) {
-                    $isECS = true;
-                }
-            }
-
-            if (($orderProcessType == 1) && !$this->context->getMobileDevice()) {
-                $this->context->smarty->assign('paypal_order_opc', true);
-            } elseif (($orderProcessType == 1) && ((bool) \Tools::getValue('isPaymentStep') == true || $isECS)) {
-                $shopUrl = \Tools::getShopDomainSsl(true, true);
-                $values = ['fc' => 'module', 'module' => 'paypal', 'controller' => 'confirm', 'get_confirmation' => true];
-                $this->context->smarty->assign('paypal_confirmation', $shopUrl.__PS_BASE_URI__.'?'.http_build_query($values));
-
-            }
-        }
     }
 
     /**
@@ -749,11 +700,11 @@ class PayPal extends \PaymentModule
         $smarty->assign([
             self::LIVE => \Configuration::get(self::LIVE),
             'confirmationPage' => $this->context->link->getPageLink('order-confirmation', true).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
+            'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
         ]);
 
         $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
         $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
-
 
         if ((
             (method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
@@ -912,7 +863,7 @@ class PayPal extends \PaymentModule
         ];
 
         $this->context->smarty->assign([
-            'logos' => $this->paypalLogos->getLogos(),
+            'logos' => PayPalLogos::getLogos($this->getLocale()),
             self::LIVE => \Configuration::get(self::LIVE),
             'use_mobile' => true,
             'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
@@ -1003,7 +954,7 @@ class PayPal extends \PaymentModule
             return null;
         }
 
-        $paypalLogos = $this->paypalLogos->getLogos();
+        $paypalLogos = PayPalLogos::getLogos($this->getLocale());
 
         $this->context->smarty->assign([
             'PayPal_payment_type' => 'cart',
@@ -1052,7 +1003,7 @@ class PayPal extends \PaymentModule
             'total' => Tools::displayPrice($totalToPay, $currency, false),
         ));
 
-        return $this->display(__FILE__, 'views/templates/front/confirmation.tpl');
+        return $this->display(__FILE__, 'confirmation.tpl');
     }
 
     /**
@@ -1060,7 +1011,7 @@ class PayPal extends \PaymentModule
      */
     public function hookRightColumn()
     {
-        $this->context->smarty->assign('logo', $this->paypalLogos->getCardsLogo(true));
+        $this->context->smarty->assign('logo', PayPalLogos::getCardsLogo($this->getLocale(), true));
 
         return $this->display(__FILE__, 'column.tpl');
     }
@@ -1262,7 +1213,7 @@ class PayPal extends \PaymentModule
             return null;
         }
 
-        $paypalLogos = $this->paypalLogos->getLogos();
+        $paypalLogos = PayPalLogos::getLogos($this->getLocale());
         $isoLang = [
             'en' => 'en_US',
             'fr' => 'fr_FR',
@@ -1594,8 +1545,6 @@ class PayPal extends \PaymentModule
      */
     protected function postProcess()
     {
-        // FIXME: check web profile and create one if missing
-
         if (Tools::isSubmit('checktls') && (bool) Tools::getValue('checktls')) {
             $this->tlsCheck();
         }
@@ -2063,27 +2012,8 @@ class PayPal extends \PaymentModule
 
         if (!empty($detail['payer_id']) && !empty($detail['token'])) {
             $values = ['get_confirmation' => true];
-            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'confirm', $values));
+            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
         }
-    }
-
-    /**
-     * Check if the current page use SSL connection on not
-     *
-     * @return bool uses SSL
-     */
-    public function usingSecureMode()
-    {
-        if (isset($_SERVER['HTTPS'])) {
-            return ($_SERVER['HTTPS'] == 1 || \Tools::strtolower($_SERVER['HTTPS']) == 'on');
-        }
-
-        // $_SERVER['SSL'] exists only in some specific configuration
-        if (isset($_SERVER['SSL'])) {
-            return ($_SERVER['SSL'] == 1 || \Tools::strtolower($_SERVER['SSL']) == 'on');
-        }
-
-        return false;
     }
 
     /**
@@ -2093,7 +2023,7 @@ class PayPal extends \PaymentModule
      */
     protected function getCurrentUrl()
     {
-        $protocolLink = $this->usingSecureMode() ? 'https://' : 'http://';
+        $protocolLink = \Tools::usingSecureMode() ? 'https://' : 'http://';
         $request = $_SERVER['REQUEST_URI'];
         $pos = strpos($request, '?');
 
@@ -2115,7 +2045,7 @@ class PayPal extends \PaymentModule
 
         $this->context->smarty->assign([
             'total' => \Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
-            'logos' => $this->paypalLogos->getLogos(),
+            'logos' => PayPalLogos::getLogos($this->getLocale()),
             'use_mobile' => (bool) $this->context->getMobileDevice(),
             'address_shipping' => new \Address($this->context->cart->id_address_delivery),
             'address_billing' => new \Address($this->context->cart->id_address_invoice),

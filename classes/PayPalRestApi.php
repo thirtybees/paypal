@@ -241,7 +241,7 @@ class PayPalRestApi
         }
 
         if (!$cancelUrl) {
-            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
+            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
         }
 
         $oCurrency = new \Currency($this->cart->id_currency);
