@@ -883,7 +883,7 @@ class PayPal extends \PaymentModule
             );
 
             $approvalUrl = '';
-            if ($payment->id) {
+            if (isset($payment->id) && $payment->id) {
                 foreach ($payment->links as $link) {
                     if ($link->rel === 'approval_url') {
                         $approvalUrl = $link->href;
@@ -892,14 +892,14 @@ class PayPal extends \PaymentModule
                 }
             }
 
-            $this->context->smarty->assign([
-                'approval_url' => $approvalUrl,
-                'mode' => \Configuration::get(self::LIVE) ? 'live' : 'sandbox',
-                'language' => $this->getLocalePayPalPlus(),
-                'country' => $this->getCountryCode(),
-            ]);
-
             if ($approvalUrl) {
+                $this->context->smarty->assign([
+                    'approval_url' => $approvalUrl,
+                    'mode' => \Configuration::get(self::LIVE) ? 'live' : 'sandbox',
+                    'language' => $this->getLocalePayPalPlus(),
+                    'country' => $this->getCountryCode(),
+                ]);
+
                 $output .= '<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
                 $output .= $this->display(__FILE__, 'paypal_plus_payment.tpl');
             }
