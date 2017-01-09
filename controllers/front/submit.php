@@ -28,7 +28,10 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalSubmitModuleFrontController extends \ModuleFrontController
+/**
+ * Class paypalsubmitModuleFrontController
+ */
+class paypalsubmitModuleFrontController extends \ModuleFrontController
 {
     /** @var \PayPal $module */
     public $module;
@@ -64,7 +67,7 @@ class PayPalSubmitModuleFrontController extends \ModuleFrontController
                 'price' => $price,
                 'reference_order' => \Order::getUniqReferenceOf($paypalOrder['id_order']),
                 'HOOK_ORDER_CONFIRMATION' => '',
-                'HOOK_PAYMENT_RETURN' => $this->module->hookPaymentReturn(),
+                'HOOK_PAYMENT_RETURN' => $this->module->hookPaymentReturn(['order' => $order]),
             ]);
 
             $template = 'order-confirmation.tpl';

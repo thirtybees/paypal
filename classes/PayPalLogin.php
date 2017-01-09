@@ -108,7 +108,7 @@ class PayPalLogin
      */
     public static function getReturnLink()
     {
-        return \Context::getContext()->link->getModuleLink('paypal', 'logintoken', [], \Tools::usingSecureMode());
+        return \Context::getContext()->link->getModuleLink('paypal', 'logintoken', [], true);
     }
 
     /**

@@ -29,7 +29,10 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
+/**
+ * Class paypalplussubmitModuleFrontController
+ */
+class paypalplussubmitModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
@@ -112,7 +115,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                             'paymentId' => $this->paymentId,
                             'id_cart' => $idCart,
                             'totalAmount' => \Tools::displayPrice(\Cart::getTotalCart($idCart)),
-                            'linkSubmitPlus' => $this->context->link->getModuleLink('paypal', 'plussubmit', [], \Tools::usingSecureMode()),
+                            'linkSubmitPlus' => $this->context->link->getModuleLink('paypal', 'plussubmit', [], true),
                         ]);
                         break;
                     case 'canceled':
@@ -234,7 +237,7 @@ class PayPalPlussubmitModuleFrontController extends \ModuleFrontController
                             null,
                             $transaction
                         );
-                        $return['success'][] = $this->module->l('Your payment has been taken into account');
+                        $return['success'][] = $this->module->l('Your payment has been accepted');
                     } else {
                         $paypal->validateOrder(
                             $idCart,

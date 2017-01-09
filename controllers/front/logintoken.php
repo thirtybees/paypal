@@ -28,7 +28,7 @@ use PayPalModule\PayPalLogin;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalLogintokenModuleFrontController extends \ModuleFrontController
+class paypallogintokenModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;

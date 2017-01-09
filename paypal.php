@@ -169,6 +169,7 @@ class PayPal extends \PaymentModule
             'submit',
             'plussubmit',
             'pluscancel',
+            'pluseu',
             'ipn',
         ];
 
@@ -747,7 +748,7 @@ class PayPal extends \PaymentModule
         $smarty = $this->context->smarty;
         $smarty->assign([
             self::LIVE => \Configuration::get(self::LIVE),
-            'confirmationPage' => $this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode()).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
+            'confirmationPage' => $this->context->link->getPageLink('order-confirmation', true).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
         ]);
 
         $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
@@ -925,8 +926,8 @@ class PayPal extends \PaymentModule
         if (Configuration::get(self::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
             $rest = new PayPalRestApi();
             $payment = $rest->createPayment(
-                $this->context->link->getModuleLink($this->name, 'plussubmit', [], \Tools::usingSecureMode()),
-                $this->context->link->getModuleLink($this->name, 'pluscancel', [], \Tools::usingSecureMode()),
+                $this->context->link->getModuleLink($this->name, 'plussubmit', [], true),
+                $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
                 PayPalRestApi::PLUS_PROFILE
             );
 
@@ -967,19 +968,29 @@ class PayPal extends \PaymentModule
             return null;
         }
 
-        if ($this->hookPayment() == null) {
-            return null;
-        }
-
         if (isset($this->context->cookie->express_checkout)) {
             $this->redirectToConfirmation();
         }
 
-        $this->context->smarty->assign([
-            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], \Tools::usingSecureMode()),
-        ]);
+        $paymentOptions = [];
 
-        return null;
+        if (\Configuration::get(self::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+            $paymentOptions[] = [
+                'cta_text' => $this->l('PayPal or credit card'),
+                'logo' => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
+                'action' => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
+            ];
+        }
+
+        if (\Configuration::get(self::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+            $paymentOptions[] = [
+                'cta_text' => $this->l('PayPal or credit card'),
+                'logo' => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
+                'action' => $this->context->link->getModuleLink($this->name, 'pluseu', [], true),
+            ];
+        }
+
+        return $paymentOptions;
     }
 
     /**
@@ -1002,7 +1013,7 @@ class PayPal extends \PaymentModule
             'PayPal_tracking_code' => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
             'include_form' => true,
             'template_dir' => dirname(__FILE__).'/views/templates/hook/',
-            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], \Tools::usingSecureMode()),
+            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
         ]);
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
@@ -1080,7 +1091,7 @@ class PayPal extends \PaymentModule
                 return false;
             }
 
-            \Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', [], \Tools::usingSecureMode()).'?confirm=1&token='.$this->context->cookie->paypal_token.'&payerID='.$this->context->cookie->paypal_payer_id);
+            \Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', [], true).'?confirm=1&token='.$this->context->cookie->paypal_token.'&payerID='.$this->context->cookie->paypal_payer_id);
         }
 
         return null;
@@ -1266,7 +1277,7 @@ class PayPal extends \PaymentModule
             'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
             'PayPal_tracking_code' => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
             'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
-            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], \Tools::usingSecureMode()),
+            'express_checkout_payment_link' => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
             ]
         );
 
@@ -1294,7 +1305,7 @@ class PayPal extends \PaymentModule
             'PayPal_current_page' => $this->getCurrentUrl(),
             'id_product_attribute_ecs' => $idProductAttribute,
             'product_minimal_quantity' => $minimalQuantity,
-            'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], \Tools::usingSecureMode()),
+            'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
         ]);
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');

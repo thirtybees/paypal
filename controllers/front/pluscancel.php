@@ -26,7 +26,7 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalPluscancelModuleFrontController extends \ModuleFrontController
+class paypalpluscancelModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
@@ -49,6 +49,6 @@ class PayPalPluscancelModuleFrontController extends \ModuleFrontController
         unset ($cookie->paypal_access_token_time_max);
         $cookie->write();
 
-        \Tools::redirectLink($this->context->link->getPageLink('order', \Tools::usingSecureMode()));
+        \Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 }

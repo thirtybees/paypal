@@ -1,6 +1,5 @@
 {*
  * 2017 Thirty Bees
- * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
  *
@@ -13,15 +12,21 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  *  @author    Thirty Bees <modules@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
-{*Displaying a button or the iframe*}
+{capture name=path}
+	<a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">
+		{l s='Order' mod='paypal'}
+	</a>
+	<span class="navigation-pipe">
+		{$navigationPipe|escape:'html':'UTF-8'}
+	</span>
+	{l s='PayPal checkout' mod='paypal'}
+{/capture}
 <div id="ppplus"></div>
 
-{literal}
+<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>
 <script type="application/javascript">
 	(function () {
 		function initPayPalPlus() {
@@ -31,11 +36,11 @@
 			}
 
 			var ppp = PAYPAL.apps.PPP({
-				"approvalUrl": "{/literal}{$approval_url|escape:'htmlall':'UTF-8'}{literal}",
-				"placeholder": "ppplus",
-				"mode": "{/literal}{$mode|escape:'htmlall':'UTF-8'}{literal}",
-				"language": "{/literal}{$language|escape:'htmlall':'UTF-8'}{literal}",
-				"country": "{/literal}{$country|escape:'htmlall':'UTF-8'}{literal}",
+				approvalUrl: '{$approval_url}',
+				placeholder: 'ppplus',
+				mode: '{$mode|escape:'htmlall':'UTF-8'}',
+				language: '{$language|escape:'htmlall':'UTF-8'}',
+				country: '{$country|escape:'htmlall':'UTF-8'}',
 			});
 		}
 
@@ -43,5 +48,3 @@
 	})();
 
 </script>
-{/literal}
-

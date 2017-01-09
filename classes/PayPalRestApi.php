@@ -237,11 +237,11 @@ class PayPalRestApi
         $customer = $this->customer;
 
         if (!$returnUrl) {
-            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
+            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
         }
 
         if (!$cancelUrl) {
-            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], \Tools::usingSecureMode());
+            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
         }
 
         $oCurrency = new \Currency($this->cart->id_currency);

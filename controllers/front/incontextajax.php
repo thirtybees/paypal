@@ -31,7 +31,7 @@ require_once dirname(__FILE__).'/../../paypal.php';
 /**
  * Class PayPalIncontextajaxModuleFrontController
  */
-class PayPalIncontextajaxModuleFrontController extends \ModuleFrontController
+class paypalincontextajaxModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;

@@ -33,7 +33,7 @@ require_once dirname(__FILE__).'/../../paypal.php';
 /**
  * Class PayPalexpresscheckoutModuleFrontController
  */
-class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
+class paypalexpresscheckoutModuleFrontController extends \ModuleFrontController
 {
     /** @var int $idOrder */
     public $idOrder;
@@ -453,7 +453,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             $this->context->shop
         );
 
-        Tools::redirectLink($this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode(), '&id_cart='.$cart->id.'&id_module='.$this->module->id.'&key='.$customer->secure_key));
+        Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, '&id_cart='.$cart->id.'&id_module='.$this->module->id.'&key='.$customer->secure_key));
     }
 
     /**
@@ -463,7 +463,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     {
         unset($this->context->cookie->express_checkout);
 
-        \Tools::redirectLink($this->context->link->getPageLink('order', \Tools::usingSecureMode()));
+        \Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 
     /**

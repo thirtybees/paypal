@@ -26,7 +26,7 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalConfirmModuleFrontController extends \ModuleFrontController
+class paypalconfirmModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
@@ -51,7 +51,7 @@ class PayPalConfirmModuleFrontController extends \ModuleFrontController
         $this->module->assignCartSummary();
 
         $this->context->smarty->assign([
-            'form_action' => $this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode(), '&id_cart='.$this->context->cart->id.'&id_module='.$this->module->id.'&key='.$this->context->customer->secure_key),
+            'form_action' => $this->context->link->getPageLink('order-confirmation', true, '&id_cart='.$this->context->cart->id.'&id_module='.$this->module->id.'&key='.$this->context->customer->secure_key),
         ]);
 
         $this->setTemplate('order-summary.tpl');

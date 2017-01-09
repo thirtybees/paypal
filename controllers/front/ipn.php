@@ -28,7 +28,7 @@ use PayPalModule\PayPalIpn;
 
 require_once dirname(__FILE__).'/../../paypal.php';
 
-class PayPalIpnModuleFrontController extends \ModuleFrontController
+class paypalipnModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;

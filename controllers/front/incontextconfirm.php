@@ -28,7 +28,7 @@ require_once dirname(__FILE__).'/../../paypal.php';
 
 use PayPalModule\PayPalRestApi;
 
-class PayPalincontextconfirmModuleFrontController extends ModuleFrontController
+class paypalincontextconfirmModuleFrontController extends ModuleFrontController
 {
     public $ssl = true;
 
@@ -79,7 +79,7 @@ class PayPalincontextconfirmModuleFrontController extends ModuleFrontController
                 header('Content-Type: application/json');
                 die(json_encode([
                     'success' => true,
-                    'confirmUrl' => $this->context->link->getPageLink('order-confirmation', \Tools::usingSecureMode())."?id_cart={$this->context->cart->id}&secure_key={$this->context->cart->secure_key}&id_module={$this->module->id}",
+                    'confirmUrl' => $this->context->link->getPageLink('order-confirmation', true)."?id_cart={$this->context->cart->id}&secure_key={$this->context->cart->secure_key}&id_module={$this->module->id}",
                 ]));
             } else {
                 if (($this->context->customer->is_guest) || $this->context->customer->id == false) {

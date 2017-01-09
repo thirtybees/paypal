@@ -49,7 +49,7 @@
 					var idProductAttribute = $('input[name="id_product_attribute"]').val();
 					$.ajax({
 						type: 'GET',
-						url: '{$link->getModuleLink('paypal', 'incontextajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}',
+						url: '{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}',
 						data: {
 							updateCart: true,
 							idProduct: idProduct,
@@ -64,7 +64,7 @@
 								}
 
 								// Then create a payment
-								paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}', {
+								paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}', {
 									requestForInContext: true,
 								})
 									.then(function (data) {
@@ -85,7 +85,7 @@
 				onAuthorize: function(data) {
 					// Note: you can display a confirmation page before executing
 
-					var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextconfirm', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}';
+					var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextconfirm', [], true)|escape:'javascript':'UTF-8'}';
 					paypal.request.post(EXECUTE_PAYMENT_URL, {
 						paymentID: data.paymentID,
 						payerID: data.payerID
@@ -212,7 +212,7 @@
 					function (data) {
 						if ((typeof(data) != 'undefined') && (data > 0)) {
 							clearInterval(confirmTimer);
-							window.location.replace('{$link->getModuleLink('paypal', 'submit', [], Tools::usingSecureMode())|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
+							window.location.replace('{$link->getModuleLink('paypal', 'submit', [], true)|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
 							$('p.payment_module, p.cart_navigation').hide();
 						}
 					}
