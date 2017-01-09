@@ -542,7 +542,7 @@ class PayPalRestApi
      */
     public function lookUpPayment($paymentId)
     {
-        if ($paymentId == 'NULL') {
+        if (!$paymentId) {
             return false;
         }
 

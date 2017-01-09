@@ -36,6 +36,7 @@ class PayPalOrder extends PayPalObjectModel
     //PayPal notification fields
     const ID_INVOICE = 'invoice';
     const ID_PAYER = 'payer_id';
+    const ID_PAYMENT = 'payment_id';
     const ID_TRANSACTION = 'txn_id';
     const CURRENCY = 'mc_currency';
     const PAYER_EMAIL = 'payer_email';
@@ -50,6 +51,12 @@ class PayPalOrder extends PayPalObjectModel
 
     /** @var string $id_transaction */
     public $id_transaction;
+
+    /** @var string $id_payer */
+    public $id_payer;
+
+    /** @var string $id_payment */
+    public $id_payment;
 
     /** @var string $id_invoice */
     public $id_invoice;
@@ -85,6 +92,8 @@ class PayPalOrder extends PayPalObjectModel
         'fields' => [
             'id_order' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
             'id_transaction' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_payer' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_payment' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
             'id_invoice' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
             'currency' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(10)'],
             'total_paid' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'],
@@ -111,40 +120,29 @@ class PayPalOrder extends PayPalObjectModel
      */
 
     /**
-     * @param \stdClass|null $payment
+     * @param \stdClass $payment
      *
      * @return array
      */
-    public static function getTransactionDetails($payment = null)
+    public static function getTransactionDetails($payment)
     {
-        if ($payment) {
-            $transactionId = pSQL($payment->id);
-            $transaction = $payment->transactions[0];
+        $transactionId = pSQL($payment->id);
+        $paymentId = pSQL($payment->id);
+        $payerId = pSQL($payment->payer->payer_info->payer_id);
+        $transaction = $payment->transactions[0];
 
-            return [
-                'currency' => pSQL($payment->transactions[0]->amount->currency),
-                'id_invoice' => null,
-                'id_transaction' => $transactionId,
-                'transaction_id' => $transactionId,
-                'total_paid' => (float) $transaction->amount->total,
-                'shipping' => isset($transaction->amount->details->shipping) ? (float) $transaction->amount->details->shipping : 0,
-                'payment_date' => pSQL($payment->update_time),
-                'payment_status' => pSQL($payment->state),
-            ];
-        } else {
-            $transactionId = pSQL(\Tools::getValue(self::ID_TRANSACTION));
-
-            return [
-                'currency' => pSQL(\Tools::getValue(self::CURRENCY)),
-                'id_invoice' => pSQL(\Tools::getValue(self::ID_INVOICE)),
-                'id_transaction' => $transactionId,
-                'transaction_id' => $transactionId,
-                'total_paid' => (float) \Tools::getValue(self::TOTAL_PAID),
-                'shipping' => (float) \Tools::getValue(self::SHIPPING),
-                'payment_date' => pSQL(\Tools::getValue(self::PAYMENT_DATE)),
-                'payment_status' => pSQL($payment->state),
-            ];
-        }
+        return [
+            'currency' => pSQL($payment->transactions[0]->amount->currency),
+            'id_invoice' => null,
+            'id_payer' => $payerId,
+            'id_payment' => $paymentId,
+            'id_transaction' => $transactionId,
+            'transaction_id' => $transactionId,
+            'total_paid' => (float) $transaction->amount->total,
+            'shipping' => isset($transaction->amount->details->shipping) ? (float) $transaction->amount->details->shipping : 0,
+            'payment_date' => pSQL($payment->update_time),
+            'payment_status' => pSQL($payment->state),
+        ];
     }
 
     /**
@@ -202,6 +200,8 @@ class PayPalOrder extends PayPalObjectModel
             bqSQL(self::$definition['table']),
             [
                 'id_order' => (int) $idOrder,
+                'id_payer' => pSQL($transaction['id_payer']),
+                'id_payment' => pSQL($transaction['id_payment']),
                 'id_transaction' => pSQL($transaction['id_transaction']),
                 'id_invoice' => pSQL($transaction['id_invoice']),
                 'currency' => pSQL($transaction['currency']),
@@ -236,5 +236,26 @@ class PayPalOrder extends PayPalObjectModel
         }
 
         \Db::getInstance()->execute($sql);
+    }
+
+    /**
+     * Get PayPalOrder by Payment ID
+     *
+     * @param string $paymentId
+     *
+     * @return bool|PayPalOrder
+     */
+    public static function getByPaymentId($paymentId)
+    {
+        $sql = new \DbQuery();
+        $sql->select(bqSQL(self::$definition['primary']));
+        $sql->from(bqSQL(self::$definition['table']));
+        $sql->where('`id_payment` = \''.pSQL($paymentId).'\'');
+
+        if ($id = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql)) {
+            return new self($id);
+        }
+
+        return false;
     }
 }

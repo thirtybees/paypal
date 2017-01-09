@@ -21,6 +21,7 @@
  */
 
 use PayPalModule\PayPalLogos;
+use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 
 if (!defined('_PS_VERSION_')) {
@@ -108,15 +109,7 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
         $rest = new PayPalRestApi();
         $payment = $rest->executePayment($payerId, $paymentId);
 
-        $transaction = [
-            'id_transaction' => $payment->id,
-            'payment_status' => $payment->state,
-            'currency' => $payment->transactions[0]->amount->currency,
-            'payment_date' => date("Y-m-d H:i:s"),
-            'total_paid' => $payment->transactions[0]->amount->total,
-            'id_invoice' => 0,
-            'shipping' => 0,
-        ];
+        $transaction = PayPalOrder::getTransactionDetails($payment);
 
         if ($this->module->validateOrder(
             $this->context->cart->id,

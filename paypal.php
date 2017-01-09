@@ -1074,13 +1074,15 @@ class PayPal extends \PaymentModule
                                 $complete = true;
                             }
 
-                            $this->doCapture($params['id_order'], $captureAmount, $complete);
+                            // TODO: implement manual capture
+//                            $this->doCapture($params['id_order'], $captureAmount, $complete);
                         }
                     }
                 }
             }
         } elseif (\Tools::isSubmit('submitPayPalRefund')) {
-            $this->doFullRefund($params['id_order']);
+            $ppo = PayPalOrder::getOrderById($params['id_order']);
+            $this->doFullRefund($ppo['id_payment']);
         }
 
         $adminTemplates = [];
@@ -1163,7 +1165,7 @@ class PayPal extends \PaymentModule
         $message = $this->l('Cancel products result:').'<br>';
 
         $amount = (float) ($products[(int) $orderDetail->id]['product_price_wt'] * (int) $cancelQuantity[(int) $orderDetail->id]);
-        $refund = $this->doRefund($paypalOrder['id_transaction'], (int) $order->id, $amount);
+        $refund = $this->doRefund($paypalOrder['id_payment'], $order, $amount);
         $this->formatMessage($refund, $message);
         $this->addNewPrivateMessage((int) $order->id, $message);
 
@@ -1605,74 +1607,29 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @param string $idTransaction PayPal Transaction ID
-     * @param int    $idOrder       Order ID
-     * @param bool   $amt           ?
+     * @param string     $idPayment
+     * @param \Order     $order
+     * @param bool|float $amount        Amount
      *
-     * @return array
+     * @return bool
      */
-    protected function doRefund($idTransaction, $idOrder, $amt = false)
+    protected function doRefund($idPayment, $order, $amount = false)
     {
-        // FIXME: not working
-        return [];
-        if (!$this->isPayPalAPIAvailable()) {
-            die(\Tools::displayError('Fatal Error: no API Credentials are available'));
-        } elseif (!$idTransaction) {
-            die(\Tools::displayError('Fatal Error: id_transaction is null'));
+        if (!$amount) {
+            return $this->doFullRefund($idPayment);
         }
 
-        $paymentMethod = \Configuration::get('PAYPAL_PAYMENT_METHOD');
+        $details = new \stdClass();
+        $details->amount = (float) $amount;
+        $details->currency = \Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
 
-        if ($paymentMethod != self::WPP) {
-            if (!$amt) {
-                $params = ['TRANSACTIONID' => $idTransaction, 'REFUNDTYPE' => 'Full'];
-            } else {
-                $sql = new \DbQuery();
-                $sql->select('c.`iso_code`');
-                $sql->from('orders', 'o');
-                $sql->leftJoin('currency', 'c', 'o.`id_currency` = c.`id_currency`');
-                $sql->where('o.`id_order` = '.(int) $idOrder);
-
-                $isoCurrency = \Db::getInstance()->getValue($sql);
-
-                $params = [
-                    'TRANSACTIONID' => $idTransaction,
-                    'REFUNDTYPE' => 'Partial',
-                    'AMT' => (float) $amt,
-                    'CURRENCYCODE' => \Tools::strtoupper($isoCurrency),
-                ];
-            }
-
-            $paypalLib = new PayPalRestApi();
-
-            return $paypalLib->sendWithCurl(
-                $this->getAPIScript().'&'.http_build_query($params, '', '&'),
-                'RefundTransaction'
-
-            );
-        } else {
-            if (!$amt) {
-                $params = new \stdClass();
-            } else {
-                $sql = new \DbQuery();
-                $sql->select('po.*');
-                $sql->from('paypal_order', 'po');
-                $sql->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'');
-                $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($sql);
-                $result = current($result);
-
-                $amount = new \stdClass();
-                $amount->total = $amt;
-                $amount->currency = $result['currency'];
-
-                $params = new \stdClass();
-                $params->amount = $amount;
-            }
-
-            $callApiPaypalPlus = new CallPayPalPlusApi();
-
-            return json_decode($callApiPaypalPlus->executeRefund($idTransaction, $params));
+        // TODO: check if succeeded
+        $rest = new PayPalRestApi();
+        if ($rest->executeRefund($idPayment, $details)) {
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -1706,82 +1663,25 @@ class PayPal extends \PaymentModule
     /**
      * Do a full refund
      *
-     * @param int $idOrder Order ID
+     * @param string $idPayment
      *
      * @return bool Indicates whether the full refund was successful
      */
-    protected function doFullRefund($idOrder)
+    protected function doFullRefund($idPayment)
     {
-        // FIXME: not working
-        return [];
-        $paypalOrder = PayPalOrder::getOrderById((int) $idOrder);
-        if (!$this->isPayPalAPIAvailable() || !$paypalOrder) {
-            return false;
-        }
+        $rest = new PayPalRestApi();
+        $payment = $rest->lookUpPayment($idPayment);
 
-        $order = new \Order((int) $idOrder);
-        if (!\Validate::isLoadedObject($order)) {
-            return false;
-        }
+        if (isset($payment->transactions[0]->related_resources[0]->sale->id)) {
+            $saleId = $payment->transactions[0]->related_resources[0]->sale->id;
 
-        $products = $order->getProducts();
-        $currency = new \Currency((int) $order->id_currency);
-        if (!\Validate::isLoadedObject($currency)) {
-            $this->errors[] = $this->l('Not a valid currency');
-        }
-
-        if (count($this->errors)) {
-            return false;
-        }
-
-        $decimals = (is_array($currency) ? (int) $currency['decimals'] : (int) $currency->decimals) * _PS_PRICE_DISPLAY_PRECISION_;
-
-        // Amount for refund
-        $amt = 0.00;
-
-        foreach ($products as $product) {
-            $amt += (float) ($product['product_price_wt']) * ($product['product_quantity'] - $product['product_quantity_refunded']);
-        }
-
-        $amt += (float) ($order->total_shipping) + (float) ($order->total_wrapping) - (float) ($order->total_discounts);
-
-        // check if total or partial
-        if (\Tools::ps_round($order->total_paid_real, $decimals) == \Tools::ps_round($amt, $decimals)) {
-            $response = $this->doRefund($paypalOrder['id_transaction'], $idOrder);
-        } else {
-            $response = $this->doRefund($paypalOrder['id_transaction'], $idOrder, (float) ($amt));
-        }
-
-        $message = $this->l('Refund operation result:')." \r\n";
-        foreach ($response as $key => $value) {
-            if (is_object($value) || is_array($value)) {
-                $message .= $key.': '.\json_encode($value)." \r\n";
-            } else {
-                $message .= $key.': '.$value." \r\n";
+            // TODO: validate
+            if ($rest->executeRefund($saleId, new \stdClass())) {
+                return true;
             }
         }
-        if ((array_key_exists('ACK', $response) && $response['ACK'] == 'Success'
-            && $response['REFUNDTRANSACTIONID'] != '') || (isset($response->state)
-            && $response->state == 'completed')) {
-            $message .= $this->l('PayPal refund successful!');
-            if (!\Db::getInstance()->Execute('UPDATE `'._DB_PREFIX_.'paypal_order` SET `payment_status` = \'Refunded\' WHERE `id_order` = '.(int) $idOrder)) {
-                die(\Tools::displayError('Error when updating PayPal database'));
-            }
 
-            $history = new \OrderHistory();
-            $history->id_order = (int) $idOrder;
-            $history->changeIdOrderState((int) \Configuration::get('PS_OS_REFUND'), $history->id_order);
-            $history->addWithemail();
-            $history->save();
-        } else {
-            $message .= $this->l('Transaction error!');
-        }
-
-        $this->addNewPrivateMessage((int) $idOrder, $message);
-
-        \Tools::redirect($_SERVER['HTTP_REFERER']);
-
-        return null;
+        return false;
     }
 
     /**
@@ -1795,82 +1695,7 @@ class PayPal extends \PaymentModule
      */
     protected function doCapture($idOrder, $captureAmount = false, $isComplete = false)
     {
-        // FIXME: not working
-        return [];
-        $paypalOrder = PayPalOrder::getOrderById((int) $idOrder);
-        if (!$this->isPayPalAPIAvailable() || !$paypalOrder) {
-            return false;
-        }
-
-        $order = new \Order((int) $idOrder);
-        $currency = new \Currency((int) $order->id_currency);
-
-        if (!$captureAmount) {
-            $captureAmount = (float) $order->total_paid;
-        }
-
-        $complete = 'Complete';
-        if (!$isComplete) {
-            $complete = 'NotComplete';
-        }
-
-        $paypalLib = new PayPalLib();
-        $response = $paypalLib->makeCall(
-            $this->getAPIURL(),
-            $this->getAPIScript(),
-            'DoCapture',
-            '&'.http_build_query(
-                [
-                    'AMT' => $captureAmount,
-                    'AUTHORIZATIONID' => $paypalOrder['id_transaction'],
-                    'CURRENCYCODE' => $currency->iso_code,
-                    'COMPLETETYPE' => $complete,
-                ],
-                '',
-                '&'
-            )
-        );
-        $message = $this->l('Capture operation result:').'<br>';
-
-        foreach ($response as $key => $value) {
-            $message .= $key.': '.$value.'<br>';
-        }
-
-        $capture = new PayPalCapture();
-        $capture->id_order = (int) $idOrder;
-        $capture->capture_amount = (float) $captureAmount;
-
-        if ((array_key_exists('ACK', $response)) && ($response['ACK'] == 'Success')
-            && ($response['PAYMENTSTATUS'] == 'Completed')) {
-            $capture->result = pSQL($response['PAYMENTSTATUS']);
-            if ($capture->save()) {
-                if (!($capture->getRestToCapture($capture->id_order))) {
-                    if (!\Db::getInstance()->execute(
-                        'UPDATE `'._DB_PREFIX_.'paypal_order`
-                        SET `capture` = 0, `payment_status` = \''.pSQL($response['PAYMENTSTATUS']).'\', `id_transaction` = \''.pSQL($response['TRANSACTIONID']).'\'
-                        WHERE `id_order` = '.(int) $idOrder
-                    )
-                    ) {
-                        die(\Tools::displayError('Error when updating PayPal database'));
-                    }
-
-                    $orderHistory = new \OrderHistory();
-                    $orderHistory->id_order = (int) $idOrder;
-                    $orderHistory->changeIdOrderState(\Configuration::get('PS_OS_WS_PAYMENT'), $order);
-
-                    $orderHistory->addWithemail();
-                    $message .= $this->l('Order finished with PayPal!');
-                }
-            }
-        } elseif (isset($response['PAYMENTSTATUS'])) {
-            $capture->result = pSQL($response['PAYMENTSTATUS']);
-            $capture->save();
-            $message .= $this->l('Transaction error!');
-        }
-
-        $this->addNewPrivateMessage((int) $idOrder, $message);
-
-        \Tools::redirect($_SERVER['HTTP_REFERER']);
+        // FIXME: not implemented
 
         return null;
     }

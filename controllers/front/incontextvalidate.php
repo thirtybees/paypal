@@ -117,28 +117,6 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
             }
 
             if (isset($payment->state) && $payment->state === 'created') {
-//                $transaction = [
-//                    'id_transaction' => $payment->id,
-//                    'payment_status' => $payment->state,
-//                    'currency' => $payment->transactions[0]->amount->currency,
-//                    'payment_date' => date("Y-m-d H:i:s"),
-//                    'total_paid' => $payment->transactions[0]->amount->total,
-//                    'id_invoice' => 0,
-//                    'shipping' => 0,
-//                ];
-//
-//                $this->module->validateOrder(
-//                    $this->context->cart->id,
-//                    (int) \Configuration::get('PS_OS_PAYMENT'),
-//                    $payment->transactions[0]->amount->total,
-//                    $payment->payer->payment_method,
-//                    null,
-//                    $transaction,
-//                    null,
-//                    false,
-//                    $this->context->cart->secure_key
-//                );
-
                 $params = [
                     'id_cart' => $this->context->cart->id,
                     'id_module' => $this->module->id,
