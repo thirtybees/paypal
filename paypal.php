@@ -1,7 +1,9 @@
 <?php
 /**
- * 2017 Thirty Bees
  * 2007-2016 PrestaShop
+ *
+ * Thirty Bees is an extension to the PrestaShop e-commerce software developed by PrestaShop SA
+ * Copyright (C) 2017 Thirty Bees
  *
  * NOTICE OF LICENSE
  *
@@ -18,6 +20,7 @@
  *  @copyright 2017 Thirty Bees
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ *  PrestaShop is an internationally registered trademark & property of PrestaShop SA
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -26,7 +29,6 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__).'/classes/autoload.php';
 
-use PayPalModule\CallPayPalPlusApi;
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalLogin;
