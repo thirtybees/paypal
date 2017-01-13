@@ -22,6 +22,8 @@
 
 namespace PayPalModule;
 
+use GuzzleHttp\Client;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -91,7 +93,7 @@ class PayPalRestApi
             return $this->accessToken;
         }
 
-        $result = $this->sendWithCurl(self::PATH_CREATE_TOKEN, ['grant_type' => 'client_credentials'], false, true);
+        $result = $this->send(self::PATH_CREATE_TOKEN, ['grant_type' => 'client_credentials'], false, true);
 
         /*
          * Init variable
@@ -150,12 +152,12 @@ class PayPalRestApi
 
                 if ($profileId) {
                     // DELETE first
-                    $this->sendWithCurl(self::PATH_WEBPROFILES.'/'.$profileId, false, $header, false, 'DELETE');
+                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $header, false, 'DELETE');
                 }
             }
 
             // Then create
-            $result = json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, json_encode($data), $header));
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $header));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -182,7 +184,7 @@ class PayPalRestApi
                 'Authorization:Bearer '.$accessToken,
             ];
 
-            $this->profiles = json_decode($this->sendWithCurl(self::PATH_WEBPROFILES, false, $header));
+            $this->profiles = json_decode($this->send(self::PATH_WEBPROFILES, false, $header));
 
             return $this->profiles;
         }
@@ -202,7 +204,7 @@ class PayPalRestApi
         $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $this->sendWithCurl(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
+            $this->send(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
         }
 
         return true;
@@ -386,15 +388,15 @@ class PayPalRestApi
             'Authorization:Bearer '.$this->getToken(),
         ];
 
-        $result = json_decode($this->sendWithCurl(self::PATH_CREATE_PAYMENT, json_encode($data), $header));
+        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header));
 
         return $result;
     }
 
     /**
-     * @param string      $url
+     * @param string      $url       URL including get params
      * @param bool|string $body
-     * @param bool        $httpHeader
+     * @param bool        $headers
      * @param bool        $identify
      *
      * @param bool|string $requestType
@@ -404,50 +406,37 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function sendWithCurl($url, $body = false, $httpHeader = false, $identify = false, $requestType = false)
+    public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
     {
-        $ch = curl_init();
-
-        if ($ch) {
-            if (!\Configuration::get(\PayPal::LIVE)) {
-                @curl_setopt($ch, CURLOPT_URL, 'https://api.sandbox.paypal.com'.$url);
-            } else {
-                @curl_setopt($ch, CURLOPT_URL, 'https://api.paypal.com'.$url);
-            }
-
-            if ($identify) {
-                @curl_setopt($ch, CURLOPT_USERPWD, $this->clientId.':'.$this->secret);
-            }
-
-            if ($httpHeader) {
-                @curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeader);
-            }
-            if (!$requestType && $body) {
-                @curl_setopt($ch, CURLOPT_POST, true);
-                if ($identify) {
-                    @curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($body));
-                } else {
-                    @curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-                }
-            } elseif ($requestType) {
-                @curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $requestType);
-            }
-
-            @curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            @curl_setopt($ch, CURLOPT_HEADER, false);
-            @curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-            @curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/../cacert.pem');
-            @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-            @curl_setopt($ch, CURLOPT_SSLVERSION, 6);
-            @curl_setopt($ch, CURLOPT_VERBOSE, false);
-
-            $result = @curl_exec($ch);
-
-            @curl_close($ch);
+        if (!\Configuration::get(\PayPal::LIVE)) {
+            $baseUri = 'https://api.sandbox.paypal.com';
+        } else {
+            $baseUri = 'https://api.paypal.com';
         }
 
-        return isset($result) ? $result : false;
+        $guzzle = new Client([
+            'base_uri' => $baseUri,
+            'timeout'  => 60.0,
+            'verify'  => dirname(__FILE__).'/../cacert.pem',
+        ]);
+
+        $requestOptions = [];
+        if ($identify) {
+             $requestOptions['auth'] = [$this->clientId, $this->secret];
+        }
+        if ($headers) {
+            $requestOptions['headers'] = $headers;
+        }
+        if ($body) {
+            $requestOptions['body'] = (string) $body;
+        }
+        $response = $guzzle->request($requestType, $url, $requestOptions);
+
+        if ($response->getStatusCode() == 200) {
+            return (string) $response->getBody();
+        }
+
+        return false;
     }
 
     /**
@@ -553,7 +542,7 @@ class PayPalRestApi
             'Authorization:Bearer '.$accessToken,
         ];
 
-        return json_decode($this->sendWithCurl(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
+        return json_decode($this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
     }
 
     /**
@@ -581,7 +570,7 @@ class PayPalRestApi
 
         $data = ['payer_id' => $payerId];
 
-        return json_decode($this->sendWithCurl(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header));
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header));
     }
 
     /**
@@ -607,6 +596,6 @@ class PayPalRestApi
             'Authorization:Bearer '.$accessToken,
         ];
 
-        return json_decode($this->sendWithCurl(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
     }
 }

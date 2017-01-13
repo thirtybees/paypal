@@ -24,11 +24,11 @@
 		{l s='If the module was unable to verify that TLS v1.2 is supported, Stripe will automatically be disabled.' mod='paypal'}
 		{l s='Make sure you see a (green) confirmation message underneath and you will be good to go.' mod='paypal'}
 	</p>
-	{if $tls_ok === MDStripe::ENUM_TLS_OK}
+	{if $tls_ok === PayPal::ENUM_TLS_OK}
 		<div class="alert alert-success">
 			{l s='TLS v1.2 is supported' mod='paypal'}
 		</div>
-	{elseif $tls_ok === MDStripe::ENUM_TLS_ERROR}
+	{elseif $tls_ok === PayPal::ENUM_TLS_ERROR}
 		<div class="alert alert-danger">
 			{l s='TLS v1.2 is not supported. Please upgrade your server.' mod='paypal'}
 		</div>

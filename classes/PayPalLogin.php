@@ -135,7 +135,7 @@ class PayPalLogin
             'redirect_url' => PayPalLogin::getReturnLink(),
         ];
 
-        $result = $this->rest->sendWithCurl($this->getTokenServiceEndpoint(), $params, false, true);
+        $result = $this->rest->send($this->getTokenServiceEndpoint(), $params, false, true);
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -198,7 +198,7 @@ class PayPalLogin
             'refresh_token' => $login->refresh_token,
         ];
 
-        $result = $this->rest->sendWithCurl($this->getTokenServiceEndpoint(), $params, false, true);
+        $result = $this->rest->send($this->getTokenServiceEndpoint(), $params, false, true);
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -243,7 +243,7 @@ class PayPalLogin
             'schema' => 'openid',
         ];
 
-        $result = $this->rest->sendWithCurl($this->getUserInfoEndpoint().'?'.http_build_query($params, '', '&'), false, $headers, false);
+        $result = $this->rest->send($this->getUserInfoEndpoint().'?'.http_build_query($params, '', '&'), false, $headers, false);
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');

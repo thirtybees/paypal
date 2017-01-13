@@ -1524,21 +1524,21 @@ class PayPal extends \PaymentModule
         return $result && $result['payment_status'] == 'Pending_capture';
     }
 
+    /**
+     * Check if server supports TLSv1.2
+     */
     protected function tlsCheck()
     {
-        $ch = @curl_init();
-        @curl_setopt($ch, CURLOPT_URL, 'https://tlstest.paypal.com/');
-        @curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__).'/cacert.pem');
-        @curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        @curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        @curl_setopt($ch, CURLOPT_SSLVERSION, 6);
-        @curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        @curl_exec($ch);
+        $guzzle = new \GuzzleHttp\Client([
+            'timeout' => 10.0,
+            'verify' => dirname(__FILE__).'/cacert.pem',
+        ]);
+        $response = $guzzle->get('https://tlstest.paypal.com/');
 
-        if (curl_error($ch)) {
-            $this->updateAllValue(self::TLS_OK, self::ENUM_TLS_ERROR);
-        } else {
+        if ((string) $response->getBody() === 'PayPal_Connection_OK') {
             $this->updateAllValue(self::TLS_OK, self::ENUM_TLS_OK);
+        } else {
+            $this->updateAllValue(self::TLS_OK, self::ENUM_TLS_ERROR);
         }
     }
 
