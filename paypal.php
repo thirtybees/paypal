@@ -1532,6 +1532,7 @@ class PayPal extends \PaymentModule
         $guzzle = new \GuzzleHttp\Client([
             'timeout' => 10.0,
             'verify' => dirname(__FILE__).'/cacert.pem',
+            'http_errors' => false,
         ]);
         $response = $guzzle->get('https://tlstest.paypal.com/');
 

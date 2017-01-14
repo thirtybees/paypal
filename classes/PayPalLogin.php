@@ -135,7 +135,13 @@ class PayPalLogin
             'redirect_url' => PayPalLogin::getReturnLink(),
         ];
 
-        $result = $this->rest->send($this->getTokenServiceEndpoint(), $params, false, true);
+        $result = $this->rest->send(
+            $this->getTokenServiceEndpoint(),
+            http_build_query($params, '', '&'),
+            ['Content-Type', 'application/x-www-form-urlencoded'],
+            true,
+            'POST'
+        );
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -198,7 +204,13 @@ class PayPalLogin
             'refresh_token' => $login->refresh_token,
         ];
 
-        $result = $this->rest->send($this->getTokenServiceEndpoint(), $params, false, true);
+        $result = $this->rest->send(
+            $this->getTokenServiceEndpoint().'?'.http_build_query($params, '', '&'),
+            http_build_query($params, '', '&'),
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+            true,
+            'POST'
+        );
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -243,8 +255,15 @@ class PayPalLogin
             'schema' => 'openid',
         ];
 
-        $result = $this->rest->send($this->getUserInfoEndpoint().'?'.http_build_query($params, '', '&'), false, $headers, false);
+        $result = $this->rest->send(
+            $this->getUserInfoEndpoint(),
+            http_build_query($params, '', '&'),
+            $headers,
+            false,
+            'POST'
+        );
 
+        ddd($result);
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
             fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");

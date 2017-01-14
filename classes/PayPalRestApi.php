@@ -93,7 +93,13 @@ class PayPalRestApi
             return $this->accessToken;
         }
 
-        $result = $this->send(self::PATH_CREATE_TOKEN, ['grant_type' => 'client_credentials'], false, true);
+        $result = $this->send(
+            self::PATH_CREATE_TOKEN,
+            http_build_query(['grant_type' => 'client_credentials']),
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+            true,
+            'POST'
+        );
 
         /*
          * Init variable
@@ -137,9 +143,9 @@ class PayPalRestApi
         if ($accessToken) {
             $data = $this->createWebProfile($type);
 
-            $header = [
-                'Content-Type:application/json',
-                'Authorization:Bearer '.$accessToken,
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.$accessToken,
             ];
 
             if ($this->profiles) {
@@ -152,12 +158,12 @@ class PayPalRestApi
 
                 if ($profileId) {
                     // DELETE first
-                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $header, false, 'DELETE');
+                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
                 }
             }
 
             // Then create
-            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $header));
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -180,8 +186,8 @@ class PayPalRestApi
 
         if ($accessToken) {
             $header = [
-                'Content-Type:application/json',
-                'Authorization:Bearer '.$accessToken,
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.$accessToken,
             ];
 
             $this->profiles = json_decode($this->send(self::PATH_WEBPROFILES, false, $header));
@@ -201,11 +207,11 @@ class PayPalRestApi
      */
     public function deleteProfile()
     {
-        $accessToken = $this->getToken();
-
-        if ($accessToken) {
-            $this->send(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
-        }
+//        $accessToken = $this->getToken();
+//
+//        if ($accessToken) {
+//            $this->send(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
+//        }
 
         return true;
     }
@@ -384,17 +390,17 @@ class PayPalRestApi
         $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
 
         $header = [
-            'Content-Type:application/json',
-            'Authorization:Bearer '.$this->getToken(),
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer '.$this->getToken(),
         ];
 
-        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header));
+        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
 
         return $result;
     }
 
     /**
-     * @param string      $url       URL including get params
+     * @param string      $url      URL including get params
      * @param bool|string $body
      * @param bool        $headers
      * @param bool        $identify
@@ -418,11 +424,12 @@ class PayPalRestApi
             'base_uri' => $baseUri,
             'timeout'  => 60.0,
             'verify'  => dirname(__FILE__).'/../cacert.pem',
+            'http_errors'  => false,
         ]);
 
         $requestOptions = [];
         if ($identify) {
-             $requestOptions['auth'] = [$this->clientId, $this->secret];
+            $requestOptions['auth'] = [$this->clientId, $this->secret];
         }
         if ($headers) {
             $requestOptions['headers'] = $headers;
@@ -430,13 +437,9 @@ class PayPalRestApi
         if ($body) {
             $requestOptions['body'] = (string) $body;
         }
-        $response = $guzzle->request($requestType, $url, $requestOptions);
+        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
 
-        if ($response->getStatusCode() == 200) {
-            return (string) $response->getBody();
-        }
-
-        return false;
+        return (string) $response->getBody();
     }
 
     /**
@@ -538,8 +541,8 @@ class PayPalRestApi
         $accessToken = $this->refreshToken();
 
         $header = [
-            'Content-Type:application/json',
-            'Authorization:Bearer '.$accessToken,
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
         ];
 
         return json_decode($this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
@@ -564,13 +567,13 @@ class PayPalRestApi
         $accessToken = $this->refreshToken();
 
         $header = [
-            'Content-Type:application/json',
-            'Authorization:Bearer '.$accessToken,
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
         ];
 
         $data = ['payer_id' => $payerId];
 
-        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header));
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header, false, 'POST'));
     }
 
     /**
@@ -592,8 +595,8 @@ class PayPalRestApi
         $accessToken = $this->refreshToken();
 
         $header = [
-            'Content-Type:application/json',
-            'Authorization:Bearer '.$accessToken,
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
         ];
 
         return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
