@@ -31,7 +31,7 @@ if (!defined('_PS_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalCapture extends PayPalObjectModel
+class PayPalCapture extends \ObjectModel
 {
     // @codingStandardsIgnoreStart
     /** @var int $id_order */

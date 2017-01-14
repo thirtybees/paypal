@@ -31,7 +31,7 @@ if (!defined('_PS_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalCustomer extends PayPalObjectModel
+class PayPalCustomer extends \ObjectModel
 {
 
     // @codingStandardsIgnoreStart

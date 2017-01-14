@@ -31,7 +31,7 @@ if (!defined('_PS_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalOrder extends PayPalObjectModel
+class PayPalOrder extends \ObjectModel
 {
     //PayPal notification fields
     const ID_INVOICE = 'invoice';
