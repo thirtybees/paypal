@@ -437,6 +437,7 @@ class PayPalRestApi
         if ($body) {
             $requestOptions['body'] = (string) $body;
         }
+
         $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
 
         return (string) $response->getBody();

@@ -247,8 +247,8 @@ class PayPalLogin
     {
         unset($this->logs);
         $headers = [
-            'Content-Type:application/json',
-            'Authorization: Bearer '.$accessToken,
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
         ];
 
         $params = [
@@ -256,14 +256,11 @@ class PayPalLogin
         ];
 
         $result = $this->rest->send(
-            $this->getUserInfoEndpoint(),
-            http_build_query($params, '', '&'),
-            $headers,
+            $this->getUserInfoEndpoint().'?'.http_build_query($params, '', '&'),
             false,
-            'POST'
+            $headers
         );
 
-        ddd($result);
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
             fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
