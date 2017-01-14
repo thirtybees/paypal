@@ -1543,8 +1543,6 @@ class PayPal extends \PaymentModule
         }
     }
 
-
-
     /**
      * Post process
      */
