@@ -3,3 +3,5 @@ img/logos/*
 config_fr.xml
 api/Results.txt
 node_modules/
+
+*paypal*.zip

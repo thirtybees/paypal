@@ -1,5 +1,5 @@
 {
-  "name": "myparcel",
+  "name": "paypal",
   "version": "1.0.0",
   "description": "PayPal module for thirty bees",
   "main": "Gruntfile.js",
@@ -11,10 +11,7 @@
     "url": "https://github.com/thirtybees/paypal"
   },
   "keywords": [
-    "pretty",
-    "clean",
-    "advanced",
-    "urls"
+    "paypal"
   ],
   "author": "thirty bees",
   "license": "AFL v3.0",
