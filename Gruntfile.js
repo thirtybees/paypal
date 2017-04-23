@@ -4,32 +4,32 @@ module.exports = function(grunt) {
         compress: {
             main: {
                 options: {
-                    archive: 'myparcel.zip'
+                    archive: 'paypal.zip'
                 },
                 files: [
-                    {src: ['classes/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['controllers/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['docs/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['sql/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['translations/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['override/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['upgrade/**'], dest: 'myparcel/', filter: 'isFile'},
-                    {src: ['vendor/**'], dest: 'myparcel/', filter: 'isFile'},
+                    {src: ['classes/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['controllers/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['docs/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['sql/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['translations/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['override/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['upgrade/**'], dest: 'paypal/', filter: 'isFile'},
+                    {src: ['vendor/**'], dest: 'paypal/', filter: 'isFile'},
                     {src: [
                       'views/**',
-                        '!views/js/myparcelcheckout/node_modules/**',
-                        '!views/js/myparcelpanel/node_modules/**',
-                        '!views/js/myparcelexport/node_modules/**',
-                        '!views/js/myparcelexport/dist/myparcelexport.js.map',
-                        '!views/js/myparcelcheckout/dist/myparcelcheckout.js.map',
-                        '!views/js/myparcelpanel/dist/myparcelpanel.js.map',
-                    ], dest: 'myparcel/', filter: 'isFile'},
-                    {src: 'config.xml', dest: 'myparcel/'},
-                    {src: 'index.php', dest: 'myparcel/'},
-                    {src: 'myparcel.php', dest: 'myparcel/'},
-                    {src: 'logo.png', dest: 'myparcel/'},
-                    {src: 'logo.gif', dest: 'myparcel/'},
-                    {src: 'CHANGELOG.md', dest: 'myparcel/'}
+                        '!views/js/paypalcheckout/node_modules/**',
+                        '!views/js/paypalpanel/node_modules/**',
+                        '!views/js/paypalexport/node_modules/**',
+                        '!views/js/paypalexport/dist/paypalexport.js.map',
+                        '!views/js/paypalcheckout/dist/paypalcheckout.js.map',
+                        '!views/js/paypalpanel/dist/paypalpanel.js.map',
+                    ], dest: 'paypal/', filter: 'isFile'},
+                    {src: 'config.xml', dest: 'paypal/'},
+                    {src: 'index.php', dest: 'paypal/'},
+                    {src: 'paypal.php', dest: 'paypal/'},
+                    {src: 'logo.png', dest: 'paypal/'},
+                    {src: 'logo.gif', dest: 'paypal/'},
+                    {src: 'CHANGELOG.md', dest: 'paypal/'}
                 ]
             }
         }
