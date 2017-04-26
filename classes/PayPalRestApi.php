@@ -423,7 +423,7 @@ class PayPalRestApi
         $guzzle = new Client([
             'base_uri' => $baseUri,
             'timeout'  => 60.0,
-            'verify'  => dirname(__FILE__).'/../cacert.pem',
+            'verify'  => _PS_TOOL_DIR_.'cacert.pem',
             'http_errors'  => false,
         ]);
 

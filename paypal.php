@@ -122,8 +122,8 @@ class PayPal extends \PaymentModule
     {
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
-        $this->version = '4.0.2';
-        $this->author = 'Thirty Bees';
+        $this->version = '5.0.0';
+        $this->author = 'thirty bees';
 
         $this->currencies = true;
         $this->currencies_mode = 'radio';
