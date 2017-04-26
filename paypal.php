@@ -122,7 +122,7 @@ class PayPal extends \PaymentModule
     {
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
-        $this->version = '4.0.1';
+        $this->version = '4.0.2';
         $this->author = 'Thirty Bees';
 
         $this->currencies = true;
@@ -408,7 +408,7 @@ class PayPal extends \PaymentModule
         $guzzle = new \GuzzleHttp\Client(
             [
                 'timeout'     => 10.0,
-                'verify'      => dirname(__FILE__).'/cacert.pem',
+                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
                 'http_errors' => false,
             ]
         );
