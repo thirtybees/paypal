@@ -43,7 +43,6 @@ use PayPalModule\PayPalTools;
  */
 class PayPal extends \PaymentModule
 {
-    const MIN_PHP_VERSION = 50500;
     const LIVE = 'PAYPAL_LIVE';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
     const STORE_COUNTRY = 'PAYPAL_COUNTRY_DEFAULT';
@@ -149,19 +148,6 @@ class PayPal extends \PaymentModule
 
         // Only check from Back Office
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id) {
-            if ($this->active && extension_loaded('curl') == false) {
-                $this->context->controller->errors[] = $this->displayName.': '.$this->l('You have to enable the cURL extension on your server in order to use this module');
-                $this->disable();
-
-                return;
-            }
-            if (PHP_VERSION_ID < self::MIN_PHP_VERSION) {
-                $this->context->controller->errors[] = $this->displayName.': '.$this->l('Your PHP version is not supported. Please upgrade to PHP 5.5.0 or higher.');
-                $this->disable();
-
-                return;
-            }
-
             $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
                 'configure'   => $this->name,
                 'tab_module'  => $this->tab,
@@ -1883,19 +1869,6 @@ class PayPal extends \PaymentModule
         // FIXME: not implemented
 
         return null;
-    }
-
-    protected function warningsCheck()
-    {
-        /* Check preactivation warning */
-        if (\Configuration::get('PS_PREACTIVATION_PAYPAL_WARNING')) {
-            $this->warning .= (!empty($this->warning)) ? ', ' : \Configuration::get('PS_PREACTIVATION_PAYPAL_WARNING').'<br />';
-        }
-
-        if (!function_exists('curl_init')) {
-            $this->warning .= $this->l('In order to use your module, please activate cURL (PHP extension)');
-        }
-
     }
 
     /**
