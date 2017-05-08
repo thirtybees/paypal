@@ -863,14 +863,24 @@ class PayPal extends \PaymentModule
     }
 
     /**
+     * Hook to product actions
+     *
+     * @return string
+     */
+    public function hookProductActions()
+    {
+        return $this->hookProductFooter();
+    }
+
+    /**
      * Product Footer hook
      *
-     * @return null|string Hook HTML
+     * @return string Hook HTML
      */
     public function hookProductFooter()
     {
         if (!\Configuration::get(self::EXPRESS_CHECKOUT_ENABLED)) {
-            return null;
+            return '';
         }
 
         return $this->renderExpressCheckoutForm('product');
