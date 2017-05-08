@@ -162,13 +162,11 @@ class PayPal extends \PaymentModule
                 return;
             }
 
-            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query(
-                    array(
-                        'configure'   => $this->name,
-                        'tab_module'  => $this->tab,
-                        'module_name' => $this->name,
-                    )
-                );
+            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
+                'configure'   => $this->name,
+                'tab_module'  => $this->tab,
+                'module_name' => $this->name,
+            ]);
         }
     }
 
@@ -1227,12 +1225,12 @@ class PayPal extends \PaymentModule
         }
 
         $this->context->smarty->assign(
-            array(
+            [
                 'id_order'  => $order->id,
                 'reference' => $reference,
                 'params'    => $params,
                 'total'     => Tools::displayPrice($totalToPay, $currency, false),
-            )
+            ]
         );
 
         return $this->display(__FILE__, 'confirmation.tpl');
