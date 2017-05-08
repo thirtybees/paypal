@@ -22,7 +22,7 @@
 
 namespace PayPalModule;
 
-if (!defined('_PS_VERSION_')) {
+if (!defined('_TB_VERSION_')) {
     exit;
 }
 
@@ -90,13 +90,8 @@ class PayPalNotifier extends \PayPal
 
             $customer = new \Customer((int) $cart->id_customer);
             $transaction = PayPalOrder::getTransactionDetails(false);
-
-            if (_PS_VERSION_ < '1.5') {
-                $shop = null;
-            } else {
-                $idShop = $this->context->shop->id;
-                $shop = new \Shop($idShop);
-            }
+            $idShop = $this->context->shop->id;
+            $shop = new \Shop($idShop);
 
             $this->validateOrder($cart->id, $payment, $totalPrice, $this->displayName, $message, $transaction, $cart->id_currency, false, $customer->secure_key, $shop);
         }

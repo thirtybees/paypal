@@ -20,15 +20,13 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-if (!defined('_PS_VERSION_')) {
+if (!defined('_TB_VERSION_')) {
     exit;
 }
 
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
-
-require_once __DIR__.'/../../paypal.php';
 
 /**
  * Class PayPalexpresscheckoutModuleFrontController

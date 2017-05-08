@@ -22,11 +22,9 @@
 
 use PayPalModule\PayPalOrder;
 
-if (!defined('_PS_VERSION_')) {
+if (!defined('_TB_VERSION_')) {
     exit;
 }
-
-require_once __DIR__.'/../../paypal.php';
 
 /**
  * Class paypalsubmitModuleFrontController

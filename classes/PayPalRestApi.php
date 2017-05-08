@@ -24,7 +24,7 @@ namespace PayPalModule;
 
 use GuzzleHttp\Client;
 
-if (!defined('_PS_VERSION_')) {
+if (!defined('_TB_VERSION_')) {
     exit;
 }
 

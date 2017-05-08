@@ -19,7 +19,6 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 
-{if $smarty.const._PS_VERSION_ >= 1.6}
 <div class="row">
 	<div class="col-lg-12">
 		<div class="panel">
@@ -37,16 +36,3 @@
 		</div>
 	</div>
 </div>
-{else}
-<br />
-<fieldset {if isset($ps_version) && ($ps_version < '1.5')}style="width: 400px"{/if}>
-	<legend><img src="{$base_url|escape:'htmlall':'UTF-8'}modules/{$module_name|escape:'htmlall':'UTF-8'}/logo.gif" alt="" />{l s='PayPal Validation' mod='paypal'}</legend>
-	<p><b>{l s='Information:' mod='paypal'}</b> {if $order_state == $authorization}{l s='Pending Capture - No shipping' mod='paypal'}{else}{l s='Pending Payment - No shipping' mod='paypal'}{/if}</p>
-	<form method="post" action="{$smarty.server.REQUEST_URI|escape:'htmlall':'UTF-8'}">
-		<input type="hidden" name="id_order" value="{$params.id_order|intval}" />
-		<p class="center"><input type="submit" class="button" name="submitPayPalValidation" value="{l s='Get payment status' mod='paypal'}" /></p>
-	</form>
-</fieldset>
-{/if}
-
-
