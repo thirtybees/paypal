@@ -772,13 +772,11 @@ class PayPal extends \PaymentModule
         $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/views/css/paypal.css');
 
         $smarty = $this->context->smarty;
-        $smarty->assign(
-            [
-                self::LIVE         => \Configuration::get(self::LIVE),
-                'confirmationPage' => $this->context->link->getPageLink('order-confirmation', true).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
-                'incontextType'    => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
-            ]
-        );
+        $smarty->assign([
+            static::LIVE         => Configuration::get(static::LIVE),
+            'confirmationPage' => $this->context->link->getPageLink('order-confirmation', true).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
+            'incontextType'    => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
+        ]);
 
         $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
         $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
@@ -788,14 +786,14 @@ class PayPal extends \PaymentModule
                         == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc'))
                 || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name']
                         == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
-            && \Configuration::get(self::LOGIN_ENABLED)
+            && Configuration::get(self::LOGIN_ENABLED)
         ) {
             $this->context->smarty->assign(
                 [
                     'paypal_locale' => $this->getLocale(),
-                    'client_id'     => \Configuration::get(self::CLIENT_ID),
-                    'login_theme'   => \Configuration::get(self::LOGIN_THEME),
-                    'live'          => \Configuration::get(self::LIVE),
+                    'client_id'     => Configuration::get(self::CLIENT_ID),
+                    'login_theme'   => Configuration::get(self::LOGIN_THEME),
+                    'live'          => Configuration::get(self::LIVE),
                     'return_link'   => PayPalLogin::getReturnLink(),
                 ]
             );

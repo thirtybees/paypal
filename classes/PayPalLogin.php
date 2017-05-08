@@ -108,7 +108,7 @@ class PayPalLogin
      */
     public static function getReturnLink()
     {
-        return \Context::getContext()->link->getModuleLink('paypal', 'logintoken', [], true);
+        return \Context::getContext()->shop->getBaseURL(true, true).'index.php?fc=module&module=paypal&controller=logintoken';
     }
 
     /**

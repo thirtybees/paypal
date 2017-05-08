@@ -56,7 +56,6 @@
 
 		initPayPalLoginJs();
 	})();
-	;
 </script>
 
 
