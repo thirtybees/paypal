@@ -341,7 +341,7 @@ class PayPal extends \PaymentModule
 
             if (\Tools::getValue(self::CLIENT_ID) && \Tools::getValue(self::SECRET)) {
                 $rest = new PayPalRestApi(\Tools::getValue(self::CLIENT_ID), \Tools::getValue(self::SECRET));
-                $rest->getListProfile();
+                $rest->getWebProfiles();
                 $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
                 $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
                 $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);

@@ -13,11 +13,11 @@
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <modules@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    Thirty Bees <modules@thirtybees.com>
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2017 Thirty Bees
+ * @copyright 2007-2016 PrestaShop SA
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
 namespace PayPalModule;
@@ -61,7 +61,7 @@ class PayPalRestApi
     /** @var string $secret */
     protected $secret;
 
-    /** @var null|string $accessToken  */
+    /** @var null|string $accessToken */
     protected $accessToken = null;
 
     /** @var null|\stdClass $profiles */
@@ -78,6 +78,52 @@ class PayPalRestApi
 
         $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
         $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
+    }
+
+    /**
+     * @param int $type
+     *
+     * @return bool|array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function getWebProfile($type = self::STANDARD_PROFILE)
+    {
+        $accessToken = $this->getToken();
+
+        if ($accessToken) {
+            $data = $this->createWebProfile($type);
+
+            $headers = [
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer '.$accessToken,
+            ];
+
+            if ($this->profiles) {
+                $profileId = '';
+                foreach ($this->profiles as $profile) {
+                    if ($profile->name == $data['name']) {
+                        $profileId = $profile->id;
+                    }
+                }
+
+                if ($profileId) {
+                    // DELETE first
+                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
+                }
+            }
+
+            // Then create
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
+
+            if (isset($result->id)) {
+                return $result->id;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -128,49 +174,117 @@ class PayPalRestApi
     }
 
     /**
+     * @param string      $url URL including get params
+     * @param bool|string $body
+     * @param bool        $headers
+     * @param bool        $identify
+     *
+     * @param bool|string $requestType
+     *
+     * @return mixed
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
+    {
+        if (!\Configuration::get(\PayPal::LIVE)) {
+            $baseUri = 'https://api.sandbox.paypal.com';
+        } else {
+            $baseUri = 'https://api.paypal.com';
+        }
+
+        $guzzle = new Client(
+            [
+                'base_uri'    => $baseUri,
+                'timeout'     => 60.0,
+                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
+                'http_errors' => false,
+            ]
+        );
+
+        $requestOptions = [];
+        if ($identify) {
+            $requestOptions['auth'] = [$this->clientId, $this->secret];
+        }
+        if ($headers) {
+            $requestOptions['headers'] = $headers;
+        }
+        if ($body) {
+            $requestOptions['body'] = (string) $body;
+        }
+
+        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
+
+        return (string) $response->getBody();
+    }
+
+    /**
      * @param int $type
      *
-     * @return bool|array
+     * @return array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getWebProfile($type = self::STANDARD_PROFILE)
+    protected function createWebProfile($type)
     {
-        $accessToken = $this->getToken();
+        $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
 
-        if ($accessToken) {
-            $data = $this->createWebProfile($type);
-
-            $headers = [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer '.$accessToken,
-            ];
-
-            if ($this->profiles) {
-                $profileId = '';
-                foreach ($this->profiles as $profile) {
-                    if ($profile->name == $data['name']) {
-                        $profileId = $profile->id;
-                    }
-                }
-
-                if ($profileId) {
-                    // DELETE first
-                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
-                }
-            }
-
-            // Then create
-            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
-
-            if (isset($result->id)) {
-                return $result->id;
-            }
+        switch ($type) {
+            case self::PLUS_PROFILE:
+                return [
+                    'name'         => $name,
+                    'presentation' => [
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note'       => false,
+                        'no_shipping'      => 2,
+                        'address_override' => 1,
+                    ],
+                    'flow_config'  => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+            case self::EXPRESS_CHECKOUT_PROFILE:
+                return [
+                    'name'         => $name,
+                    'presentation' => [
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note'       => false,
+                        'no_shipping'      => 1,
+                        'address_override' => 0,
+                    ],
+                    'flow_config'  => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+            default:
+                return [
+                    'name'         => $name,
+                    'presentation' => [
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note'       => false,
+                        'no_shipping'      => 2,
+                        'address_override' => 1,
+                    ],
+                    'flow_config'  => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
         }
-
-        return false;
     }
 
     /**
@@ -180,13 +294,13 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getListProfile()
+    public function getWebProfiles()
     {
         $accessToken = $this->getToken();
 
         if ($accessToken) {
             $header = [
-                'Content-Type' => 'application/json',
+                'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
@@ -200,10 +314,6 @@ class PayPalRestApi
 
     /**
      * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function deleteProfile()
     {
@@ -217,19 +327,27 @@ class PayPalRestApi
     }
 
     /**
-     * @return bool
+     * @param bool|string $returnUrl
+     * @param bool|string $cancelUrl
+     * @param int         $profile
      *
+     * @return mixed
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function refreshToken()
+    public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
-        if ($this->context->cookie->paypal_access_token_time_max < time()) {
-            return $this->getToken();
-        } else {
-            return $this->context->cookie->paypal_access_token_access_token;
-        }
+        $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
+
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$this->getToken(),
+        ];
+
+        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
+
+        return $result;
     }
 
     /**
@@ -259,7 +377,6 @@ class PayPalRestApi
         $isoCode = $country->iso_code;
 
         $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
-
 
         $totalCartWithTax = $cart->getOrderTotal(true);
         $totalCartWithoutTax = $cart->getOrderTotal(false);
@@ -368,147 +485,9 @@ class PayPalRestApi
             }
         }
 
-
-
         $payment->redirect_urls = $redirectUrls;
 
         return $payment;
-    }
-
-    /**
-     * @param bool|string $returnUrl
-     * @param bool|string $cancelUrl
-     * @param int         $profile
-     *
-     * @return mixed
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
-    {
-        $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
-
-        $header = [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer '.$this->getToken(),
-        ];
-
-        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
-
-        return $result;
-    }
-
-    /**
-     * @param string      $url      URL including get params
-     * @param bool|string $body
-     * @param bool        $headers
-     * @param bool        $identify
-     *
-     * @param bool|string $requestType
-     *
-     * @return mixed
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
-    {
-        if (!\Configuration::get(\PayPal::LIVE)) {
-            $baseUri = 'https://api.sandbox.paypal.com';
-        } else {
-            $baseUri = 'https://api.paypal.com';
-        }
-
-        $guzzle = new Client([
-            'base_uri' => $baseUri,
-            'timeout'  => 60.0,
-            'verify'  => _PS_TOOL_DIR_.'cacert.pem',
-            'http_errors'  => false,
-        ]);
-
-        $requestOptions = [];
-        if ($identify) {
-            $requestOptions['auth'] = [$this->clientId, $this->secret];
-        }
-        if ($headers) {
-            $requestOptions['headers'] = $headers;
-        }
-        if ($body) {
-            $requestOptions['body'] = (string) $body;
-        }
-
-        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
-
-        return (string) $response->getBody();
-    }
-
-    /**
-     * @param int $type
-     *
-     * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function createWebProfile($type)
-    {
-        $name = 'ThirtyBees_'.(int) $this->context->shop->id.'_'.(int) $type;
-
-        switch ($type) {
-            case self::PLUS_PROFILE:
-                return [
-                    'name' => $name,
-                    'presentation' => [
-                        'brand_name' => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                        'locale_code' => 'en_US',
-                    ],
-                    'input_fields' => [
-                        'allow_note' => false,
-                        'no_shipping' => 2,
-                        'address_override' => 1,
-                    ],
-                    'flow_config' => [
-                        'landing_page_type' => 'billing',
-                    ],
-                ];
-            case self::EXPRESS_CHECKOUT_PROFILE:
-                return [
-                    'name' => $name,
-                    'presentation' => [
-                        'brand_name' => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                        'locale_code' => 'en_US',
-                    ],
-                    'input_fields' => [
-                        'allow_note' => false,
-                        'no_shipping' => 1,
-                        'address_override' => 0,
-                    ],
-                    'flow_config' => [
-                        'landing_page_type' => 'billing',
-                    ],
-                ];
-            default:
-                return [
-                    'name' => $name,
-                    'presentation' => [
-                        'brand_name' => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image' => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                        'locale_code' => 'en_US',
-                    ],
-                    'input_fields' => [
-                        'allow_note' => false,
-                        'no_shipping' => 2,
-                        'address_override' => 1,
-                    ],
-                    'flow_config' => [
-                        'landing_page_type' => 'billing',
-                    ],
-                ];
-        }
     }
 
     /**
@@ -542,11 +521,27 @@ class PayPalRestApi
         $accessToken = $this->refreshToken();
 
         $header = [
-            'Content-Type' => 'application/json',
+            'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
         return json_decode($this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
+    }
+
+    /**
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function refreshToken()
+    {
+        if ($this->context->cookie->paypal_access_token_time_max < time()) {
+            return $this->getToken();
+        } else {
+            return $this->context->cookie->paypal_access_token_access_token;
+        }
     }
 
     /**
@@ -568,7 +563,7 @@ class PayPalRestApi
         $accessToken = $this->refreshToken();
 
         $header = [
-            'Content-Type' => 'application/json',
+            'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
@@ -596,7 +591,7 @@ class PayPalRestApi
         $accessToken = $this->refreshToken();
 
         $header = [
-            'Content-Type' => 'application/json',
+            'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
