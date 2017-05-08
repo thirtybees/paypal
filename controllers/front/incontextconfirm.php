@@ -28,7 +28,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-require_once dirname(__FILE__).'/../../paypal.php';
+require_once __DIR__.'/../../paypal.php';
 
 /**
  * Class paypalincontextconfirmModuleFrontController

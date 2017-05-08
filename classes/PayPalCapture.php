@@ -57,14 +57,14 @@ class PayPalCapture extends \ObjectModel
      * @see ObjectModel::$definition
      */
     public static $definition = [
-        'table' => 'paypal_capture',
+        'table'   => 'paypal_capture',
         'primary' => 'id_paypal_capture',
-        'fields' => [
-            'id_order' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
-            'capture_amount' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'],
-            'result' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'TEXT'],
-            'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'],
-            'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'],
+        'fields'  => [
+            'id_order'       => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
+            'capture_amount' => ['type' => self::TYPE_FLOAT,  'validate' => 'isFloat',      'required' => true, 'db_type' => 'DECIMAL(15,5)'],
+            'result'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'TEXT'],
+            'date_add'       => ['type' => self::TYPE_DATE,   'validate' => 'isDate',       'required' => true, 'db_type' => 'DATETIME'],
+            'date_upd'       => ['type' => self::TYPE_DATE,   'validate' => 'isDate',       'required' => true, 'db_type' => 'DATETIME'],
         ],
     ];
 
@@ -82,10 +82,10 @@ class PayPalCapture extends \ObjectModel
     public static function getTotalAmountCapturedByIdOrder($idOrder)
     {
         $query = new \DbQuery();
-        $query->select('SUM(capture_amount)');
+        $query->select('SUM(`capture_amount`)');
         $query->from(self::$definition['table']);
-        $query->where('id_order = '.(int) $idOrder);
-        $query->where('result = "Completed"');
+        $query->where('`id_order` = '.(int) $idOrder);
+        $query->where('`result` = \'Completed\'');
 
         return \Tools::ps_round(\Db::getInstance()->getValue($query), 2);
     }
@@ -139,9 +139,9 @@ class PayPalCapture extends \ObjectModel
     public function getListCaptured()
     {
         $query = new \DbQuery();
-        $query->from(self::$definition['table']);
-        $query->where('id_order = '.$this->id_order);
-        $query->orderBy('date_add DESC');
+        $query->from(bqSQL(static::$definition['table']));
+        $query->where('`id_order` = '.$this->id_order);
+        $query->orderBy('`date_add` DESC');
 
         $result = \Db::getInstance()->executeS($query);
 
@@ -162,8 +162,8 @@ class PayPalCapture extends \ObjectModel
         $regexp = "/^([0-9\s]{0,10})((\.|,)[0-9]{0,2})?$/isD";
 
         if (preg_match($regexp, $price)) {
-            $arrayRegexp = ["#,#isD", "# #isD"];
-            $arrayReplace = [".", ""];
+            $arrayRegexp = ['#,#isD', '# #isD'];
+            $arrayReplace = ['.', ''];
             $price = preg_replace($arrayRegexp, $arrayReplace, $price);
 
             return \Tools::ps_round($price, 2);

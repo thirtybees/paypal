@@ -28,7 +28,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-require_once dirname(__FILE__).'/../../paypal.php';
+require_once __DIR__.'/../../paypal.php';
 
 /**
  * Class paypalplussubmitModuleFrontController
@@ -38,31 +38,23 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
-
     /** @var bool $display_column_right */
     public $display_column_right = false;
-    // @codingStandardsIgnoreEnd
-
     /** @var int $idModule */
     public $idModule;
-
     /** @var int $idOrder */
     public $idOrder;
-
     /** @var string $paymentId */
     public $paymentId;
-
     /** @var string $payerId */
     public $payerId;
-
     /** @var \PayPal $module */
     public $module;
-
     /** @var string $token */
     public $token;
-
     /** @var bool $ssl */
     public $ssl = true;
+    // @codingStandardsIgnoreEnd
 
     /**
      * PayPalSubmitplusModuleFrontController constructor.

@@ -23,17 +23,26 @@ if (!defined('_PS_VERSION_')) {
 
 spl_autoload_register(
     function ($className) {
-        if (strpos($className, 'PayPalModule\\') === false) {
+        if (!in_array($className, [
+            'PayPalModule\\AvailablePaymentMethods',
+            'PayPalModule\\CallPayPalPlusApi',
+            'PayPalModule\\PayPalCapture',
+            'PayPalModule\\PayPalCustomer',
+            'PayPalModule\\PayPalLogin',
+            'PayPalModule\\PayPalLoginUser',
+            'PayPalModule\\PayPalLogos',
+            'PayPalModule\\PayPalNotifier',
+            'PayPalModule\\PayPalOrder',
+            'PayPalModule\\PayPalRestApi',
+            'PayPalModule\\PayPalTools',
+        ])) {
             return false;
         }
 
         $className = str_replace('PayPalModule\\', '', $className);
-        if (file_exists(dirname(__FILE__).'/'.$className.'.php')) {
-            require_once $className.'.php';
 
-            return true;
-        }
+        require $className.'.php';
 
-        return false;
+        return true;
     }
 );
