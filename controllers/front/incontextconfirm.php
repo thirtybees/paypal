@@ -113,7 +113,7 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
             $this->context->cart->id,
             (int) \Configuration::get('PS_OS_PAYMENT'),
             $payment->transactions[0]->amount->total,
-            $payment->payer->payment_method,
+            'PayPal',
             null,
             $transaction,
             null,

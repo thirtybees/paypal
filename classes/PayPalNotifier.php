@@ -93,7 +93,7 @@ class PayPalNotifier extends \PayPal
             $idShop = $this->context->shop->id;
             $shop = new \Shop($idShop);
 
-            $this->validateOrder($cart->id, $payment, $totalPrice, $this->displayName, $message, $transaction, $cart->id_currency, false, $customer->secure_key, $shop);
+            $this->validateOrder($cart->id, $payment, $totalPrice, 'PayPal', $message, $transaction, $cart->id_currency, false, $customer->secure_key, $shop);
         }
     }
 

@@ -1787,7 +1787,7 @@ class PayPal extends \PaymentModule
         $idCart,
         $idOrderState,
         $amountPaid,
-        $paymentMethod = 'Unknown',
+        $paymentMethod = 'PayPal',
         $message = null,
         $transaction = [],
         $currencySpecial = null,
