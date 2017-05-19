@@ -86,8 +86,6 @@
             {/if}
         },
         onAuthorize: function (data) {
-          // Note: you can display a confirmation page before executing
-
           var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript':'UTF-8'}';
           paypal.request.post(EXECUTE_PAYMENT_URL, {
             paymentID: data.paymentID,
@@ -107,49 +105,6 @@
         }
 
       }, '#container_express_checkout');
-
-      function displayExpressCheckoutShortcut() {
-        var id_product = $('input[name="id_product"]').val();
-        var id_product_attribute = $('input[name="id_product_attribute"]').val();
-        $.ajax({
-          type: 'GET',
-          url: '{$confirmationPage|escape:'javascript':'UTF-8'}',
-          data: {
-            get_qty: '1',
-            id_product: id_product,
-            id_product_attribute: id_product_attribute,
-          },
-          cache: false,
-          success: function (result) {
-            if (result == '1') {
-              $('#container_express_checkout').slideDown();
-            } else {
-              $('#container_express_checkout').slideUp();
-            }
-
-            return true;
-          }
-        });
-      }
-
-      $('select[name^="group_"]').change(function () {
-        setTimeout(function () {
-          displayExpressCheckoutShortcut()
-        }, 500);
-      });
-
-      $('.color_pick').click(function () {
-        setTimeout(function () {
-          displayExpressCheckoutShortcut()
-        }, 500);
-      });
-
-      if ($('body#product').length > 0) {
-        setTimeout(function () {
-          displayExpressCheckoutShortcut()
-        }, 500);
-      }
-
 
         {if isset($paypal_authorization)}
         /* 1.5 One page checkout*/

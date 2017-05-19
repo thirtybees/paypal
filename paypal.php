@@ -774,7 +774,6 @@ class PayPal extends \PaymentModule
         $smarty = $this->context->smarty;
         $smarty->assign([
             static::LIVE         => Configuration::get(static::LIVE),
-            'confirmationPage' => $this->context->link->getPageLink('order-confirmation', true).'&id_cart='.$this->context->cart->id.'&id_module='.$this->id.'&key='.$this->context->cart->secure_key,
             'incontextType'    => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
         ]);
 
