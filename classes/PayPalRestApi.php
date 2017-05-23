@@ -426,10 +426,6 @@ class PayPalRestApi
             unset($item);
         }
 
-        /* ItemList */
-        $itemList = new \stdClass();
-        $itemList->items = $aItems;
-
         /* Detail */
         $details = new \stdClass();
         $details->shipping = number_format($totalShippingCostWithoutTax, 2);
@@ -446,7 +442,6 @@ class PayPalRestApi
         /* Transaction */
         $transaction = new \stdClass();
         $transaction->amount = $amount;
-        $transaction->item_list = $itemList;
         $transaction->description = 'Payment description';
 
         /* Redirect Url */
