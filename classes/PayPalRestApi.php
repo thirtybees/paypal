@@ -46,29 +46,28 @@ class PayPalRestApi
     const PLUS_PROFILE = 2;
     const EXPRESS_CHECKOUT_PROFILE = 3;
 
+    // @codingStandardsIgnoreStart
     /** @var \Context $context */
     protected $context;
-
     /** @var \Cart $cart */
     protected $cart;
-
     /** @var \Customer $customer */
     protected $customer;
-
     /** @var string $clientId */
     protected $clientId;
-
     /** @var string $secret */
     protected $secret;
-
     /** @var null|string $accessToken */
     protected $accessToken = null;
-
     /** @var null|\stdClass $profiles */
     protected $profiles = null;
+    // @codingStandardsIgnoreEnd
 
     /**
      * ApiPaypalPlus constructor.
+     *
+     * @param string|null $clientId
+     * @param string|null $secret
      */
     public function __construct($clientId = null, $secret = null)
     {
@@ -174,11 +173,10 @@ class PayPalRestApi
     }
 
     /**
-     * @param string      $url URL including get params
+     * @param string      $url         URL including get params
      * @param bool|string $body
      * @param bool        $headers
      * @param bool        $identify
-     *
      * @param bool|string $requestType
      *
      * @return mixed
@@ -217,74 +215,6 @@ class PayPalRestApi
         $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
 
         return (string) $response->getBody();
-    }
-
-    /**
-     * @param int $type
-     *
-     * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    protected function createWebProfile($type)
-    {
-        $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
-
-        switch ($type) {
-            case self::PLUS_PROFILE:
-                return [
-                    'name'         => $name,
-                    'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                        'locale_code' => 'en_US',
-                    ],
-                    'input_fields' => [
-                        'allow_note'       => false,
-                        'no_shipping'      => 2,
-                        'address_override' => 1,
-                    ],
-                    'flow_config'  => [
-                        'landing_page_type' => 'billing',
-                    ],
-                ];
-            case self::EXPRESS_CHECKOUT_PROFILE:
-                return [
-                    'name'         => $name,
-                    'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                        'locale_code' => 'en_US',
-                    ],
-                    'input_fields' => [
-                        'allow_note'       => false,
-                        'no_shipping'      => 1,
-                        'address_override' => 0,
-                    ],
-                    'flow_config'  => [
-                        'landing_page_type' => 'billing',
-                    ],
-                ];
-            default:
-                return [
-                    'name'         => $name,
-                    'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
-                        'locale_code' => 'en_US',
-                    ],
-                    'input_fields' => [
-                        'allow_note'       => false,
-                        'no_shipping'      => 2,
-                        'address_override' => 1,
-                    ],
-                    'flow_config'  => [
-                        'landing_page_type' => 'billing',
-                    ],
-                ];
-        }
     }
 
     /**
@@ -351,8 +281,11 @@ class PayPalRestApi
     }
 
     /**
-     * @return \stdClass
+     * @param string|bool $returnUrl
+     * @param string|bool $cancelUrl
+     * @param int         $profile
      *
+     * @return \stdClass
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -591,5 +524,73 @@ class PayPalRestApi
         ];
 
         return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
+    }
+
+    /**
+     * @param int $type
+     *
+     * @return array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    protected function createWebProfile($type)
+    {
+        $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
+
+        switch ($type) {
+            case self::PLUS_PROFILE:
+                return [
+                    'name'         => $name,
+                    'presentation' => [
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note'       => false,
+                        'no_shipping'      => 2,
+                        'address_override' => 1,
+                    ],
+                    'flow_config'  => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+            case self::EXPRESS_CHECKOUT_PROFILE:
+                return [
+                    'name'         => $name,
+                    'presentation' => [
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note'       => false,
+                        'no_shipping'      => 1,
+                        'address_override' => 0,
+                    ],
+                    'flow_config'  => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+            default:
+                return [
+                    'name'         => $name,
+                    'presentation' => [
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'locale_code' => 'en_US',
+                    ],
+                    'input_fields' => [
+                        'allow_note'       => false,
+                        'no_shipping'      => 2,
+                        'address_override' => 1,
+                    ],
+                    'flow_config'  => [
+                        'landing_page_type' => 'billing',
+                    ],
+                ];
+        }
     }
 }

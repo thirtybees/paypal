@@ -46,64 +46,52 @@ class PayPalOrder extends \ObjectModel
     const VERIFY_SIGN = 'verify_sign';
 
     // @codingStandardsIgnoreStart
-    /** @var int $id_order */
-    public $id_order;
-
-    /** @var string $id_transaction */
-    public $id_transaction;
-
-    /** @var string $id_payer */
-    public $id_payer;
-
-    /** @var string $id_payment */
-    public $id_payment;
-
-    /** @var string $id_invoice */
-    public $id_invoice;
-
-    /** @var string $currency */
-    public $currency;
-
-    /** @var float $total_paid */
-    public $total_paid;
-
-    /** @var string $shipping */
-    public $shipping;
-
-    /** @var string $capture */
-    public $capture;
-
-    /** @var string $payment_date */
-    public $payment_date;
-
-    /** @var int $payment_method */
-    public $payment_method;
-
-    /** @var string $payment_status */
-    public $payment_status;
-    // @codingStandardsIgnoreEnd
-
     /**
      * @see ObjectModel::$definition
      */
     public static $definition = [
-        'table' => 'paypal_order',
+        'table'   => 'paypal_order',
         'primary' => 'id_paypal_order',
-        'fields' => [
-            'id_order' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
-            'id_transaction' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'id_payer' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'id_payment' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'id_invoice' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'currency' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(10)'],
-            'total_paid' => ['type' => self::TYPE_FLOAT, 'validate' => 'isFloat', 'required' => true, 'db_type' => 'DECIMAL(15,5)'],
-            'shipping' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(50)'],
-            'capture' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2)'],
-            'payment_date' => ['type' => self::TYPE_DATE, 'validate' => 'isDate', 'required' => true, 'db_type' => 'DATETIME'],
-            'payment_method' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2) UNSIGNED'],
-            'payment_status' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+        'fields'  => [
+            'id_order'       => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedId',  'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
+            'id_transaction' => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_payer'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_payment'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_invoice'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'currency'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(10)'],
+            'total_paid'     => ['type' => self::TYPE_FLOAT,  'validate' => 'isFloat',       'required' => true, 'db_type' => 'DECIMAL(15,5)'],
+            'shipping'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(50)'],
+            'capture'        => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2)'],
+            'payment_date'   => ['type' => self::TYPE_DATE,   'validate' => 'isDate',        'required' => true, 'db_type' => 'DATETIME'],
+            'payment_method' => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'required' => true, 'db_type' => 'INT(2) UNSIGNED'],
+            'payment_status' => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
         ],
     ];
+    /** @var int $id_order */
+    public $id_order;
+    /** @var string $id_transaction */
+    public $id_transaction;
+    /** @var string $id_payer */
+    public $id_payer;
+    /** @var string $id_payment */
+    public $id_payment;
+    /** @var string $id_invoice */
+    public $id_invoice;
+    /** @var string $currency */
+    public $currency;
+    /** @var float $total_paid */
+    public $total_paid;
+    /** @var string $shipping */
+    public $shipping;
+    /** @var string $capture */
+    public $capture;
+    /** @var string $payment_date */
+    public $payment_date;
+    /** @var int $payment_method */
+    public $payment_method;
+    /** @var string $payment_status */
+    public $payment_status;
+    // @codingStandardsIgnoreEnd
 
     /*
      * Get PayPal order data
@@ -156,12 +144,12 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getOrderById($idOrder)
     {
-        $sql = new \DbQuery();
-        $sql->select('*');
-        $sql->from(bqSQL(self::$definition['table']));
-        $sql->where('`id_order` = '.(int) $idOrder);
-
-        return \Db::getInstance()->getRow($sql);
+        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+            (new \DbQuery())
+                ->select('*')
+                ->from(bqSQL(self::$definition['table']))
+                ->where('`id_order` = '.(int) $idOrder)
+        );
     }
 
     /**
@@ -171,11 +159,12 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getIdOrderByTransactionId($idTransaction)
     {
-        $sql = new \DbQuery();
-        $sql->select('po.`id_order`');
-        $sql->from('paypal_order', 'po');
-        $sql->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'');
-        $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+        $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+            (new \DbQuery())
+                ->select('po.`id_order`')
+                ->from('paypal_order', 'po')
+                ->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'')
+        );
 
         if ($result != false) {
             return (int) $result['id_order'];
@@ -185,8 +174,8 @@ class PayPalOrder extends \ObjectModel
     }
 
     /**
-     * @param int    $idOrder
-     * @param string $transaction
+     * @param int   $idOrder
+     * @param array $transaction
      */
     public static function saveOrder($idOrder, $transaction)
     {
@@ -225,17 +214,13 @@ class PayPalOrder extends \ObjectModel
             $transaction['payment_status'] = 'NULL';
         }
 
-        $sql = 'UPDATE `'._DB_PREFIX_.'paypal_order`
-			SET `payment_status` = \''.pSQL($transaction['payment_status']).'\'
-			WHERE `id_order` = \''.(int) $idOrder.'\'
-				AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\'
-				AND `currency` = \''.pSQL($transaction['currency']).'\'';
-        if (\Configuration::get(\PayPal::LIVE)) {
-            $sql .= 'AND `total_paid` = \''.$transaction['total_paid'].'\'
-				AND `shipping` = \''.(float) $transaction['shipping'].'\';';
-        }
-
-        \Db::getInstance()->execute($sql);
+        \Db::getInstance()->update(
+            bqSQL(static::$definition['table']),
+            [
+                'payment_status' => pSQL($transaction['payment_status']),
+            ],
+            '`id_order` = \''.(int) $idOrder.'\' AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\' AND `currency` = \''.pSQL($transaction['currency']).'\''.((\Configuration::get(\PayPal::LIVE)) ? 'AND `total_paid` = \''.$transaction['total_paid'].'\' AND `shipping` = \''.(float) $transaction['shipping'].'\'' : '')
+        );
     }
 
     /**
@@ -247,12 +232,12 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getByPaymentId($paymentId)
     {
-        $sql = new \DbQuery();
-        $sql->select(bqSQL(self::$definition['primary']));
-        $sql->from(bqSQL(self::$definition['table']));
-        $sql->where('`id_payment` = \''.pSQL($paymentId).'\'');
-
-        if ($id = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql)) {
+        if ($id = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new \DbQuery())
+                ->select(bqSQL(self::$definition['primary']))
+                ->from(bqSQL(self::$definition['table']))
+                ->where('`id_payment` = \''.pSQL($paymentId).'\'')
+        )) {
             return new self($id);
         }
 

@@ -22,6 +22,9 @@
 
 namespace PayPalModule;
 
+use GuzzleHttp\Client;
+use Hybridauth\Exception\Exception;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -167,8 +170,17 @@ class PayPalLogos
     {
         // 604800 => One week timestamp
         if (!file_exists(_PS_MODULE_DIR_.$destination) || ((time() - filemtime(_PS_MODULE_DIR_.$destination)) > 604800) || $force) {
-            $picture = \Tools::file_get_contents($source);
-            if ((bool) $picture !== false) {
+            $guzzle = new Client([
+                'timeout'     => 60.0,
+                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
+            ]);
+            try {
+                $picture = (string) $guzzle->get($source)->getBody();
+            } catch (Exception $e) {
+                $picture = false;
+            }
+
+            if ($picture !== false) {
                 if ($handle = @fopen(_PS_MODULE_DIR_.$destination, 'w+')) {
                     $size = fwrite($handle, $picture);
                     if ($size > 0 || (file_exists(_MODULE_DIR_.$destination) && (@filesize(_MODULE_DIR_.$destination) > 0))) {

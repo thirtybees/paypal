@@ -31,7 +31,7 @@ use PayPalModule\PayPalRestApi;
 /**
  * Class PayPalexpresscheckoutModuleFrontController
  */
-class paypalexpresscheckoutModuleFrontController extends \ModuleFrontController
+class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 {
     /** @var int $idOrder */
     public $idOrder;

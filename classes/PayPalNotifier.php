@@ -22,6 +22,9 @@
 
 namespace PayPalModule;
 
+use GuzzleHttp\Client;
+use Hybridauth\Exception\Exception;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -98,7 +101,7 @@ class PayPalNotifier extends \PayPal
     }
 
     /**
-     * @return bool|mixed
+     * @return false|string
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -114,6 +117,15 @@ class PayPalNotifier extends \PayPal
 
         $request = '&'.http_build_query($_POST, '&');
 
-        return \Tools::file_get_contents($actionUrl.$request);
+        $guzzle = new Client([
+            'timeout' => 60.0,
+            'verify'  => _PS_TOOL_DIR_.'cacert.pem',
+        ]);
+
+        try {
+            return (string) $guzzle->get($actionUrl.$request)->getBody();
+        } catch (Exception $e) {
+            return false;
+        }
     }
 }

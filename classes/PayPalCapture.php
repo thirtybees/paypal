@@ -34,25 +34,6 @@ if (!defined('_TB_VERSION_')) {
 class PayPalCapture extends \ObjectModel
 {
     // @codingStandardsIgnoreStart
-    /** @var int $id_order */
-    public $id_order;
-
-    /** @var float $capture_amount */
-    public $capture_amount;
-
-    /** @var $result */
-    public $result;
-
-    /** @var string $date_add */
-    public $date_add;
-
-    /** @var string $date_upd */
-    public $date_upd;
-
-    /** @var int $id_paypal_capture */
-    public $id_paypal_capture;
-    // @codingStandardsIgnoreEnd
-
     /**
      * @see ObjectModel::$definition
      */
@@ -67,6 +48,19 @@ class PayPalCapture extends \ObjectModel
             'date_upd'       => ['type' => self::TYPE_DATE,   'validate' => 'isDate',       'required' => true, 'db_type' => 'DATETIME'],
         ],
     ];
+    /** @var int $id_order */
+    public $id_order;
+    /** @var float $capture_amount */
+    public $capture_amount;
+    /** @var $result */
+    public $result;
+    /** @var string $date_add */
+    public $date_add;
+    /** @var string $date_upd */
+    public $date_upd;
+    /** @var int $id_paypal_capture */
+    public $id_paypal_capture;
+    // @codingStandardsIgnoreEnd
 
     /**
      * Get the total amount that has been captured for the given Order
@@ -81,13 +75,13 @@ class PayPalCapture extends \ObjectModel
      */
     public static function getTotalAmountCapturedByIdOrder($idOrder)
     {
-        $query = new \DbQuery();
-        $query->select('SUM(`capture_amount`)');
-        $query->from(self::$definition['table']);
-        $query->where('`id_order` = '.(int) $idOrder);
-        $query->where('`result` = \'Completed\'');
-
-        return \Tools::ps_round(\Db::getInstance()->getValue($query), 2);
+        return \Tools::ps_round(\Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new \DbQuery())
+                ->select('SUM(`capture_amount`)')
+                ->from(self::$definition['table'])
+                ->where('`id_order` = '.(int) $idOrder)
+                ->where('`result` = \'Completed\'')
+        ), 2);
     }
 
     /**
@@ -138,12 +132,12 @@ class PayPalCapture extends \ObjectModel
      */
     public function getListCaptured()
     {
-        $query = new \DbQuery();
-        $query->from(bqSQL(static::$definition['table']));
-        $query->where('`id_order` = '.$this->id_order);
-        $query->orderBy('`date_add` DESC');
-
-        $result = \Db::getInstance()->executeS($query);
+        $result = \Db::getInstance()->executeS(
+            (new \DbQuery())
+                ->from(bqSQL(static::$definition['table']))
+                ->where('`id_order` = '.$this->id_order)
+                ->orderBy('`date_add` DESC')
+        );
 
         return $result;
     }

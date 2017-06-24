@@ -63,11 +63,11 @@ class PayPalCustomer extends \ObjectModel
      */
     public static function getPayPalCustomerIdByEmail($email)
     {
-        $sql = new \DbQuery();
-        $sql->select('pc.`id_customer`');
-        $sql->from(bqSQL(self::$definition['table']), 'pc');
-        $sql->where('pc.`paypal_email` = \''.pSQL($email).'\'');
-
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue($sql);
+        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new \DbQuery())
+                ->select('pc.`id_customer`')
+                ->from(bqSQL(self::$definition['table']), 'pc')
+                ->where('pc.`paypal_email` = \''.pSQL($email).'\'')
+        );
     }
 }
