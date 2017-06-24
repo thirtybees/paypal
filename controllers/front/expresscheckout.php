@@ -397,7 +397,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     protected function validateOrder($customer, $cart, $payment)
     {
         $transactionAmount = (float) $payment->transactions[0]->amount->total;
-        $orderTotal = (float) $cart->getOrderTotal(true, \Cart::BOTH);
+        $orderTotal = (float) round($cart->getOrderTotal(true, \Cart::BOTH), 2);
 
         // Payment succeed
         if (\Tools::strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
