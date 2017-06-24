@@ -321,72 +321,134 @@ class PayPalRestApi
             $giftWithoutTax = 0;
         }
 
+        // PayPal does not always apply discounts and taxes in the way thirty bees can
+        // To account for this we are going to keep track of the difference and apply
+        // these to the `shipping_discount` (if negative difference) or `handling_fee` (positive)
+        // fields when necessary.
+        $remaining = round($totalCartWithTax, 2);
+
         $cartItems = $cart->getProducts();
 
         $state = new \State($address->id_state);
-        $shippingAddress = new \stdClass();
-        $shippingAddress->recipient_name = $address->alias;
-        $shippingAddress->type = 'residential';
-        $shippingAddress->line1 = $address->address1;
-        $shippingAddress->line2 = $address->address2;
-        $shippingAddress->city = $address->city;
-        $shippingAddress->country_code = $isoCode;
-        $shippingAddress->postal_code = $address->postcode;
-        $shippingAddress->state = ($state->iso_code == null) ? '' : $state->iso_code;
-        $shippingAddress->phone = $address->phone;
+        $shippingAddress = (object) [
+            'recipient_name' => $address->alias,
+            'type'           => 'residential',
+            'line1'          => $address->address1,
+            'line2'          => $address->address2,
+            'city'           => $address->city,
+            'country_code'   => $isoCode,
+            'postal_code'    => $address->postcode,
+            'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
+            'phone'          => $address->phone,
+        ];
 
-        $payerInfo = new \stdClass();
-        $payerInfo->email = '"'.$customer->email.'"';
-        $payerInfo->first_name = $address->firstname;
-        $payerInfo->last_name = $address->lastname;
-        $payerInfo->country_code = '"'.$isoCode.'"';
-        $payerInfo->shipping_address = [$shippingAddress];
+        $payerInfo = (object) [
+            'email'            => '"'.$customer->email.'"',
+            'first_name'       => $address->firstname,
+            'last_name'        => $address->lastname,
+            'country_code'     => '"'.$isoCode.'"',
+            'shipping_address' => [$shippingAddress],
+        ];
 
         $payer = new \stdClass();
         $payer->payment_method = 'paypal';
         //$payer->payer_info = $payer_info; // Objet set by PayPal
 
+        $subTotal = 0.00000;
+        $subTotalTax = 0.00000;
         $aItems = [];
         /* Item */
         foreach ($cartItems as $cartItem) {
-            $item = new \stdClass();
-            $item->name = $cartItem['name'];
-            $item->currency = $oCurrency->iso_code;
-            $item->quantity = $cartItem['quantity'];
-            $item->price = number_format(round($cartItem['price'], 2), 2);
-            $item->tax = number_format(round($cartItem['price_wt'] - $cartItem['price'], 2), 2);
-            $aItems[] = $item;
-            unset($item);
+            $roundedTotalWithoutTax = round($cartItem['total'], 2);
+            $roundedTax = round($cartItem['total_wt'] - $cartItem['total'], 2);
+            $quantity = $cartItem['cart_quantity'];
+            $lastItemPriceDifference = round($roundedTotalWithoutTax - round($cartItem['price'], 2) * $quantity, 2);
+            $lastItemTaxDifference = round($roundedTax - round($cartItem['price_wt'] - $cartItem['price'], 2) * $quantity, 2);
+
+            // If the last item has at least one cent difference on this cart line, then change the price of the last item
+            if ($lastItemPriceDifference >= 0.01 || $lastItemTaxDifference >= 0.01) {
+                $aItems[] = (object) [
+                    'name'     => $cartItem['name'],
+                    'currency' => strtoupper($oCurrency->iso_code),
+                    'quantity' => $quantity - 1,
+                    'price'    => round($cartItem['price'], 2),
+                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2),
+                ];
+                $remaining -= round($cartItem['price'], 2) * ($quantity - 1);
+                $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
+                $subTotal += round($cartItem['price'], 2) * ($quantity - 1);
+                $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
+                $aItems[] = (object) [
+                    'name'     => $cartItem['name'],
+                    'currency' => strtoupper($oCurrency->iso_code),
+                    'quantity' => 1,
+                    'price'    => round($cartItem['price'], 2) + $lastItemPriceDifference,
+                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference,
+                ];
+                $remaining -= round($cartItem['price'], 2) + $lastItemPriceDifference;
+                $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference;
+                $subTotal += round($cartItem['price'], 2) + $lastItemPriceDifference;
+                $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference;
+            } else {
+                $aItems[] = (object) [
+                    'name'     => $cartItem['name'],
+                    'currency' => strtoupper($oCurrency->iso_code),
+                    'quantity' => $quantity,
+                    'price'    => round($cartItem['price'], 2),
+                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2),
+                ];
+                $remaining -= round($cartItem['price'], 2) * $quantity;
+                $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * $quantity;
+                $subTotal += round($cartItem['price'], 2) * $quantity;
+                $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) * $quantity;
+            }
         }
 
-        /* Detail */
-        $details = new \stdClass();
-        $details->shipping = number_format($totalShippingCostWithoutTax, 2);
-        $details->tax = number_format($totalTax, 2);
-        $details->handling_fee = number_format($giftWithoutTax, 2);
-        $details->subtotal = number_format($totalCartWithoutTax - $totalShippingCostWithoutTax - $giftWithoutTax, 2);
+        $details = [
+            'shipping'     => round($totalShippingCostWithoutTax, 2),
+            'tax'          => $subTotalTax,
+            'subtotal'     => $subTotal,
+        ];
+
+        $remaining -= round($totalShippingCostWithoutTax, 2);
+
+        // Now we are going to handle the differences
+        // if despite the gift wrapping costs, the remaining number is negative, we have applied some discounts
+        // that couldn't be handled in a PayPal way. Therefore, we fill the `shipping_discount` field.
+        if (round($remaining - $giftWithoutTax, 2) < 0) {
+            $details['shipping_discount'] = abs(round($remaining - $giftWithoutTax, 2));
+        } else {
+            $details['handling_fee'] = round($remaining - $giftWithoutTax, 2);
+        }
 
         /* Amount */
-        $amount = new \stdClass();
-        $amount->total = number_format($totalCartWithTax, 2);
-        $amount->currency = $oCurrency->iso_code;
-        $amount->details = $details;
+        $amount = (object) [
+            'total'    => round($totalCartWithTax, 2),
+            'currency' => $oCurrency->iso_code,
+            'details'  => $details,
+        ];
 
         /* Transaction */
-        $transaction = new \stdClass();
-        $transaction->amount = $amount;
-        $transaction->description = 'Payment description';
+        $transaction = (object) [
+            'amount'      => $amount,
+            'description' => 'Payment description',
+            'item_list'   => [
+                'items' => $aItems,
+            ],
+        ];
 
         /* Redirect Url */
-        $redirectUrls = new \stdClass();
-        $redirectUrls->cancel_url = $cancelUrl;
-        $redirectUrls->return_url = $returnUrl;
+        $redirectUrls = (object) [
+            'cancel_url' => $cancelUrl,
+            'return_url' => $returnUrl,
+        ];
 
         /* Payment */
-        $payment = new \stdClass();
-        $payment->transactions = [$transaction];
-        $payment->payer = $payer;
-        $payment->intent = 'sale';
+        $payment = (object) [
+            'transactions' => [$transaction],
+            'payer'        => $payer,
+            'intent'       => 'sale',
+        ];
         if (\Configuration::get(\PayPal::LIVE)) {
             switch ($profile) {
                 case self::PLUS_PROFILE:
