@@ -130,8 +130,8 @@ class PayPalLogin
         }
 
         $params = [
-            'grant_type' => 'authorization_code',
-            'code' => \Tools::getValue('code'),
+            'grant_type'   => 'authorization_code',
+            'code'         => \Tools::getValue('code'),
             'redirect_url' => PayPalLogin::getReturnLink(),
         ];
 
