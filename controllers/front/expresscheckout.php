@@ -63,7 +63,11 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             return;
         }
 
-        $this->preparePayment();
+        if (!Validate::isLoadedObject(Context::getContext()->cart)) {
+            $this->errors[] = $this->l('Cart not found');
+        } else {
+            $this->preparePayment();
+        }
 
         return;
     }

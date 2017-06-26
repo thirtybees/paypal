@@ -36,27 +36,43 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
 
     /**
      * Initialize content
+     *
+     * @return void
      */
     public function initContent()
     {
         if (\Tools::isSubmit('updateCart')) {
-            return $this->updateCart();
+            $this->updateCart();
+
+            return;
         } elseif (\Tools::isSubmit('get_qty')) {
-            return $this->checkQuantity();
+            $this->checkQuantity();
+
+            return;
         }
 
-        $rest = new PayPalRestApi();
-        $payment = $rest->createPayment(false, false, PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
+        $errors = [];
+        if (!Validate::isLoadedObject(Context::getContext()->cart)) {
+            $rest = new PayPalRestApi();
+            $payment = $rest->createPayment(false, false, PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
 
-        if (isset($payment->id)) {
-            header('Content-Type: application/json');
-            echo json_encode([
-                'paymentID' => $payment->id,
-            ]);
-            die();
+            if (isset($payment->id)) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'paymentID' => $payment->id,
+                    'hasError'  => false,
+                    'errors'    => [],
+                ]);
+                die();
+            }
+        } else {
+            $errors[] = $this->module->l('Cart ID not found');
         }
 
-        die('{}');
+        die(json_encode([
+            'hasError' => true,
+            'errors'   => $errors,
+        ]));
     }
 
     /**
