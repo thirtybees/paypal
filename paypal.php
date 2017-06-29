@@ -123,7 +123,7 @@ class PayPal extends \PaymentModule
     {
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
-        $this->version = '5.2.1';
+        $this->version = '5.2.2';
         $this->author = 'thirty bees';
 
         $this->currencies = true;
@@ -665,12 +665,12 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @return null|string
+     * @return string
      */
     public function hookPaymentReturn($params)
     {
-        if (!$this->active) {
-            return null;
+        if (!$this->active || !isset($params['order']) || !$params['order'] instanceof Order) {
+            return '';
         }
 
         /** @var Order $order */
