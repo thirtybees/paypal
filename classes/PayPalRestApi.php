@@ -406,8 +406,8 @@ class PayPalRestApi
 
         $details = [
             'shipping'     => round($totalShippingCostWithoutTax, 2),
-            'tax'          => $subTotalTax,
-            'subtotal'     => $subTotal,
+            'tax'          => round($subTotalTax, 2),
+            'subtotal'     => round($subTotal, 2),
         ];
 
         $remaining -= round($totalShippingCostWithoutTax, 2);
