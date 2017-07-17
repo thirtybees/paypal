@@ -274,9 +274,7 @@ class PayPalRestApi
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$this->getToken(),
         ];
-
         $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
-
         return $result;
     }
 
@@ -331,28 +329,17 @@ class PayPalRestApi
 
         $state = new \State($address->id_state);
         $shippingAddress = (object) [
-            'recipient_name' => $address->alias,
-            'type'           => 'residential',
+            'recipient_name' => $customer->firstname.' '.$customer->lastname,
             'line1'          => $address->address1,
             'line2'          => $address->address2,
             'city'           => $address->city,
             'country_code'   => $isoCode,
             'postal_code'    => $address->postcode,
-            'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
-            'phone'          => $address->phone,
-        ];
-
-        $payerInfo = (object) [
-            'email'            => '"'.$customer->email.'"',
-            'first_name'       => $address->firstname,
-            'last_name'        => $address->lastname,
-            'country_code'     => '"'.$isoCode.'"',
-            'shipping_address' => [$shippingAddress],
-        ];
+            'state'          => ($state->iso_code == null) ? '' : $state->iso_code
+        ]; 
 
         $payer = new \stdClass();
         $payer->payment_method = 'paypal';
-        //$payer->payer_info = $payer_info; // Objet set by PayPal
 
         $subTotal = 0.00000;
         $subTotalTax = 0.00000;
@@ -434,6 +421,7 @@ class PayPalRestApi
             'description' => 'Payment description',
             'item_list'   => [
                 'items' => $aItems,
+                'shipping_address' => $shippingAddress
             ],
         ];
 
