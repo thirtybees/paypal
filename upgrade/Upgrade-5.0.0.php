@@ -23,27 +23,13 @@
 function upgrade_module_5_0_0($module)
 {
     /** @var PayPal $module */
-    if (!Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue('
-            SELECT *
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = \''._DB_NAME_.'\'
-            AND TABLE_NAME = \''._DB_PREFIX_.'paypal_order\'
-            AND COLUMN_NAME = \'id_payer\'')) {
-        Db::getInstance()->execute(
-            'ALTER IGNORE TABLE `'._DB_PREFIX_.'paypal_order`
-                 ADD COLUMN id_payer VARCHAR(255)'
-        );
+    try {
+        Db::getInstance()->execute('ALTER TABLE `'._DB_PREFIX_.'paypal_order` ADD COLUMN `id_payer` VARCHAR(255)');
+    } catch (PrestaShopDatabaseException $e) {
     }
-    if (!Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue('
-            SELECT *
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = \''._DB_NAME_.'\'
-            AND TABLE_NAME = \''._DB_PREFIX_.'paypal_order\'
-            AND COLUMN_NAME = \'id_payment\'')) {
-        Db::getInstance()->execute(
-            'ALTER IGNORE TABLE `'._DB_PREFIX_.'paypal_order`
-                 ADD COLUMN id_payment VARCHAR(255)'
-        );
+    try {
+        Db::getInstance()->execute('ALTER TABLE `'._DB_PREFIX_.'paypal_order` ADD COLUMN `id_payment` VARCHAR(255)');
+    } catch (PrestaShopDatabaseException $e) {
     }
 
     return true;
