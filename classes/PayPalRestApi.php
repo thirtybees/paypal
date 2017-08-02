@@ -595,7 +595,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => 'en_US',
                     ],
                     'input_fields' => [
@@ -612,7 +612,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => 'en_US',
                     ],
                     'input_fields' => [
@@ -629,7 +629,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_.__PS_BASE_URI__.'img/logo.jpg',
+                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => 'en_US',
                     ],
                     'input_fields' => [
