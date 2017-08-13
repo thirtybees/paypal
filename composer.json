@@ -1,0 +1,20 @@
+{
+    "name": "thirtybees/paypal",
+    "description": "PayPal module for thirty bees",
+    "type": "library",
+    "license": "AFLv3",
+    "authors": [
+        {
+            "name": "Michael Dekker",
+            "email": "git@michaeldekker.nl"
+        }
+    ],
+    "require": {
+        "paypal/merchant-sdk-php": "^3.11"
+    },
+    "autoload": {
+        "psr-0": {
+            "PayPalModule": "classes/"
+        }
+    }
+}
