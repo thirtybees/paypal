@@ -27,7 +27,7 @@ if (!defined('_TB_VERSION_')) {
     exit;
 }
 
-require_once __DIR__.'/classes/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
@@ -150,11 +150,13 @@ class PayPal extends \PaymentModule
 
         // Only check from Back Office
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id) {
-            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
-                'configure'   => $this->name,
-                'tab_module'  => $this->tab,
-                'module_name' => $this->name,
-            ]);
+            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query(
+                    [
+                        'configure'   => $this->name,
+                        'tab_module'  => $this->tab,
+                        'module_name' => $this->name,
+                    ]
+                );
         }
     }
 
@@ -323,6 +325,91 @@ class PayPal extends \PaymentModule
     }
 
     /**
+     * Post process
+     */
+    protected function postProcess()
+    {
+        if (Tools::isSubmit('checktls') && (bool) Tools::getValue('checktls')) {
+            $this->tlsCheck();
+        }
+
+        if (\Tools::isSubmit('submit'.$this->name)) {
+            // General
+            \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
+            \Configuration::updateValue(static::LIVE, (int) \Tools::getValue(static::LIVE));
+            \Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) \Tools::getValue(static::IMMEDIATE_CAPTURE));
+
+            // REST API
+            \Configuration::updateValue(static::CLIENT_ID, \Tools::getValue(static::CLIENT_ID));
+            \Configuration::updateValue(static::SECRET, \Tools::getValue(static::SECRET));
+
+            if (\Tools::getValue(static::CLIENT_ID) && \Tools::getValue(static::SECRET)) {
+                $rest = new PayPalRestApi(\Tools::getValue(static::CLIENT_ID), \Tools::getValue(static::SECRET));
+                $rest->getWebProfiles();
+                $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
+                $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
+                $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
+
+                if (\Tools::getValue(static::LIVE)) {
+                    if ($standardProfile) {
+                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                    }
+                    if ($plusProfile) {
+                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                    }
+                    if ($expressCheckoutProfile) {
+                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                    }
+                } else {
+                    if ($standardProfile) {
+                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                    }
+                    if ($plusProfile) {
+                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                    }
+                    if ($expressCheckoutProfile) {
+                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                    }
+                }
+            }
+
+            // Website Payments Standard
+            \Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
+
+            // Website Payments Plus
+            \Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
+
+            // Express Checkout
+            \Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, \Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+
+            // PayPal Login
+            \Configuration::updateValue(static::LOGIN_ENABLED, (int) \Tools::getValue(static::LOGIN_ENABLED));
+            \Configuration::updateValue(static::LOGIN_THEME, (int) \Tools::getValue(static::LOGIN_THEME));
+        }
+    }
+
+    /**
+     * Check if server supports TLSv1.2
+     */
+    protected function tlsCheck()
+    {
+        $guzzle = new \GuzzleHttp\Client(
+            [
+                'timeout'     => 10.0,
+                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
+                'http_errors' => false,
+            ]
+        );
+        $response = $guzzle->get('https://tlstest.paypal.com/');
+
+        if ((string) $response->getBody() === 'PayPal_Connection_OK') {
+            $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_OK);
+        } else {
+            $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_ERROR);
+        }
+    }
+
+    /**
      * Update configuration value in ALL contexts
      *
      * @param string $key    Configuration key
@@ -338,6 +425,368 @@ class PayPal extends \PaymentModule
     }
 
     /**
+     * Render the main form
+     *
+     * @return string
+     */
+    protected function renderMainForm()
+    {
+        $helper = new \HelperForm();
+
+        $helper->show_toolbar = false;
+        $helper->module = $this;
+        $helper->default_form_language = $this->context->language->id;
+        $helper->allow_employee_form_lang = \Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
+
+        $helper->identifier = $this->identifier;
+        $helper->submit_action = 'submit'.$this->name;
+        $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query(
+                [
+                    'configure' => $this->name,
+                ]
+            );
+
+        $helper->token = \Tools::getAdminTokenLite('AdminModules');
+
+        $helper->tpl_vars = [
+            'fields_value' => $this->getMainFormValues(),
+            'languages'    => $this->context->controller->getLanguages(),
+            'id_language'  => $this->context->language->id,
+        ];
+
+        return $helper->generateForm(
+            [
+                $this->getGeneralForm(),
+                $this->getRestApiForm(),
+                $this->getWebsitePaymentsStandardForm(),
+                $this->getWebsitePaymentsPlusForm(),
+                $this->getExpressCheckoutForm(),
+                $this->getLoginForm(),
+            ]
+        );
+    }
+
+    /**
+     * Get main form configuration values
+     *
+     * @return array
+     */
+    protected function getMainFormValues()
+    {
+        return [
+            static::STORE_COUNTRY               => (int) \Configuration::get(static::STORE_COUNTRY),
+            static::LIVE                        => \Configuration::get(static::LIVE),
+            static::STANDARD_WEBSITE_PROFILE_ID => \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
+
+            static::WEBSITE_PAYMENTS_STANDARD_ENABLED => \Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
+            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => \Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
+            static::EXPRESS_CHECKOUT_ENABLED          => \Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
+            static::LOGIN_ENABLED                     => \Configuration::get(static::LOGIN_ENABLED),
+            static::LOGIN_THEME                       => \Configuration::get(static::LOGIN_THEME),
+
+            static::CLIENT_ID => \Configuration::get(static::CLIENT_ID),
+            static::SECRET    => \Configuration::get(static::SECRET),
+        ];
+    }
+
+    /**
+     * Get the general form structure
+     *
+     * @return array
+     */
+    protected function getGeneralForm()
+    {
+        return [
+            'form' => [
+                'legend' => [
+                    'title' => $this->l('General'),
+                    'icon'  => 'icon-puzzle-piece',
+                ],
+                'input'  => [
+                    [
+                        'type'     => 'select',
+                        'label'    => $this->l('Your country'),
+                        'name'     => static::STORE_COUNTRY,
+                        'required' => true,
+                        'options'  => [
+                            'query' => \Country::getCountries($this->context->language->id),
+                            'id'    => 'id_country',
+                            'name'  => 'name',
+                        ],
+                    ],
+                    [
+                        'type'   => 'switch',
+                        'label'  => $this->l('Go Live'),
+                        'name'   => static::LIVE,
+                        'values' => [
+                            [
+                                'id'    => 'flushdb_on',
+                                'value' => 1,
+                                'label' => $this->l('Sandbox'),
+                            ],
+                            [
+                                'id'    => 'flushdb_off',
+                                'value' => 0,
+                                'label' => $this->l('Live'),
+                            ],
+                        ],
+                        'desc'   => $this->l('Enable this options to go live, otherwise the sandbox is used, which you can use to test your store.'),
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->l('Save'),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Get the REST API form structure
+     *
+     * @return array
+     */
+    protected function getRestApiForm()
+    {
+        if (\Configuration::get(static::LIVE)) {
+            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
+            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+        } else {
+            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID);
+            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID);
+            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+        }
+
+        if (!$this->context->smarty->getTemplateVars('standardProfile')) {
+            $this->context->smarty->assign(
+                [
+                    'standardProfile'        => $standardProfile,
+                    'plusProfile'            => $plusProfile,
+                    'expressCheckoutProfile' => $expressCheckoutProfile,
+                ]
+            );
+        }
+
+        if ($standardProfile && $plusProfile && $expressCheckoutProfile) {
+            $profileType = 'confirmation';
+            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_correct.tpl');
+        } else {
+            $profileType = 'error';
+            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_missing.tpl');
+        }
+
+        return [
+            'form' => [
+                'legend' => [
+                    'title' => $this->l('Api Settings'),
+                    'icon'  => 'icon-server',
+                ],
+                'input'  => [
+                    [
+                        'type'  => 'text',
+                        'label' => $this->l('CLIENT ID'),
+                        'name'  => static::CLIENT_ID,
+                        'desc'  => $this->l('Enter the CLIENT ID'),
+                    ],
+                    [
+                        'type'  => 'text',
+                        'label' => $this->l('SECRET'),
+                        'name'  => static::SECRET,
+                        'desc'  => $this->l('Enter the SECRET'),
+                    ],
+                    [
+                        'type'  => $profileType,
+                        'label' => $this->l('Website Profiles'),
+                        'name'  => static::STANDARD_WEBSITE_PROFILE_ID,
+                        'text'  => $profileText,
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->l('Save'),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Get the Website Payments Standard form structure
+     *
+     * @return array
+     */
+    protected function getWebsitePaymentsStandardForm()
+    {
+        return [
+            'form' => [
+                'legend' => [
+                    'title' => $this->l('Website Payments Standard'),
+                    'icon'  => 'icon-credit-card',
+                ],
+                'input'  => [
+                    [
+                        'type'   => 'switch',
+                        'label'  => $this->l('Enable Website Payments Standard'),
+                        'name'   => static::WEBSITE_PAYMENTS_STANDARD_ENABLED,
+                        'values' => [
+                            [
+                                'id'    => 'flushdb_on',
+                                'value' => 1,
+                                'label' => $this->l('Enabled'),
+                            ],
+                            [
+                                'id'    => 'flushdb_off',
+                                'value' => 0,
+                                'label' => $this->l('Disabled'),
+                            ],
+                        ],
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->l('Save'),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Get the Website Payments Plus form structure
+     *
+     * @return array
+     */
+    protected function getWebsitePaymentsPlusForm()
+    {
+        return [
+            'form' => [
+                'legend' => [
+                    'title' => $this->l('Website Payments Plus'),
+                    'icon'  => 'icon-credit-card',
+                ],
+                'input'  => [
+                    [
+                        'type'   => 'switch',
+                        'label'  => $this->l('Enable Website Payments Plus'),
+                        'name'   => static::WEBSITE_PAYMENTS_PLUS_ENABLED,
+                        'values' => [
+                            [
+                                'id'    => 'flushdb_on',
+                                'value' => 1,
+                                'label' => $this->l('Enabled'),
+                            ],
+                            [
+                                'id'    => 'flushdb_off',
+                                'value' => 0,
+                                'label' => $this->l('Disabled'),
+                            ],
+                        ],
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->l('Save'),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Get the Express Checkout form structure
+     *
+     * @return array
+     */
+    protected function getExpressCheckoutForm()
+    {
+        return [
+            'form' => [
+                'legend' => [
+                    'title' => $this->l('Express Checkout'),
+                    'icon'  => 'icon-credit-card',
+                ],
+                'input'  => [
+                    [
+                        'type'   => 'switch',
+                        'label'  => $this->l('Enable Express Checkout'),
+                        'name'   => static::EXPRESS_CHECKOUT_ENABLED,
+                        'values' => [
+                            [
+                                'id'    => 'flushdb_on',
+                                'value' => 1,
+                                'label' => $this->l('Enabled'),
+                            ],
+                            [
+                                'id'    => 'flushdb_off',
+                                'value' => 0,
+                                'label' => $this->l('Disabled'),
+                            ],
+                        ],
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->l('Save'),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Get the login form structure
+     *
+     * @return array
+     */
+    protected function getLoginForm()
+    {
+        return [
+            'form' => [
+                'legend'      => [
+                    'title' => $this->l('PayPal Login'),
+                    'icon'  => 'icon-key',
+                ],
+                'description' => $this->l('Use the following link for this store (repeat if you have multiple stores!) as the `redirect_uri` setting:').' '.PayPalLogin::getReturnLink(),
+                'input'       => [
+                    [
+                        'type'   => 'switch',
+                        'label'  => $this->l('Enable PayPal Login'),
+                        'name'   => static::LOGIN_ENABLED,
+                        'values' => [
+                            [
+                                'id'    => 'flushdb_on',
+                                'value' => 1,
+                                'label' => $this->l('Enabled'),
+                            ],
+                            [
+                                'id'    => 'flushdb_off',
+                                'value' => 0,
+                                'label' => $this->l('Disabled'),
+                            ],
+                        ],
+                    ],
+                    [
+                        'type'    => 'radio',
+                        'label'   => $this->l('Theme'),
+                        'desc'    => $this->l('Choose the button style'),
+                        'name'    => static::LOGIN_THEME,
+                        'is_bool' => true,
+                        'values'  => [
+                            [
+                                'id'    => 'neutral',
+                                'value' => 0,
+                                'label' => $this->l('Neutral'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_grey.png'),
+                            ],
+                            [
+                                'id'    => 'blue',
+                                'value' => 1,
+                                'label' => $this->l('Blue'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_blue.png'),
+                            ],
+                        ],
+                    ],
+                ],
+                'submit'      => [
+                    'title' => $this->l('Save'),
+                ],
+            ],
+        ];
+    }
+
+    /**
      * Get the main configuration page
      *
      * @return string
@@ -345,6 +794,64 @@ class PayPal extends \PaymentModule
     public function getMainConfigurationPage()
     {
         return $this->renderMainForm();
+    }
+
+    /**
+     * @return bool
+     */
+    public function canBeUsed()
+    {
+        return true;
+    }
+
+    /**
+     * Hooks methods
+     *
+     * @return string
+     */
+    public function hookHeader()
+    {
+        // TODO: check if this module should be hooked
+        if (isset($this->context->cart) && $this->context->cart->id) {
+            $this->context->smarty->assign('id_cart', (int) $this->context->cart->id);
+        }
+
+        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/views/css/paypal.css');
+
+        $smarty = $this->context->smarty;
+        $smarty->assign(
+            [
+                static::LIVE    => Configuration::get(static::LIVE),
+                'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
+            ]
+        );
+
+        $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
+        $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
+
+        if ((
+                (method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
+                        == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc'))
+                || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name']
+                        == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
+            && Configuration::get(static::LOGIN_ENABLED)
+        ) {
+            $this->context->smarty->assign(
+                [
+                    'paypal_locale' => $this->getLocale(),
+                    'client_id'     => Configuration::get(static::CLIENT_ID),
+                    'login_theme'   => Configuration::get(static::LOGIN_THEME),
+                    'live'          => Configuration::get(static::LIVE),
+                    'return_link'   => PayPalLogin::getReturnLink(),
+                ]
+            );
+
+            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
+            $process .= '<script async defer type="text/javascript" src="'.\Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
+            $process .= $this->display(__FILE__, 'views/templates/front/paypal_loginjs.tpl');
+        }
+
+        return $process;
     }
 
     /**
@@ -398,6 +905,143 @@ class PayPal extends \PaymentModule
             default:
                 return 'en-gb';
         }
+    }
+
+    /**
+     * Hook to product actions
+     *
+     * @return string
+     */
+    public function hookProductActions()
+    {
+        return $this->hookProductFooter();
+    }
+
+    /**
+     * Product Footer hook
+     *
+     * @return string Hook HTML
+     */
+    public function hookProductFooter()
+    {
+        if (!\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
+            return '';
+        }
+
+        return $this->renderExpressCheckoutForm('product');
+    }
+
+    /**
+     * @param string $type
+     *
+     * @return null|string
+     */
+    public function renderExpressCheckoutForm($type)
+    {
+        $idProduct = (int) \Tools::getValue('id_product');
+        $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
+        if ($idProductAttribute) {
+            $minimalQuantity = \Attribute::getAttributeMinimalQty($idProductAttribute);
+        } else {
+            $product = new \Product($idProduct);
+            $minimalQuantity = $product->minimal_quantity;
+        }
+
+        $this->context->smarty->assign(
+            [
+                'PayPal_payment_type'           => $type,
+                'PayPal_current_page'           => $this->getCurrentUrl(),
+                'id_product_attribute_ecs'      => $idProductAttribute,
+                'product_minimal_quantity'      => $minimalQuantity,
+                'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
+            ]
+        );
+
+        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+    }
+
+    /**
+     * Get current URL
+     *
+     * @return string
+     */
+    protected function getCurrentUrl()
+    {
+        $protocolLink = \Tools::usingSecureMode() ? 'https://' : 'http://';
+        $request = $_SERVER['REQUEST_URI'];
+        $pos = strpos($request, '?');
+
+        if (($pos !== false) && ($pos >= 0)) {
+            $request = \Tools::substr($request, 0, $pos);
+        }
+
+        $params = urlencode($_SERVER['QUERY_STRING']);
+
+        return $protocolLink.\Tools::getShopDomainSsl().$request.'?'.$params;
+    }
+
+    /**
+     * DisplayPayment Hook
+     *
+     * @return null|string
+     */
+    public function hookPayment()
+    {
+        $isoLang = [
+            'en' => 'en_US',
+            'fr' => 'fr_FR',
+            'de' => 'de_DE',
+            'nl' => 'nl_NL',
+        ];
+
+        $this->context->smarty->assign(
+            [
+                'logos'            => PayPalLogos::getLogos($this->getLocale()),
+                static::LIVE       => \Configuration::get(static::LIVE),
+                'use_mobile'       => true,
+                'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
+            ]
+        );
+
+        $output = '';
+        if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+            $output .= $this->display(__FILE__, 'express_checkout_payment.tpl');
+        }
+
+        if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+            $rest = new PayPalRestApi();
+            $payment = $rest->createPayment(
+                $this->context->link->getModuleLink($this->name, 'plussubmit', [], true),
+                $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
+                PayPalRestApi::PLUS_PROFILE
+            );
+
+            $approvalUrl = '';
+            if (isset($payment->id) && $payment->id) {
+                foreach ($payment->links as $link) {
+                    if ($link->rel === 'approval_url') {
+                        $approvalUrl = $link->href;
+                        break;
+                    }
+                }
+            }
+
+            if ($approvalUrl) {
+                $this->context->smarty->assign(
+                    [
+                        'approval_url' => $approvalUrl,
+                        'mode'         => \Configuration::get(static::LIVE) ? 'live' : 'sandbox',
+                        'language'     => $this->getLocalePayPalPlus(),
+                        'country'      => $this->getCountryCode(),
+                    ]
+                );
+
+                $output .= '<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
+                $output .= $this->display(__FILE__, 'paypal_plus_payment.tpl');
+            }
+        }
+
+        return $output;
     }
 
     /**
@@ -456,147 +1100,15 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @return bool
-     */
-    public function canBeUsed()
-    {
-        return true;
-    }
-
-    /**
-     * Hooks methods
-     *
      * @return string
      */
-    public function hookHeader()
+    public function getCountryCode()
     {
-        // TODO: check if this module should be hooked
-        if (isset($this->context->cart) && $this->context->cart->id) {
-            $this->context->smarty->assign('id_cart', (int) $this->context->cart->id);
-        }
+        $cart = new \Cart((int) $this->context->cookie->id_cart);
+        $address = new \Address((int) $cart->id_address_invoice);
+        $country = new \Country((int) $address->id_country);
 
-        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/views/css/paypal.css');
-
-        $smarty = $this->context->smarty;
-        $smarty->assign([
-            static::LIVE         => Configuration::get(static::LIVE),
-            'incontextType'    => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
-        ]);
-
-        $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
-        $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
-
-        if ((
-                (method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
-                        == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc'))
-                || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name']
-                        == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
-            && Configuration::get(static::LOGIN_ENABLED)
-        ) {
-            $this->context->smarty->assign(
-                [
-                    'paypal_locale' => $this->getLocale(),
-                    'client_id'     => Configuration::get(static::CLIENT_ID),
-                    'login_theme'   => Configuration::get(static::LOGIN_THEME),
-                    'live'          => Configuration::get(static::LIVE),
-                    'return_link'   => PayPalLogin::getReturnLink(),
-                ]
-            );
-
-            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
-            $process .= '<script async defer type="text/javascript" src="'.\Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
-            $process .= $this->display(__FILE__, 'views/templates/front/paypal_loginjs.tpl');
-        }
-
-        return $process;
-    }
-
-    /**
-     * Hook to product actions
-     *
-     * @return string
-     */
-    public function hookProductActions()
-    {
-        return $this->hookProductFooter();
-    }
-
-    /**
-     * Product Footer hook
-     *
-     * @return string Hook HTML
-     */
-    public function hookProductFooter()
-    {
-        if (!\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
-            return '';
-        }
-
-        return $this->renderExpressCheckoutForm('product');
-    }
-
-    /**
-     * DisplayPayment Hook
-     *
-     * @return null|string
-     */
-    public function hookPayment()
-    {
-        $isoLang = [
-            'en' => 'en_US',
-            'fr' => 'fr_FR',
-            'de' => 'de_DE',
-            'nl' => 'nl_NL',
-        ];
-
-        $this->context->smarty->assign(
-            [
-                'logos'            => PayPalLogos::getLogos($this->getLocale()),
-                static::LIVE         => \Configuration::get(static::LIVE),
-                'use_mobile'       => true,
-                'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
-            ]
-        );
-
-        $output = '';
-        if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
-            $output .= $this->display(__FILE__, 'express_checkout_payment.tpl');
-        }
-
-        if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
-            $rest = new PayPalRestApi();
-            $payment = $rest->createPayment(
-                $this->context->link->getModuleLink($this->name, 'plussubmit', [], true),
-                $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
-                PayPalRestApi::PLUS_PROFILE
-            );
-
-            $approvalUrl = '';
-            if (isset($payment->id) && $payment->id) {
-                foreach ($payment->links as $link) {
-                    if ($link->rel === 'approval_url') {
-                        $approvalUrl = $link->href;
-                        break;
-                    }
-                }
-            }
-
-            if ($approvalUrl) {
-                $this->context->smarty->assign(
-                    [
-                        'approval_url' => $approvalUrl,
-                        'mode'         => \Configuration::get(static::LIVE) ? 'live' : 'sandbox',
-                        'language'     => $this->getLocalePayPalPlus(),
-                        'country'      => $this->getCountryCode(),
-                    ]
-                );
-
-                $output .= '<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
-                $output .= $this->display(__FILE__, 'paypal_plus_payment.tpl');
-            }
-        }
-
-        return $output;
+        return $country->iso_code;
     }
 
     /**
@@ -636,6 +1148,20 @@ class PayPal extends \PaymentModule
     }
 
     /**
+     * Redirect to confirmation page
+     */
+    public function redirectToConfirmation()
+    {
+        // Check if user went through the payment preparation detail and completed it
+        $detail = unserialize($this->context->cookie->express_checkout);
+
+        if (!empty($detail['payer_id']) && !empty($detail['token'])) {
+            $values = ['get_confirmation' => true];
+            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
+        }
+    }
+
+    /**
      * @return null|string
      */
     public function hookShoppingCartExtra()
@@ -662,6 +1188,58 @@ class PayPal extends \PaymentModule
         );
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+    }
+
+    /**
+     * @param $method
+     *
+     * @return string
+     */
+    public function getTrackingCode($method)
+    {
+        $isApacCountry = $this->isCountryAPAC();
+
+        //Get Seamless checkout
+        $loginUser = false;
+        if (\Configuration::get(static::LOGIN_ENABLED)) {
+            $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
+
+            if ($loginUser && $loginUser->expires_in <= time()) {
+                $obj = new PayPalLogin();
+                $loginUser = $obj->getRefreshToken();
+            }
+        }
+
+        if ($method == static::WPS) {
+            if ($loginUser) {
+                return $isApacCountry ? static::APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS : static::TRACKING_EXPRESS_CHECKOUT_SEAMLESS;
+            } else {
+                return $isApacCountry ? static::APAC_TRACKING_INTEGRAL : static::TRACKING_INTEGRAL;
+            }
+
+        }
+
+        if ($method == static::EC) {
+            if ($loginUser) {
+                return $isApacCountry ? static::APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS : static::TRACKING_EXPRESS_CHECKOUT_SEAMLESS;
+            } else {
+                return $isApacCountry ? static::APAC_TRACKING_OPTION_PLUS : static::TRACKING_OPTION_PLUS;
+            }
+
+        }
+        if ($method == static::WPP) {
+            return $isApacCountry ? static::APAC_TRACKING_PAYPAL_PLUS : static::TRACKING_PAYPAL_PLUS;
+        }
+
+        return static::TRACKING_CODE;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCountryAPAC()
+    {
+        return true;
     }
 
     /**
@@ -746,113 +1324,6 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * Redirect to confirmation page
-     */
-    public function redirectToConfirmation()
-    {
-        // Check if user went through the payment preparation detail and completed it
-        $detail = unserialize($this->context->cookie->express_checkout);
-
-        if (!empty($detail['payer_id']) && !empty($detail['token'])) {
-            $values = ['get_confirmation' => true];
-            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
-        }
-    }
-
-    /**
-     * @param string $type
-     *
-     * @return null|string
-     */
-    public function renderExpressCheckoutForm($type)
-    {
-        $idProduct = (int) \Tools::getValue('id_product');
-        $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
-        if ($idProductAttribute) {
-            $minimalQuantity = \Attribute::getAttributeMinimalQty($idProductAttribute);
-        } else {
-            $product = new \Product($idProduct);
-            $minimalQuantity = $product->minimal_quantity;
-        }
-
-        $this->context->smarty->assign(
-            [
-                'PayPal_payment_type'           => $type,
-                'PayPal_current_page'           => $this->getCurrentUrl(),
-                'id_product_attribute_ecs'      => $idProductAttribute,
-                'product_minimal_quantity'      => $minimalQuantity,
-                'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
-            ]
-        );
-
-        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
-    }
-
-    /**
-     * @return string
-     */
-    public function getCountryCode()
-    {
-        $cart = new \Cart((int) $this->context->cookie->id_cart);
-        $address = new \Address((int) $cart->id_address_invoice);
-        $country = new \Country((int) $address->id_country);
-
-        return $country->iso_code;
-    }
-
-    /**
-     * @param $method
-     *
-     * @return string
-     */
-    public function getTrackingCode($method)
-    {
-        $isApacCountry = $this->isCountryAPAC();
-
-        //Get Seamless checkout
-        $loginUser = false;
-        if (\Configuration::get(static::LOGIN_ENABLED)) {
-            $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
-
-            if ($loginUser && $loginUser->expires_in <= time()) {
-                $obj = new PayPalLogin();
-                $loginUser = $obj->getRefreshToken();
-            }
-        }
-
-        if ($method == static::WPS) {
-            if ($loginUser) {
-                return $isApacCountry ? static::APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS : static::TRACKING_EXPRESS_CHECKOUT_SEAMLESS;
-            } else {
-                return $isApacCountry ? static::APAC_TRACKING_INTEGRAL : static::TRACKING_INTEGRAL;
-            }
-
-        }
-
-        if ($method == static::EC) {
-            if ($loginUser) {
-                return $isApacCountry ? static::APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS : static::TRACKING_EXPRESS_CHECKOUT_SEAMLESS;
-            } else {
-                return $isApacCountry ? static::APAC_TRACKING_OPTION_PLUS : static::TRACKING_OPTION_PLUS;
-            }
-
-        }
-        if ($method == static::WPP) {
-            return $isApacCountry ? static::APAC_TRACKING_PAYPAL_PLUS : static::TRACKING_PAYPAL_PLUS;
-        }
-
-        return static::TRACKING_CODE;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isCountryAPAC()
-    {
-        return true;
-    }
-
-    /**
      * @return bool Indicates whether the PayPal API is available
      */
     public function isPayPalAPIAvailable()
@@ -926,17 +1397,19 @@ class PayPal extends \PaymentModule
             $cpt->id_order = (int) $order->id;
             $orderState = $order->current_state;
 
-            $this->context->smarty->assign([
-                'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
-                'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
-                'module_name'     => $this->name,
-                'order_state'     => $orderState,
-                'params'          => $params,
-                'id_currency'     => $currency->getSign(),
-                'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
-                'list_captures'   => $cpt->getListCaptured(),
-                'ps_version'      => _PS_VERSION_,
-            ]);
+            $this->context->smarty->assign(
+                [
+                    'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
+                    'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
+                    'module_name'     => $this->name,
+                    'order_state'     => $orderState,
+                    'params'          => $params,
+                    'id_currency'     => $currency->getSign(),
+                    'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
+                    'list_captures'   => $cpt->getListCaptured(),
+                    'ps_version'      => _PS_VERSION_,
+                ]
+            );
 
             foreach ($adminTemplates as $adminTemplate) {
                 $this->html .= $this->display(__FILE__, 'views/templates/admin/admin_order/'.$adminTemplate.'.tpl');
@@ -946,6 +1419,71 @@ class PayPal extends \PaymentModule
         }
 
         return $this->html;
+    }
+
+    /**
+     * @param int $idOrder
+     *
+     * @return bool
+     */
+    protected function needsValidation($idOrder)
+    {
+        if (!(int) $idOrder) {
+            return false;
+        }
+
+        $sql = new \DbQuery();
+        $sql->select('po.`payment_method`, po.`payment_status`');
+        $sql->from('paypal_order', 'po');
+        $sql->where('po.`id_order` = '.(int) $idOrder);
+
+        $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+
+        return $order && $order['payment_status']
+            == 'Pending_validation';
+    }
+
+    /**
+     * @param $idOrder
+     *
+     * @return bool
+     */
+    protected function needsCapture($idOrder)
+    {
+        if (!(int) $idOrder) {
+            return false;
+        }
+
+        $sql = new \DbQuery();
+        $sql->select('po.`payment_method`, po.`payment_status`');
+        $sql->from('paypal_order', 'po');
+        $sql->where('po.`id_order` = '.(int) $idOrder);
+        $sql->where('po.`capture` = 1');
+
+        $result = \Db::getInstance()->getRow($sql);
+
+        return $result && $result['payment_status'] == 'Pending_capture';
+    }
+
+    /**
+     * @param int $idOrder
+     *
+     * @return bool
+     */
+    protected function canRefund($idOrder)
+    {
+        if (!(bool) $idOrder) {
+            return false;
+        }
+
+        $sql = new \DbQuery();
+        $sql->select('po.`payment_status`, po.`capture`');
+        $sql->from('paypal_order', 'po');
+        $sql->where('po.`id_order` = '.(int) $idOrder);
+
+        $paypalOrder = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+
+        return $paypalOrder && ($paypalOrder['payment_status'] == 'Completed' || $paypalOrder['payment_status'] == 'approved') && $paypalOrder['capture'] == 0;
     }
 
     /**
@@ -988,6 +1526,58 @@ class PayPal extends \PaymentModule
         $this->addNewPrivateMessage((int) $order->id, $message);
 
         return null;
+    }
+
+    /**
+     * @param string     $idPayment
+     * @param \Order     $order
+     * @param bool|float $amount Amount
+     *
+     * @return bool
+     */
+    protected function doRefund($idPayment, $order, $amount = false)
+    {
+        if (!$amount) {
+            return $this->doFullRefund($idPayment);
+        }
+
+        $details = new \stdClass();
+        $details->amount = (float) $amount;
+        $details->currency = \Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
+
+        // TODO: check if succeeded
+        $rest = new PayPalRestApi();
+        if ($rest->executeRefund($idPayment, $details)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Do a full refund
+     *
+     * @param string $idPayment
+     *
+     * @return bool Indicates whether the full refund was successful
+     */
+    protected function doFullRefund($idPayment)
+    {
+        return false;
+
+//        $rest = new PayPalRestApi();
+//        $payment = $rest->lookUpPayment($idPayment);
+//
+//        if (isset($payment->transactions[0]->related_resources[0]->sale->id)) {
+//            $saleId = $payment->transactions[0]->related_resources[0]->sale->id;
+//
+//            // TODO: validate
+//            if ($rest->executeRefund($saleId, new \stdClass())) {
+//                return true;
+//            }
+//        }
+//
+//        return false;
     }
 
     /**
@@ -1357,587 +1947,5 @@ class PayPal extends \PaymentModule
         } else {
             return false;
         }
-    }
-
-    /**
-     * @param string     $idPayment
-     * @param \Order     $order
-     * @param bool|float $amount Amount
-     *
-     * @return bool
-     */
-    protected function doRefund($idPayment, $order, $amount = false)
-    {
-        if (!$amount) {
-            return $this->doFullRefund($idPayment);
-        }
-
-        $details = new \stdClass();
-        $details->amount = (float) $amount;
-        $details->currency = \Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
-
-        // TODO: check if succeeded
-        $rest = new PayPalRestApi();
-        if ($rest->executeRefund($idPayment, $details)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param int $idOrder
-     *
-     * @return bool
-     */
-    protected function canRefund($idOrder)
-    {
-        if (!(bool) $idOrder) {
-            return false;
-        }
-
-        $sql = new \DbQuery();
-        $sql->select('po.`payment_status`, po.`capture`');
-        $sql->from('paypal_order', 'po');
-        $sql->where('po.`id_order` = '.(int) $idOrder);
-
-        $paypalOrder = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
-
-        return $paypalOrder && ($paypalOrder['payment_status'] == 'Completed' || $paypalOrder['payment_status'] == 'approved') && $paypalOrder['capture'] == 0;
-    }
-
-    /**
-     * @param $idOrder
-     *
-     * @return bool
-     */
-    protected function needsCapture($idOrder)
-    {
-        if (!(int) $idOrder) {
-            return false;
-        }
-
-        $sql = new \DbQuery();
-        $sql->select('po.`payment_method`, po.`payment_status`');
-        $sql->from('paypal_order', 'po');
-        $sql->where('po.`id_order` = '.(int) $idOrder);
-        $sql->where('po.`capture` = 1');
-
-        $result = \Db::getInstance()->getRow($sql);
-
-        return $result && $result['payment_status'] == 'Pending_capture';
-    }
-
-    /**
-     * Do a full refund
-     *
-     * @param string $idPayment
-     *
-     * @return bool Indicates whether the full refund was successful
-     */
-    protected function doFullRefund($idPayment)
-    {
-        return false;
-
-//        $rest = new PayPalRestApi();
-//        $payment = $rest->lookUpPayment($idPayment);
-//
-//        if (isset($payment->transactions[0]->related_resources[0]->sale->id)) {
-//            $saleId = $payment->transactions[0]->related_resources[0]->sale->id;
-//
-//            // TODO: validate
-//            if ($rest->executeRefund($saleId, new \stdClass())) {
-//                return true;
-//            }
-//        }
-//
-//        return false;
-    }
-
-    /**
-     * @param int $idOrder
-     *
-     * @return bool
-     */
-    protected function needsValidation($idOrder)
-    {
-        if (!(int) $idOrder) {
-            return false;
-        }
-
-        $sql = new \DbQuery();
-        $sql->select('po.`payment_method`, po.`payment_status`');
-        $sql->from('paypal_order', 'po');
-        $sql->where('po.`id_order` = '.(int) $idOrder);
-
-        $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
-
-        return $order && $order['payment_status']
-            == 'Pending_validation';
-    }
-
-    /**
-     * Get current URL
-     *
-     * @return string
-     */
-    protected function getCurrentUrl()
-    {
-        $protocolLink = \Tools::usingSecureMode() ? 'https://' : 'http://';
-        $request = $_SERVER['REQUEST_URI'];
-        $pos = strpos($request, '?');
-
-        if (($pos !== false) && ($pos >= 0)) {
-            $request = \Tools::substr($request, 0, $pos);
-        }
-
-        $params = urlencode($_SERVER['QUERY_STRING']);
-
-        return $protocolLink.\Tools::getShopDomainSsl().$request.'?'.$params;
-    }
-
-    /**
-     * Post process
-     */
-    protected function postProcess()
-    {
-        if (Tools::isSubmit('checktls') && (bool) Tools::getValue('checktls')) {
-            $this->tlsCheck();
-        }
-
-        if (\Tools::isSubmit('submit'.$this->name)) {
-            // General
-            \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
-            \Configuration::updateValue(static::LIVE, (int) \Tools::getValue(static::LIVE));
-            \Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) \Tools::getValue(static::IMMEDIATE_CAPTURE));
-
-            // REST API
-            \Configuration::updateValue(static::CLIENT_ID, \Tools::getValue(static::CLIENT_ID));
-            \Configuration::updateValue(static::SECRET, \Tools::getValue(static::SECRET));
-
-            if (\Tools::getValue(static::CLIENT_ID) && \Tools::getValue(static::SECRET)) {
-                $rest = new PayPalRestApi(\Tools::getValue(static::CLIENT_ID), \Tools::getValue(static::SECRET));
-                $rest->getWebProfiles();
-                $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
-                $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
-                $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
-
-                if (\Tools::getValue(static::LIVE)) {
-                    if ($standardProfile) {
-                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
-                    }
-                    if ($plusProfile) {
-                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
-                    }
-                    if ($expressCheckoutProfile) {
-                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
-                    }
-                } else {
-                    if ($standardProfile) {
-                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
-                    }
-                    if ($plusProfile) {
-                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
-                    }
-                    if ($expressCheckoutProfile) {
-                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
-                    }
-                }
-            }
-
-            // Website Payments Standard
-            \Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
-
-            // Website Payments Plus
-            \Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
-
-            // Express Checkout
-            \Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, \Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
-
-            // PayPal Login
-            \Configuration::updateValue(static::LOGIN_ENABLED, (int) \Tools::getValue(static::LOGIN_ENABLED));
-            \Configuration::updateValue(static::LOGIN_THEME, (int) \Tools::getValue(static::LOGIN_THEME));
-        }
-    }
-
-    /**
-     * Check if server supports TLSv1.2
-     */
-    protected function tlsCheck()
-    {
-        $guzzle = new \GuzzleHttp\Client(
-            [
-                'timeout'     => 10.0,
-                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-                'http_errors' => false,
-            ]
-        );
-        $response = $guzzle->get('https://tlstest.paypal.com/');
-
-        if ((string) $response->getBody() === 'PayPal_Connection_OK') {
-            $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_OK);
-        } else {
-            $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_ERROR);
-        }
-    }
-
-    /**
-     * Render the main form
-     *
-     * @return string
-     */
-    protected function renderMainForm()
-    {
-        $helper = new \HelperForm();
-
-        $helper->show_toolbar = false;
-        $helper->module = $this;
-        $helper->default_form_language = $this->context->language->id;
-        $helper->allow_employee_form_lang = \Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
-
-        $helper->identifier = $this->identifier;
-        $helper->submit_action = 'submit'.$this->name;
-        $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query([
-            'configure' => $this->name,
-        ]);
-
-        $helper->token = \Tools::getAdminTokenLite('AdminModules');
-
-        $helper->tpl_vars = [
-            'fields_value' => $this->getMainFormValues(),
-            'languages'    => $this->context->controller->getLanguages(),
-            'id_language'  => $this->context->language->id,
-        ];
-
-        return $helper->generateForm(
-            [
-                $this->getGeneralForm(),
-                $this->getRestApiForm(),
-                $this->getWebsitePaymentsStandardForm(),
-                $this->getWebsitePaymentsPlusForm(),
-                $this->getExpressCheckoutForm(),
-                $this->getLoginForm(),
-            ]
-        );
-    }
-
-    /**
-     * Get the general form structure
-     *
-     * @return array
-     */
-    protected function getGeneralForm()
-    {
-        return [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('General'),
-                    'icon'  => 'icon-puzzle-piece',
-                ],
-                'input'  => [
-                    [
-                        'type'     => 'select',
-                        'label'    => $this->l('Your country'),
-                        'name'     => static::STORE_COUNTRY,
-                        'required' => true,
-                        'options'  => [
-                            'query' => \Country::getCountries($this->context->language->id),
-                            'id'    => 'id_country',
-                            'name'  => 'name',
-                        ],
-                    ],
-                    [
-                        'type'   => 'switch',
-                        'label'  => $this->l('Go Live'),
-                        'name'   => static::LIVE,
-                        'values' => [
-                            [
-                                'id'    => 'flushdb_on',
-                                'value' => 1,
-                                'label' => $this->l('Sandbox'),
-                            ],
-                            [
-                                'id'    => 'flushdb_off',
-                                'value' => 0,
-                                'label' => $this->l('Live'),
-                            ],
-                        ],
-                        'desc'   => $this->l('Enable this options to go live, otherwise the sandbox is used, which you can use to test your store.'),
-                    ],
-                ],
-                'submit' => [
-                    'title' => $this->l('Save'),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Get the REST API form structure
-     *
-     * @return array
-     */
-    protected function getRestApiForm()
-    {
-        if (\Configuration::get(static::LIVE)) {
-            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
-            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
-        } else {
-            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID);
-            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID);
-            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-        }
-
-        if (!$this->context->smarty->getTemplateVars('standardProfile')) {
-            $this->context->smarty->assign(
-                [
-                    'standardProfile'        => $standardProfile,
-                    'plusProfile'            => $plusProfile,
-                    'expressCheckoutProfile' => $expressCheckoutProfile,
-                ]
-            );
-        }
-
-        if ($standardProfile && $plusProfile && $expressCheckoutProfile) {
-            $profileType = 'confirmation';
-            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_correct.tpl');
-        } else {
-            $profileType = 'error';
-            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_missing.tpl');
-        }
-
-        return [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('Api Settings'),
-                    'icon'  => 'icon-server',
-                ],
-                'input'  => [
-                    [
-                        'type'  => 'text',
-                        'label' => $this->l('CLIENT ID'),
-                        'name'  => static::CLIENT_ID,
-                        'desc'  => $this->l('Enter the CLIENT ID'),
-                    ],
-                    [
-                        'type'  => 'text',
-                        'label' => $this->l('SECRET'),
-                        'name'  => static::SECRET,
-                        'desc'  => $this->l('Enter the SECRET'),
-                    ],
-                    [
-                        'type'  => $profileType,
-                        'label' => $this->l('Website Profiles'),
-                        'name'  => static::STANDARD_WEBSITE_PROFILE_ID,
-                        'text'  => $profileText,
-                    ],
-                ],
-                'submit' => [
-                    'title' => $this->l('Save'),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Get the Website Payments Standard form structure
-     *
-     * @return array
-     */
-    protected function getWebsitePaymentsStandardForm()
-    {
-        return [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('Website Payments Standard'),
-                    'icon'  => 'icon-credit-card',
-                ],
-                'input'  => [
-                    [
-                        'type'   => 'switch',
-                        'label'  => $this->l('Enable Website Payments Standard'),
-                        'name'   => static::WEBSITE_PAYMENTS_STANDARD_ENABLED,
-                        'values' => [
-                            [
-                                'id'    => 'flushdb_on',
-                                'value' => 1,
-                                'label' => $this->l('Enabled'),
-                            ],
-                            [
-                                'id'    => 'flushdb_off',
-                                'value' => 0,
-                                'label' => $this->l('Disabled'),
-                            ],
-                        ],
-                    ],
-                ],
-                'submit' => [
-                    'title' => $this->l('Save'),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Get the Website Payments Plus form structure
-     *
-     * @return array
-     */
-    protected function getWebsitePaymentsPlusForm()
-    {
-        return [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('Website Payments Plus'),
-                    'icon'  => 'icon-credit-card',
-                ],
-                'input'  => [
-                    [
-                        'type'   => 'switch',
-                        'label'  => $this->l('Enable Website Payments Plus'),
-                        'name'   => static::WEBSITE_PAYMENTS_PLUS_ENABLED,
-                        'values' => [
-                            [
-                                'id'    => 'flushdb_on',
-                                'value' => 1,
-                                'label' => $this->l('Enabled'),
-                            ],
-                            [
-                                'id'    => 'flushdb_off',
-                                'value' => 0,
-                                'label' => $this->l('Disabled'),
-                            ],
-                        ],
-                    ],
-                ],
-                'submit' => [
-                    'title' => $this->l('Save'),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Get the Express Checkout form structure
-     *
-     * @return array
-     */
-    protected function getExpressCheckoutForm()
-    {
-        return [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('Express Checkout'),
-                    'icon'  => 'icon-credit-card',
-                ],
-                'input'  => [
-                    [
-                        'type'   => 'switch',
-                        'label'  => $this->l('Enable Express Checkout'),
-                        'name'   => static::EXPRESS_CHECKOUT_ENABLED,
-                        'values' => [
-                            [
-                                'id'    => 'flushdb_on',
-                                'value' => 1,
-                                'label' => $this->l('Enabled'),
-                            ],
-                            [
-                                'id'    => 'flushdb_off',
-                                'value' => 0,
-                                'label' => $this->l('Disabled'),
-                            ],
-                        ],
-                    ],
-                ],
-                'submit' => [
-                    'title' => $this->l('Save'),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Get the login form structure
-     *
-     * @return array
-     */
-    protected function getLoginForm()
-    {
-        return [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('PayPal Login'),
-                    'icon'  => 'icon-key',
-                ],
-                'description' => $this->l('Use the following link for this store (repeat if you have multiple stores!) as the `redirect_uri` setting:').' '.PayPalLogin::getReturnLink(),
-                'input'  => [
-                    [
-                        'type'   => 'switch',
-                        'label'  => $this->l('Enable PayPal Login'),
-                        'name'   => static::LOGIN_ENABLED,
-                        'values' => [
-                            [
-                                'id'    => 'flushdb_on',
-                                'value' => 1,
-                                'label' => $this->l('Enabled'),
-                            ],
-                            [
-                                'id'    => 'flushdb_off',
-                                'value' => 0,
-                                'label' => $this->l('Disabled'),
-                            ],
-                        ],
-                    ],
-                    [
-                        'type'    => 'radio',
-                        'label'   => $this->l('Theme'),
-                        'desc'    => $this->l('Choose the button style'),
-                        'name'    => static::LOGIN_THEME,
-                        'is_bool' => true,
-                        'values'  => [
-                            [
-                                'id'    => 'neutral',
-                                'value' => 0,
-                                'label' => $this->l('Neutral'),
-                                'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_grey.png'),
-                            ],
-                            [
-                                'id'    => 'blue',
-                                'value' => 1,
-                                'label' => $this->l('Blue'),
-                                'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_blue.png'),
-                            ],
-                        ],
-                    ],
-                ],
-                'submit' => [
-                    'title' => $this->l('Save'),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Get main form configuration values
-     *
-     * @return array
-     */
-    protected function getMainFormValues()
-    {
-        return [
-            static::STORE_COUNTRY               => (int) \Configuration::get(static::STORE_COUNTRY),
-            static::LIVE                        => \Configuration::get(static::LIVE),
-            static::STANDARD_WEBSITE_PROFILE_ID => \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
-
-            static::WEBSITE_PAYMENTS_STANDARD_ENABLED => \Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
-            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => \Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
-            static::EXPRESS_CHECKOUT_ENABLED          => \Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
-            static::LOGIN_ENABLED                     => \Configuration::get(static::LOGIN_ENABLED),
-            static::LOGIN_THEME                       => \Configuration::get(static::LOGIN_THEME),
-
-            static::CLIENT_ID => \Configuration::get(static::CLIENT_ID),
-            static::SECRET    => \Configuration::get(static::SECRET),
-        ];
     }
 }
