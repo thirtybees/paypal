@@ -9,9 +9,6 @@
             "email": "git@michaeldekker.nl"
         }
     ],
-    "require": {
-        "paypal/merchant-sdk-php": "^3.11"
-    },
     "autoload": {
         "psr-0": {
             "PayPalModule": "classes/"
