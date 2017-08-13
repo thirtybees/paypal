@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 CWD_BASENAME=${PWD##*/}
 
-rm vendor/paypal/merchant-sdk-php/sampes -rf
-rm vendor/paypal/merchant-sdk-php/.github -rf
-rm vendor/paypal/sdk-core-php/.github -rf
-rm vendor/paypal/sdk-core-php/tests -rf
+composer install --no-dev
+composer -o dump-autoload
 
 FILES=("CONTRIBUTING.md")
 FILES+=("index.php")
