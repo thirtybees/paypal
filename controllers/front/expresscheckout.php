@@ -223,8 +223,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 \Tools::redirect($link);
             } elseif (\Tools::strtolower($payment->state) !== 'approved') {
                 $this->context->smarty->assign([
-                    'logs' => [],
-                    'message' => $this->module->l('Error occurred:'),
+                    'logs' => [$this->module->l('Payment not approved')],
+                    'message' => $this->module->l('Error occurred'),
                 ]);
 
                 $this->setTemplate('error.tpl');
@@ -241,10 +241,15 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             $this->context->cart->delete();
 //            $ppec->logs[] = $this->module->l('Your cart is empty.');
         }
+        $logs = [sprintf($this->module->l('An unknown error occurred. The payment status is `%s`'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
+        if (_PS_MODE_DEV_) {
+            $logs[] = json_encode(['The full payment object looks like' => $payment]);
+        }
+
         $this->context->smarty->assign(
             [
-            'logs' => [],
-            'message' => $this->module->l('Error occurred:'),
+            'logs' => $logs,
+            'message' => $this->module->l('Error occurred'),
             ]
         );
 
