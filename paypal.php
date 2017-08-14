@@ -991,9 +991,11 @@ class PayPal extends \PaymentModule
     /**
      * DisplayPayment Hook
      *
+     * @param array $params
+     *
      * @return null|string
      */
-    public function hookPayment()
+    public function hookPayment($params)
     {
         $isoLang = [
             'en' => 'en_US',
@@ -1008,6 +1010,7 @@ class PayPal extends \PaymentModule
                 static::LIVE       => \Configuration::get(static::LIVE),
                 'use_mobile'       => true,
                 'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
+                'params'           => $params,
             ]
         );
 
