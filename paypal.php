@@ -150,13 +150,11 @@ class PayPal extends \PaymentModule
 
         // Only check from Back Office
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id) {
-            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query(
-                    [
-                        'configure'   => $this->name,
-                        'tab_module'  => $this->tab,
-                        'module_name' => $this->name,
-                    ]
-                );
+            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
+                'configure'   => $this->name,
+                'tab_module'  => $this->tab,
+                'module_name' => $this->name,
+            ]);
         }
     }
 
@@ -1201,7 +1199,7 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @param $method
+     * @param int $method
      *
      * @return string
      */
