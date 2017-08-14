@@ -55,8 +55,6 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      */
     public function initContent()
     {
-        parent::initContent();
-
         if (\Tools::isSubmit('paymentId') && \Tools::isSubmit('PayerID')) {
             $this->processPayment();
 
@@ -64,12 +62,18 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         }
 
         if (!Validate::isLoadedObject(Context::getContext()->cart)) {
-            $this->errors[] = $this->l('Cart not found');
+            $this->errors[] = $this->module->l('Cart not found');
         } else {
             $this->preparePayment();
         }
 
-        return;
+        $this->context->smarty->assign([
+            'errors' => $this->errors,
+        ]);
+
+        $this->setTemplate('expresscheckout_error.tpl');
+
+        parent::initContent();
     }
 
     /**
@@ -86,6 +90,10 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                     Tools::redirectLink($link->href);
                 }
             }
+        }
+
+        if (isset($payment->message)) {
+            $this->errors[] = $payment->message;
         }
     }
 
@@ -248,8 +256,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
         $this->context->smarty->assign(
             [
-            'logs' => $logs,
-            'message' => $this->module->l('Error occurred'),
+                'logs' => $logs,
+                'message' => $this->module->l('Error occurred'),
             ]
         );
 
@@ -375,10 +383,10 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                     $shippingAddress = $payerInfo->shipping_address;
                     //We check if an address exists with the same country / city / street
                     if ($address['firstname'] == $payerInfo->first_name &&
-                        $address['lastname'] == $payerInfo->last_name &&
-                        $address['id_country'] == \Country::getByIso($shippingAddress->country_code) &&
-                        $address['address1'] == $shippingAddress->line1 &&
-                        $address['address2'] == isset($shippingAddress->line2) ? $shippingAddress->line2 : null &&
+                    $address['lastname'] == $payerInfo->last_name &&
+                    $address['id_country'] == \Country::getByIso($shippingAddress->country_code) &&
+                    $address['address1'] == $shippingAddress->line1 &&
+                    $address['address2'] == isset($shippingAddress->line2) ? $shippingAddress->line2 : null &&
                         $address['city'] == $shippingAddress->city
                     ) {
                         $paypalAddress = new \Address($address['id_address']);
