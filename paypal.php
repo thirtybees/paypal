@@ -440,11 +440,9 @@ class PayPal extends \PaymentModule
 
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submit'.$this->name;
-        $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query(
-                [
-                    'configure' => $this->name,
-                ]
-            );
+        $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query([
+            'configure' => $this->name,
+        ]);
 
         $helper->token = \Tools::getAdminTokenLite('AdminModules');
 
