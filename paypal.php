@@ -123,7 +123,7 @@ class PayPal extends \PaymentModule
     {
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
-        $this->version = '5.3.0';
+        $this->version = '5.2.3';
         $this->author = 'thirty bees';
 
         $this->currencies = true;
@@ -859,49 +859,61 @@ class PayPal extends \PaymentModule
      */
     public function getLocale()
     {
-        switch (\Language::getIsoById($this->context->language->id)) {
+        return static::getLocaleByIso(\Language::getIsoById($this->context->language->id));
+    }
+
+    /**
+     * @param string $iso
+     *
+     * @return string
+     *
+     * @since 5.3.0
+     */
+    public static function getLocaleByIso($iso)
+    {
+        switch ($iso) {
             case 'fr':
-                return 'fr-fr';
+                return 'fr_FR';
             case 'hk':
-                return 'zh-hk';
+                return 'zh_HK';
             case 'cn':
-                return 'zh-cn';
+                return 'zh_CM';
             case 'tw':
-                return 'zh-tw';
+                return 'zh_TW';
             case 'xc':
-                return 'zh-xc';
+                return 'zh_XC';
             case 'dk':
-                return 'da-dk';
+                return 'da_DK';
             case 'nl':
-                return 'nl-nl';
+                return 'nl_NL';
             case 'gb':
-                return 'en-gb';
+                return 'en_GB';
             case 'de':
-                return 'de-de';
+                return 'de_DE';
             case 'il':
-                return 'he-il';
+                return 'he_IL';
             case 'id':
-                return 'id-id';
+                return 'id_ID';
             case 'jp':
-                return 'ja-jp';
+                return 'ja_JP';
             case 'no':
-                return 'no-no';
+                return 'no_NO';
             case 'pt':
-                return 'pt-pt';
+                return 'pt_PT';
             case 'pl':
-                return 'pl-pl';
+                return 'pl_PL';
             case 'ru':
-                return 'ru-ru';
+                return 'ru_RU';
             case 'es':
-                return 'es-es';
+                return 'es_ES';
             case 'se':
-                return 'sv-se';
+                return 'sv_SE';
             case 'th':
-                return 'th-th';
+                return 'th_TH';
             case 'tr':
-                return 'tr-tr';
+                return 'tr_TR';
             default:
-                return 'en-gb';
+                return 'en_US';
         }
     }
 

@@ -23,6 +23,7 @@
 namespace PayPalModule;
 
 use GuzzleHttp\Client;
+use TbUpdaterModule\Language;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -588,6 +589,9 @@ class PayPalRestApi
     protected function createWebProfile($type)
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
+        $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
+        $language = new Language($idLang);
+        $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
 
         switch ($type) {
             case self::PLUS_PROFILE:
@@ -596,7 +600,7 @@ class PayPalRestApi
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
                         'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
-                        'locale_code' => 'en_US',
+                        'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
@@ -613,7 +617,7 @@ class PayPalRestApi
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
                         'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
-                        'locale_code' => 'en_US',
+                        'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
@@ -630,7 +634,7 @@ class PayPalRestApi
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
                         'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
-                        'locale_code' => 'en_US',
+                        'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
