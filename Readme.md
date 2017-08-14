@@ -3,7 +3,9 @@
 
 ## About
 
-Let customer pay with PayPal Express Checkout or PayPal Integral Evolution.
+Let customers pay with:
+- PayPal Website Payments Standard
+- PayPal Express Checkout
 
 ## Contributing
 
