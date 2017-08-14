@@ -326,6 +326,11 @@ class PayPalLogin
         $address->postcode = $resultAddress->postal_code;
         $address->city = $resultAddress->locality;
         $address->phone = $result->phone_number;
+        if (isset($resultAddress->region)) {
+            if ($idState = (int) \State::getIdByIso($resultAddress->region)) {
+                $address->id_state = $idState;
+            }
+        }
 
         $address->save();
 
