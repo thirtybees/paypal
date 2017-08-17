@@ -20,6 +20,6 @@
 *}
 
 <div id="container_express_checkout" style="float:right; margin: 10px 40px 0 0">
-	<img id="payment_paypal_express_checkout" src="" />
+  <img id="payment_paypal_express_checkout" src=""/>
 </div>
 <div class="clearfix"></div>

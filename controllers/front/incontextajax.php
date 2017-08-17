@@ -52,7 +52,7 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
         }
 
         $errors = [];
-        if (!Validate::isLoadedObject(Context::getContext()->cart)) {
+        if (Validate::isLoadedObject(Context::getContext()->cart)) {
             $rest = new PayPalRestApi();
             $payment = $rest->createPayment(false, false, PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
 

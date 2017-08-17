@@ -20,41 +20,41 @@
 *}
 
 <div class="row">
-	<div class="col-xs-12 col-md-12">
-		<p class="payment_module paypal">
-			<a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall':'UTF-8'}" title="{l s='Pay with PayPal' mod='paypal'}">
-				<img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/default_logos/default_horizontal_large.png" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" width="220px" height="64px"/>
-				{l s='Pay with your card or your PayPal account' mod='paypal'}
-			</a>
-		</p>
-	</div>
+  <div class="col-xs-12 col-md-12">
+    <p class="payment_module paypal">
+      <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall':'UTF-8'}" title="{l s='Pay with PayPal' mod='paypal'}">
+        <img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/default_logos/default_horizontal_large.png" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" width="220px" height="64px"/>
+        {l s='Pay with your card or your PayPal account' mod='paypal'}
+      </a>
+    </p>
+  </div>
 </div>
 
 <style>
-	p.payment_module.paypal a {
-		padding: 10px;
-		background-color: #FBFBFB;
-	}
+  p.payment_module.paypal a {
+    padding: 10px;
+    background-color: #FBFBFB;
+  }
 
-	p.payment_module.paypal img {
-		height: 64px;
-	}
+  p.payment_module.paypal img {
+    height: 64px;
+  }
 
-	p.payment_module.paypal a:hover {
-		background-color: #f6f6f6;
-	}
+  p.payment_module.paypal a:hover {
+    background-color: #f6f6f6;
+  }
 
-	p.payment_module.paypal a:after {
-		display: block;
-		content: "\f054";
-		position: absolute;
-		right: 15px;
-		margin-top: -11px;
-		top: 50%;
-		font-family: "FontAwesome";
-		font-size: 25px;
-		height: 22px;
-		width: 14px;
-		color: #777777;
-	}
+  p.payment_module.paypal a:after {
+    display: block;
+    content: "\f054";
+    position: absolute;
+    right: 15px;
+    margin-top: -11px;
+    top: 50%;
+    font-family: "FontAwesome";
+    font-size: 25px;
+    height: 22px;
+    width: 14px;
+    color: #777777;
+  }
 </style>

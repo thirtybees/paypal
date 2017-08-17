@@ -812,7 +812,7 @@ class PayPal extends \PaymentModule
             $this->context->smarty->assign('id_cart', (int) $this->context->cart->id);
         }
 
-        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/views/css/paypal.css');
+        $this->context->controller->addCSS($this->_path.'/views/css/paypal.css');
 
         $smarty = $this->context->smarty;
         $smarty->assign(

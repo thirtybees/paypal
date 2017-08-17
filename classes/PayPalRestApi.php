@@ -23,7 +23,6 @@
 namespace PayPalModule;
 
 use GuzzleHttp\Client;
-use TbUpdaterModule\Language;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -311,8 +310,6 @@ class PayPalRestApi
         $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
 
         $totalCartWithTax = $cart->getOrderTotal(true);
-        $totalCartWithoutTax = $cart->getOrderTotal(false);
-        $totalTax = $totalCartWithTax - $totalCartWithoutTax;
 
         if ($cart->gift) {
             $giftWithoutTax = $cart->getGiftWrappingPrice(false);
@@ -329,15 +326,15 @@ class PayPalRestApi
         $cartItems = $cart->getProducts();
 
         $state = new \State($address->id_state);
-        $shippingAddress = (object) [
+        $shippingAddress = [
             'recipient_name' => $customer->firstname.' '.$customer->lastname,
             'line1'          => $address->address1,
             'line2'          => $address->address2,
             'city'           => $address->city,
             'country_code'   => $isoCode,
             'postal_code'    => $address->postcode,
-            'state'          => ($state->iso_code == null) ? '' : $state->iso_code
-        ]; 
+            'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
+        ];
 
         $payer = new \stdClass();
         $payer->payment_method = 'paypal';
@@ -422,7 +419,7 @@ class PayPalRestApi
             'description' => 'Payment description',
             'item_list'   => [
                 'items' => $aItems,
-                'shipping_address' => $shippingAddress
+                'shipping_address' => \Validate::isLoadedObject($address) ? $shippingAddress : null,
             ],
         ];
 
@@ -590,7 +587,7 @@ class PayPalRestApi
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
         $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
-        $language = new Language($idLang);
+        $language = new \Language($idLang);
         $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
 
         switch ($type) {
