@@ -25,6 +25,6 @@
 	<ol>
 		<li>{l s='Visit' mod='paypal'} <a href="https://developer.paypal.com/">https://developer.paypal.com/</a> {l s='and create a new CLIENT ID and SECRET for the REST API.' mod='paypal'}</li>
 		<li>{l s='Enter those credentials on this page' mod='paypal'}</li>
-		<li>{l s='The full documentation can be found' mod='paypal'} <a href="https://docs.thirtybees.com/merchants-guide/native-modules/paypal/" target="_blank">here</a></li>
+		<li>{l s='The full documentation can be found' mod='paypal'} <a href="https://docs.thirtybees.com/native-modules/paypal/" target="_blank">here</a></li>
 	</ol>
 </div>
