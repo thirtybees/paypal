@@ -43,6 +43,7 @@
       $('#container_express_checkout').empty();
       paypal.Button.render({
         env: {if $PAYPAL_LIVE}'production'{else}'sandbox'{/if}, // Optional: specify 'sandbox' environment
+        locale: '{$paypal_locale|escape:'javascript':'UTF-8'}',
         payment: function (resolve, reject) {
             {if $incontextType == 'product'}
           // Prepare the cart first

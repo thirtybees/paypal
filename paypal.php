@@ -819,6 +819,7 @@ class PayPal extends \PaymentModule
             [
                 static::LIVE    => Configuration::get(static::LIVE),
                 'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
+                'paypal_locale' => $this->getLocale(),
             ]
         );
 
@@ -834,7 +835,6 @@ class PayPal extends \PaymentModule
         ) {
             $this->context->smarty->assign(
                 [
-                    'paypal_locale' => $this->getLocale(),
                     'client_id'     => Configuration::get(static::CLIENT_ID),
                     'login_theme'   => Configuration::get(static::LOGIN_THEME),
                     'live'          => Configuration::get(static::LIVE),
@@ -869,7 +869,7 @@ class PayPal extends \PaymentModule
      */
     public static function getLocaleByIso($iso)
     {
-        switch ($iso) {
+        switch (strtolower($iso)) {
             case 'fr':
                 return 'fr_FR';
             case 'hk':
