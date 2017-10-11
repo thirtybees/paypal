@@ -18,10 +18,3 @@
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
-
-<div id="paypal-column-block">
-  <p><a href="{$base_dir_ssl|escape:'htmlall':'UTF-8'}modules/paypal/about.php" rel="nofollow">
-      <img src="{$logo|escape:'htmlall':'UTF-8'}" alt="PayPal" title="{l s='Pay with PayPal' mod='paypal'}" style="max-width: 100%"/>
-    </a>
-  </p>
-</div>
