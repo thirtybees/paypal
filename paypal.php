@@ -1258,12 +1258,12 @@ class PayPal extends \PaymentModule
      */
     public function hookPaymentReturn($params)
     {
-        if (!$this->active || !isset($params['order']) || !$params['order'] instanceof Order) {
+        if (!$this->active || !isset($params['objOrder']) || !$params['objOrder'] instanceof Order) {
             return '';
         }
 
         /** @var Order $order */
-        $order = $params['order'];
+        $order = $params['objOrder'];
 
         $currency = new Currency($order->id_currency);
 
