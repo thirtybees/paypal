@@ -470,7 +470,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             $this->context->shop
         );
 
-        Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true) . '&id_cart='.$cart->id.'&id_module='.$this->module->id.'&key='.$customer->secure_key);
+        Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
     }
 
     /**
