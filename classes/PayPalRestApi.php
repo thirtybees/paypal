@@ -13,7 +13,7 @@
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- * @author    Thirty Bees <modules@thirtybees.com>
+ * @author    Thirty Bees <contact@thirtybees.com>
  * @author    PrestaShop SA <contact@prestashop.com>
  * @copyright 2017 Thirty Bees
  * @copyright 2007-2016 PrestaShop SA
@@ -549,8 +549,8 @@ class PayPalRestApi
     }
 
     /**
-     * @param string    $paymentId
-     * @param \stdClass $data
+     * @param string $paymentId
+     * @param array  $data
      *
      * @return bool|mixed
      *

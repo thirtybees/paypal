@@ -15,7 +15,7 @@
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- * @author    Thirty Bees <modules@thirtybees.com>
+ * @author    Thirty Bees <contact@thirtybees.com>
  * @author    PrestaShop SA <contact@prestashop.com>
  * @copyright 2017 Thirty Bees
  * @copyright 2007-2016 PrestaShop SA
@@ -1375,15 +1375,14 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $sql = new \DbQuery();
-        $sql->select('po.`payment_method`, po.`payment_status`');
-        $sql->from('paypal_order', 'po');
-        $sql->where('po.`id_order` = '.(int) $idOrder);
+        $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+            (new DbQuery())
+                ->select('po.`payment_method`, po.`payment_status`')
+                ->from('paypal_order', 'po')
+                ->where('po.`id_order` = '.(int) $idOrder)
+        );
 
-        $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
-
-        return $order && $order['payment_status']
-            == 'Pending_validation';
+        return $order && $order['payment_status'] === 'Pending_validation';
     }
 
     /**
@@ -1484,13 +1483,12 @@ class PayPal extends \PaymentModule
             return $this->doFullRefund($idPayment);
         }
 
-        $details = new \stdClass();
-        $details->amount = (float) $amount;
-        $details->currency = \Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
-
         // TODO: check if succeeded
         $rest = new PayPalRestApi();
-        if ($rest->executeRefund($idPayment, $details)) {
+        if ($rest->executeRefund($idPayment, [
+            'amount' => (float) $amount,
+            'currency' => \Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code),
+        ])) {
             return true;
         }
 
@@ -1583,7 +1581,7 @@ class PayPal extends \PaymentModule
         ) {
             $this->context->controller->addJquery();
             $this->context->controller->addJQueryPlugin('fancybox');
-            $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/views/css/paypal.css');
+            $this->context->controller->addCSS($this->_path.'views/css/paypal.css');
 
             $this->context->smarty->assign(
                 [
@@ -1624,7 +1622,7 @@ class PayPal extends \PaymentModule
                 'PayPal_payment_type'                   => $type,
                 'PayPal_current_page'                   => $this->getCurrentUrl(),
                 'PayPal_lang_code'                      => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
-                'PayPal_tracking_code'                  => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
+                'PayPal_tracking_code'                  => '',
                 'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
                 'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
             ]
