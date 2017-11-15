@@ -59,26 +59,9 @@ class PayPal extends \PaymentModule
     const EC = 4;
     const WPP = 5;
 
-    const TRACKING_INTEGRAL = '';
-    const TRACKING_OPTION_PLUS = '';
-    const TRACKING_PAYPAL_PLUS = '';
-    const TRACKING_EXPRESS_CHECKOUT_SEAMLESS = '';
-    const TRACKING_CODE = '';
-    const SMARTPHONE_TRACKING_CODE = '';
-    const TABLET_TRACKING_CODE = ''; // Website Payments Standard
-    const APAC_TRACKING_INTEGRAL = ''; // Express Checkout
-    const APAC_TRACKING_OPTION_PLUS = ''; // Website Payments Plus
-
-    /* Tracking */
-    const APAC_TRACKING_PAYPAL_PLUS = '';
-    const APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS = '';
-    const APAC_TRACKING_CODE = '';
-    const APAC_SMARTPHONE_TRACKING_CODE = '';
-    const APAC_TABLET_TRACKING_CODE = '';
     const _PAYPAL_LOGO_XML_ = 'logos.xml';
     const _PAYPAL_MODULE_DIRNAME_ = 'paypal';
 
-    /* Tracking APAC */
     const _PAYPAL_TRANSLATIONS_XML_ = 'translations.xml';
     const WEBSITE_PAYMENTS_STANDARD_ENABLED = 'PAYPAL_WPS_ENABLED';
     const WEBSITE_PAYMENTS_PLUS_ENABLED = 'PAYPAL_WPP_ENABLED';
@@ -89,6 +72,7 @@ class PayPal extends \PaymentModule
     const TLS_LAST_CHECK = 'PAYPAL_TLS_LAST_CHECK';
     const ENUM_TLS_OK = 1;
     const ENUM_TLS_ERROR = -1;
+
     // @codingStandardsIgnoreStart
     /** @var array $errors */
     public $errors = [];
@@ -1191,7 +1175,7 @@ class PayPal extends \PaymentModule
                 'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
                 'PayPal_current_page'                   => $this->getCurrentUrl(),
                 'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
-                'PayPal_tracking_code'                  => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
+                'PayPal_tracking_code'                  => '',
                 'include_form'                          => true,
                 'template_dir'                          => dirname(__FILE__).'/views/templates/hook/',
                 'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
@@ -1199,58 +1183,6 @@ class PayPal extends \PaymentModule
         );
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
-    }
-
-    /**
-     * @param int $method
-     *
-     * @return string
-     */
-    public function getTrackingCode($method)
-    {
-        $isApacCountry = $this->isCountryAPAC();
-
-        //Get Seamless checkout
-        $loginUser = false;
-        if (\Configuration::get(static::LOGIN_ENABLED)) {
-            $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
-
-            if ($loginUser && $loginUser->expires_in <= time()) {
-                $obj = new PayPalLogin();
-                $loginUser = $obj->getRefreshToken();
-            }
-        }
-
-        if ($method == static::WPS) {
-            if ($loginUser) {
-                return $isApacCountry ? static::APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS : static::TRACKING_EXPRESS_CHECKOUT_SEAMLESS;
-            } else {
-                return $isApacCountry ? static::APAC_TRACKING_INTEGRAL : static::TRACKING_INTEGRAL;
-            }
-
-        }
-
-        if ($method == static::EC) {
-            if ($loginUser) {
-                return $isApacCountry ? static::APAC_TRACKING_EXPRESS_CHECKOUT_SEAMLESS : static::TRACKING_EXPRESS_CHECKOUT_SEAMLESS;
-            } else {
-                return $isApacCountry ? static::APAC_TRACKING_OPTION_PLUS : static::TRACKING_OPTION_PLUS;
-            }
-
-        }
-        if ($method == static::WPP) {
-            return $isApacCountry ? static::APAC_TRACKING_PAYPAL_PLUS : static::TRACKING_PAYPAL_PLUS;
-        }
-
-        return static::TRACKING_CODE;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isCountryAPAC()
-    {
-        return true;
     }
 
     /**
@@ -1328,7 +1260,7 @@ class PayPal extends \PaymentModule
                 return false;
             }
 
-            \Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', [], true).'?confirm=1&token='.$this->context->cookie->paypal_token.'&payerID='.$this->context->cookie->paypal_payer_id);
+            \Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', ['confirm' => '1', 'token' => $this->context->cookie->paypal_token, 'payerID' => $this->context->cookie->paypal_payer_id], true));
         }
 
         return null;
