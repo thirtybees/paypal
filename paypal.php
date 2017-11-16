@@ -59,10 +59,10 @@ class PayPal extends \PaymentModule
     const EC = 4;
     const WPP = 5;
 
-    const _PAYPAL_LOGO_XML_ = 'logos.xml';
+    const _PAYPAL_LOGO_XML_ = 'data/logos.xml';
     const _PAYPAL_MODULE_DIRNAME_ = 'paypal';
 
-    const _PAYPAL_TRANSLATIONS_XML_ = 'translations.xml';
+    const _PAYPAL_TRANSLATIONS_XML_ = 'data/translations.xml';
     const WEBSITE_PAYMENTS_STANDARD_ENABLED = 'PAYPAL_WPS_ENABLED';
     const WEBSITE_PAYMENTS_PLUS_ENABLED = 'PAYPAL_WPP_ENABLED';
     const EXPRESS_CHECKOUT_ENABLED = 'PAYPAL_EC_ENABLED';
@@ -796,35 +796,29 @@ class PayPal extends \PaymentModule
             $this->context->smarty->assign('id_cart', (int) $this->context->cart->id);
         }
 
-        $this->context->controller->addCSS($this->_path.'/views/css/paypal.css');
-
         $smarty = $this->context->smarty;
-        $smarty->assign(
-            [
-                static::LIVE    => Configuration::get(static::LIVE),
-                'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
-                'paypal_locale' => $this->getLocale(),
-            ]
-        );
+        $smarty->assign([
+            static::LIVE    => Configuration::get(static::LIVE),
+            'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
+            'paypal_locale' => $this->getLocale(),
+        ]);
 
         $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
-        $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
 
-        if ((
-                (method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
+        $process .= '';
+
+        if (((method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
                         == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc'))
                 || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name']
                         == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
             && Configuration::get(static::LOGIN_ENABLED)
         ) {
-            $this->context->smarty->assign(
-                [
-                    'client_id'     => Configuration::get(static::CLIENT_ID),
-                    'login_theme'   => Configuration::get(static::LOGIN_THEME),
-                    'live'          => Configuration::get(static::LIVE),
-                    'return_link'   => PayPalLogin::getReturnLink(),
-                ]
-            );
+            $this->context->smarty->assign([
+                'client_id'     => Configuration::get(static::CLIENT_ID),
+                'login_theme'   => Configuration::get(static::LOGIN_THEME),
+                'live'          => Configuration::get(static::LIVE),
+                'return_link'   => PayPalLogin::getReturnLink(),
+            ]);
 
             $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
             $process .= '<script async defer type="text/javascript" src="'.\Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
@@ -939,15 +933,13 @@ class PayPal extends \PaymentModule
             $minimalQuantity = $product->minimal_quantity;
         }
 
-        $this->context->smarty->assign(
-            [
-                'PayPal_payment_type'           => $type,
-                'PayPal_current_page'           => $this->getCurrentUrl(),
-                'id_product_attribute_ecs'      => $idProductAttribute,
-                'product_minimal_quantity'      => $minimalQuantity,
-                'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
-            ]
-        );
+        $this->context->smarty->assign([
+            'PayPal_payment_type'           => $type,
+            'PayPal_current_page'           => $this->getCurrentUrl(),
+            'id_product_attribute_ecs'      => $idProductAttribute,
+            'product_minimal_quantity'      => $minimalQuantity,
+            'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
+        ]);
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
     }
@@ -981,19 +973,12 @@ class PayPal extends \PaymentModule
      */
     public function hookPayment($params)
     {
-        $isoLang = [
-            'en' => 'en_US',
-            'fr' => 'fr_FR',
-            'de' => 'de_DE',
-            'nl' => 'nl_NL',
-        ];
-
         $this->context->smarty->assign(
             [
                 'logos'            => PayPalLogos::getLogos($this->getLocale()),
                 static::LIVE       => \Configuration::get(static::LIVE),
                 'use_mobile'       => true,
-                'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
+                'PayPal_lang_code' => $this->getLocale(),
                 'params'           => $params,
             ]
         );
@@ -1340,19 +1325,17 @@ class PayPal extends \PaymentModule
             $cpt->id_order = (int) $order->id;
             $orderState = $order->current_state;
 
-            $this->context->smarty->assign(
-                [
-                    'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
-                    'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
-                    'module_name'     => $this->name,
-                    'order_state'     => $orderState,
-                    'params'          => $params,
-                    'id_currency'     => $currency->getSign(),
-                    'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
-                    'list_captures'   => $cpt->getListCaptured(),
-                    'ps_version'      => _PS_VERSION_,
-                ]
-            );
+            $this->context->smarty->assign([
+                'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
+                'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
+                'module_name'     => $this->name,
+                'order_state'     => $orderState,
+                'params'          => $params,
+                'id_currency'     => $currency->getSign(),
+                'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
+                'list_captures'   => $cpt->getListCaptured(),
+                'ps_version'      => _PS_VERSION_,
+            ]);
 
             foreach ($adminTemplates as $adminTemplate) {
                 $this->html .= $this->display(__FILE__, 'views/templates/admin/admin_order/'.$adminTemplate.'.tpl');
