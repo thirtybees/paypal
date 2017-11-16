@@ -18,11 +18,11 @@
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *}
+<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>
 <script type="text/javascript">
   (function () {
     function initPayPalJs() {
-      if (typeof $ === 'undefined'
-        || !$('#payment_paypal_express_checkout').length
+      if (typeof document.getElementById('payment_paypal_express_checkout') === 'undefined'
         || typeof window.paypal === 'undefined'
         || typeof window.paypal.checkout === 'undefined'
       ) {
@@ -31,24 +31,33 @@
       }
 
       function updateFormDatas() {
-        var nb = $('#quantity_wanted').val();
-        var id = $('#idCombination').val();
+        var nb = document.getElementById('quantity_wanted').value;
+        var id = document.getElementById('idCombination').value;
 
-        $('#paypal_payment_form input[name=quantity]').val(nb);
-        $('#paypal_payment_form input[name=id_product_attribute]').val(id);
+        document.querySelectorAll('#paypal_payment_form input[name=quantity]').forEach(function (elem) {
+          elem.value = nb;
+        });
+        document.querySelectorAll('#paypal_payment_form input[name=id_product_attribute]').forEach(function (elem) {
+          elem.value = id;
+        });
       }
 
-      $('body').on('submit', "#paypal_payment_form", updateFormDatas);
+      document.getElementById('paypal_payment_form').onsubmit(updateFormDatas);
 
-      $('#container_express_checkout').empty();
+      // Empty the express checkout container
+      var containerExpressCheckout = document.getElementById('container_express_checkout');
+      while(containerExpressCheckout.firstChild) {
+        containerExpressCheckout.removeChild(containerExpressCheckout.firstChild);
+      }
+
       paypal.Button.render({
         env: {if $PAYPAL_LIVE}'production'{else}'sandbox'{/if}, // Optional: specify 'sandbox' environment
         locale: '{$paypal_locale|escape:'javascript':'UTF-8'}',
         payment: function (resolve, reject) {
           {if $incontextType == 'product'}
           // Prepare the cart first
-          var idProduct = $('input[name="id_product"]').val();
-          var idProductAttribute = $('input[name="id_product_attribute"]').val();
+          var idProduct = parseInt(document.querySelector('input[name="id_product"]').value, 10);
+          var idProductAttribute = parseInt(document.querySelector('input[name="id_product_attribute"]').value, 10);
           $.ajax({
             type: 'GET',
             url: '{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}',
@@ -64,7 +73,7 @@
                 if (ajaxCart && typeof ajaxCart.refresh === 'function') {
                   ajaxCart.refresh();
                 }
-                {/if}
+          {/if}
                 // Then create a payment
                 paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}', {
                   requestForInContext: true,
@@ -75,7 +84,7 @@
                   .catch(function (err) {
                     reject(err);
                   });
-                {if $incontextType == 'product'}
+          {if $incontextType == 'product'}
               } else {
                 reject('Couldn\'t update cart');
               }
@@ -108,21 +117,20 @@
       }, '#container_express_checkout');
 
       {if isset($paypal_authorization)}
-      /* 1.5 One page checkout*/
-      var qty = $('.qty-field.cart_quantity_input').val();
-      $('.qty-field.cart_quantity_input').after(qty);
-      $('.qty-field.cart_quantity_input, .cart_total_bar, .cart_quantity_delete, #cart_voucher *').remove();
+        var qty = $('.qty-field.cart_quantity_input').val();
+        $('.qty-field.cart_quantity_input').after(qty);
+        $('.qty-field.cart_quantity_input, .cart_total_bar, .cart_quantity_delete, #cart_voucher *').remove();
 
-      var br = $('.cart > a').prev();
-      br.prev().remove();
-      br.remove();
-      $('.cart.ui-content > a').remove();
+        var br = $('.cart > a').prev();
+        br.prev().remove();
+        br.remove();
+        $('.cart.ui-content > a').remove();
 
-      var gift_fieldset = $('#gift_div').prev();
-      var gift_title = gift_fieldset.prev();
-      $('#gift_div, #gift_mobile_div').remove();
-      gift_fieldset.remove();
-      gift_title.remove();
+        var gift_fieldset = $('#gift_div').prev();
+        var gift_title = gift_fieldset.prev();
+        $('#gift_div, #gift_mobile_div').remove();
+        gift_fieldset.remove();
+        gift_title.remove();
       {/if}
 
       {if isset($paypal_confirmation)}
@@ -169,8 +177,10 @@
           function (data) {
             if ((typeof data !== 'undefined') && (data > 0)) {
               clearInterval(confirmTimer);
-              window.location.replace('{$link->getModuleLink('paypal', 'submit', [], true)|escape:'javascript':'UTF-8'}?id_cart={$id_cart|intval}');
-              $('p.payment_module, p.cart_navigation').hide();
+              window.location.replace('{$link->getModuleLink('paypal', 'submit', ['id_cart' => $id_cart], true)|escape:'javascript':'UTF-8'}');
+              document.querySelectorAll('p.payment_module, p.cart_navigation').forEach(function (elem) {
+                elem.style.display = 'none';
+              });
             }
           }
         );
