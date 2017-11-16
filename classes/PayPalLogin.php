@@ -120,6 +120,9 @@ class PayPalLogin
             true,
             'POST'
         );
+        if (!$result) {
+            return false;
+        }
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -189,6 +192,9 @@ class PayPalLogin
             true,
             'POST'
         );
+        if ($result) {
+            return false;
+        }
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
@@ -234,6 +240,9 @@ class PayPalLogin
             false,
             $headers
         );
+        if (!$result) {
+            return false;
+        }
 
         if ($this->enableLog === true) {
             $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');

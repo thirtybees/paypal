@@ -1,22 +1,19 @@
 {*
- * 2017 Thirty Bees
- * 2007-2016 PrestaShop
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <contact@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 
 {capture name=path}{l s='Order confirmation' mod='paypal'}{/capture}
@@ -33,7 +30,7 @@
     <h2>{l s='Order Confirmation ?' mod='paypal'}</h2>
     <p>{l s='Do you want to confirm your order for total amount of ' mod='paypal'}{$totalAmount|escape:'htmlall':'UTF-8'}</p>
     <form method="POST" action="" id="formConfirm">
-      <input type="hidden" name="payerID" value="{$PayerID|escape:'htmlall':'UTF-8'}"/>
+      <input type="hidden" name="PayerID" value="{$PayerID|escape:'htmlall':'UTF-8'}"/>
       <input type="hidden" name="paymentId" value="{$paymentId|escape:'htmlall':'UTF-8'}"/>
       <input type="hidden" name="id_cart" value="{$id_cart|escape:'htmlall':'UTF-8'}"/>
 
@@ -43,44 +40,72 @@
              value="{l s='Confirm your payment' mod='paypal'}"/>
     </form>
     <script type="text/javascript">
-      $(document).ready(function () {
-        $("#formConfirm input[type=submit]").click(function () {
-          $("input[type=submit]", $(this).parents("form")).removeAttr("clicked");
-          $(this).attr("clicked", "true");
-        });
+      (function () {
+        function addEventListener(el, eventName, handler) {
+          if (typeof el === 'undefined') {
+            return;
+          }
 
-        $('#formConfirm').submit(function () {
+          if (el.addEventListener) {
+            el.addEventListener(eventName, handler);
+          } else {
+            el.attachEvent('on' + eventName, function(){
+              handler.call(el);
+            });
+          }
+        }
 
-          var form = $('#formConfirm');
-          var nameSubmit = $("input[type=submit][clicked=true]").attr('name');
+        function ready(fn) {
+          if (document.readyState != 'loading') {
+            fn();
+          } else if (document.addEventListener) {
+            document.addEventListener('DOMContentLoaded', fn);
+          } else {
+            document.attachEvent('onreadystatechange', function () {
+              if (document.readyState != 'loading')
+                fn();
+            });
+          }
+        }
 
-          $('#cancel').attr('disabled', 'disabled');
-          $('#confirm').attr('disabled', 'disabled');
-
-          $.ajax({
-            url: '{$linkSubmitPlus|escape:'htmlall':'UTF-8'}',
-            type: 'POST',
-            data: form.serialize() + '&ajax=true&submit=' + nameSubmit,
-            success: function (data) {
-              var json = JSON.parse(data);
-              $('.paypal-error').remove();
-              if (typeof json.success !== 'undefined') {
-                $('.inforeturn').html('<p class="alert alert-success">' + json.success + '</p>');
-                if (typeof window.ajaxCart !== 'undefined' && typeof window.ajaxCart.refresh === 'function') {
-                  window.ajaxCart.refresh();
-                }
-              }
-              if (typeof json.error !== 'undefined') {
-                $('.inforeturn').html('<p class="alert alert-warning paypal-error">' + json.error + '</p>');
-              }
-            }
+        ready(function () {
+          addEventListener(document.querySelector("#formConfirm input[type=submit]"), 'click', function () {
+            $("input[type=submit]", $(this).parents("form")).removeAttr("clicked");
+            $(this).attr("clicked", "true");
           });
 
-          return false;
+          $('#formConfirm').submit(function () {
+
+            var form = $('#formConfirm');
+            var nameSubmit = $("input[type=submit][clicked=true]").attr('name');
+
+            $('#cancel').attr('disabled', 'disabled');
+            $('#confirm').attr('disabled', 'disabled');
+
+            $.ajax({
+              url: '{$linkSubmitPlus|escape:'htmlall':'UTF-8'}',
+              type: 'POST',
+              data: form.serialize() + '&ajax=true&submit=' + nameSubmit,
+              success: function (data) {
+                var json = JSON.parse(data);
+                $('.paypal-error').remove();
+                if (typeof json.success !== 'undefined') {
+                  $('.inforeturn').html('<p class="alert alert-success">' + json.success + '</p>');
+                  if (typeof window.ajaxCart !== 'undefined' && typeof window.ajaxCart.refresh === 'function') {
+                    window.ajaxCart.refresh();
+                  }
+                }
+                if (typeof json.error !== 'undefined') {
+                  $('.inforeturn').html('<p class="alert alert-warning paypal-error">' + json.error + '</p>');
+                }
+              }
+            });
+
+            return false;
+          });
+
         });
-
-      });
-
+      }());
     </script>
     <div style="margin-top:15px;">
       {if isset($is_guest) && $is_guest}

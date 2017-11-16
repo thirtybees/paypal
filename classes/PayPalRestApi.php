@@ -1,22 +1,19 @@
 <?php
 /**
- * 2017 Thirty Bees
- * 2007-2016 PrestaShop
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- * @author    Thirty Bees <contact@thirtybees.com>
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2017 Thirty Bees
- * @copyright 2007-2016 PrestaShop SA
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -41,6 +38,7 @@ class PayPalRestApi
     const PATH_WEBPROFILES = '/v1/payment-experience/web-profiles';
     const PATH_EXECUTE_PAYMENT = '/v1/payments/payment/';
     const PATH_EXECUTE_REFUND = '/v1/payments/sale/';
+    const PATH_AUTHORIZATION = '/v1/payments/authorization/';
 
     const STANDARD_PROFILE = 1;
     const PLUS_PROFILE = 2;
@@ -83,10 +81,6 @@ class PayPalRestApi
      * @param int $type
      *
      * @return bool|array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getWebProfile($type = self::STANDARD_PROFILE)
     {
@@ -115,7 +109,12 @@ class PayPalRestApi
             }
 
             // Then create
-            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
+            $result = $this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST');
+            if (!$result) {
+                return false;
+            }
+
+            $result = json_decode($result);
 
             if (isset($result->id)) {
                 return $result->id;
@@ -127,10 +126,6 @@ class PayPalRestApi
 
     /**
      * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getToken()
     {
@@ -145,6 +140,9 @@ class PayPalRestApi
             true,
             'POST'
         );
+        if (!$result) {
+            return false;
+        }
 
         /*
          * Init variable
@@ -180,9 +178,6 @@ class PayPalRestApi
      * @param bool|string $requestType
      *
      * @return mixed
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
     {
@@ -212,17 +207,22 @@ class PayPalRestApi
             $requestOptions['body'] = (string) $body;
         }
 
-        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
+        try {
+            $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
+        } catch (\Exception $e) {
+            $context = \Context::getContext();
+            if (isset($context->employee->id) && $context->employee->id) {
+                $context->controller->errors[] = 'Connection error: '.$e->getMessage();
+            }
+
+            return false;
+        }
 
         return (string) $response->getBody();
     }
 
     /**
-     * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @return array|false
      */
     public function getWebProfiles()
     {
@@ -234,7 +234,12 @@ class PayPalRestApi
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
-            $this->profiles = json_decode($this->send(self::PATH_WEBPROFILES, false, $header));
+            $result = $this->send(self::PATH_WEBPROFILES, false, $header);
+            if (!$result) {
+                return false;
+            }
+
+            $this->profiles = json_decode($result);
 
             return $this->profiles;
         }
@@ -262,9 +267,6 @@ class PayPalRestApi
      * @param int         $profile
      *
      * @return mixed
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
@@ -274,8 +276,13 @@ class PayPalRestApi
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$this->getToken(),
         ];
-        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
-        return $result;
+
+        $result = $this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST');
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
     }
 
     /**
@@ -284,9 +291,6 @@ class PayPalRestApi
      * @param int         $profile
      *
      * @return \stdClass
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
@@ -294,7 +298,7 @@ class PayPalRestApi
         $customer = $this->customer;
 
         if (!$returnUrl) {
-            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
+            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
         }
 
         if (!$cancelUrl) {
@@ -419,7 +423,7 @@ class PayPalRestApi
             'description' => 'Payment description',
             'item_list'   => [
                 'items' => $aItems,
-                'shipping_address' => \Validate::isLoadedObject($address) ? $shippingAddress : null,
+                'shipping_address' => \Validate::isLoadedObject($address) && \PayPal::checkAddress($address) ? $shippingAddress : null,
             ],
         ];
 
@@ -433,7 +437,7 @@ class PayPalRestApi
         $payment = (object) [
             'transactions' => [$transaction],
             'payer'        => $payer,
-            'intent'       => 'sale',
+            'intent'       => 'authorize',
         ];
         if (\Configuration::get(\PayPal::LIVE)) {
             switch ($profile) {
@@ -468,10 +472,6 @@ class PayPalRestApi
 
     /**
      * @param array $params
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function setParams($params)
     {
@@ -483,10 +483,6 @@ class PayPalRestApi
      * @param string $paymentId
      *
      * @return bool|mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function lookUpPayment($paymentId)
     {
@@ -500,16 +496,16 @@ class PayPalRestApi
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$accessToken,
         ];
+        $result = $this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header);
+        if (!$result) {
+            return false;
+        }
 
-        return json_decode($this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
+        return json_decode($result);
     }
 
     /**
      * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function refreshToken()
     {
@@ -521,14 +517,42 @@ class PayPalRestApi
     }
 
     /**
+     * @param string $authorizationId
+     * @param float  $amount
+     * @param string $currencyCode
+     *
+     * @return bool|mixed
+     */
+    public function capturePayment($authorizationId, $amount, $currencyCode)
+    {
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+
+        $data = [
+            'amount' => [
+                'currency' => strtoupper($currencyCode),
+                'total'    => (string) $amount,
+            ],
+            'is_final_capture' => true,
+        ];
+
+        $result = $this->send(PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/capture', json_encode($data), $header, false, 'POST');
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
+    }
+
+    /**
      * @param string $payerId
      * @param string $paymentId
      *
      * @return bool|mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function executePayment($payerId, $paymentId)
     {
@@ -545,7 +569,12 @@ class PayPalRestApi
 
         $data = ['payer_id' => $payerId];
 
-        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header, false, 'POST'));
+        $result = $this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header, false, 'POST');
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
     }
 
     /**
@@ -553,10 +582,6 @@ class PayPalRestApi
      * @param array  $data
      *
      * @return bool|mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function executeRefund($paymentId, $data)
     {
@@ -571,17 +596,18 @@ class PayPalRestApi
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
-        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
+        $result = $this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
     }
 
     /**
      * @param int $type
      *
      * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected function createWebProfile($type)
     {
@@ -602,7 +628,7 @@ class PayPalRestApi
                     'input_fields' => [
                         'allow_note'       => false,
                         'no_shipping'      => 2,
-                        'address_override' => 1,
+                        'address_override' => 0,
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
@@ -618,7 +644,7 @@ class PayPalRestApi
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
-                        'no_shipping'      => 1,
+                        'no_shipping'      => 2,
                         'address_override' => 0,
                     ],
                     'flow_config'  => [
@@ -636,7 +662,7 @@ class PayPalRestApi
                     'input_fields' => [
                         'allow_note'       => false,
                         'no_shipping'      => 2,
-                        'address_override' => 1,
+                        'address_override' => 0,
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',

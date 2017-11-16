@@ -1,23 +1,20 @@
 <?php
 /**
- * 2017 Thirty Bees
- * 2007-2016 PrestaShop
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <contact@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
 if (!defined('_TB_VERSION_')) {
@@ -104,13 +101,9 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     {
         $cart = $this->context->cart;
         $paymentId = Tools::getValue('paymentId');
-        $payerId = Tools::getValue('PayerID');
 
         $rest = new PayPalRestApi();
-        $payment = $rest->executePayment($payerId, $paymentId);
-        if (isset($payment->name) && \Tools::strtoupper($payment->name) === 'PAYMENT_ALREADY_DONE') {
-            $payment = $rest->lookUpPayment($paymentId);
-        }
+        $payment = $rest->lookUpPayment($paymentId);
 
         $ready = false;
         if (isset($payment->state) && \Tools::strtolower($payment->state) == 'approved') {
@@ -141,10 +134,6 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 $ppc->add();
             }
 
-//            if (!$customer->id) {
-//                $ppec->logs[] = $this->module->l('Cannot create customer');
-//            }
-
             $shippingAddress = $payment->payer->payer_info->shipping_address;
             if (!isset($shippingAddress->line1) || !isset($shippingAddress->city)
                 || !isset($shippingAddress->postal_code) || !isset($shippingAddress->country_code)
@@ -171,17 +160,6 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 $address = $this->setCustomerAddress($payment, $customer);
                 $address->add();
             }
-//            else {
-//                if ($ppec->type != 'payment_cart') {
-//                    We used Express Checkout Shortcut => we override address
-//                    $address = $this->checkAndModifyAddress($ppec, $customer);
-//                }
-//            }
-
-//            if ($customer->id && !$address->id) {
-//                $ppec->logs[] = $this->module->l('Cannot create Address');
-//                $ppec->ready = false;
-//            }
 
             /* Create Order */
             if ($customer->id && $address->id) {
@@ -191,7 +169,6 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 $cart->id_guest = $this->context->cookie->id_guest;
 
                 if (!$this->context->cart->update()) {
-//                    $ppec->logs[] = $this->module->l('Cannot update existing cart');
                     $ready = false;
                 }
             }
@@ -200,48 +177,56 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         // if previous steps succeed, the errors array should be empty
         if ($ready) {
             /* Check modification on the product cart / quantity */
-            // FIXME: broken, find a better way
-//            if ($ppec->isProductsListStillRight()) {
-            $customer = new \Customer((int) $cart->id_customer);
+            if (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
+                /** @var \Currency $currency */
+                $currency = Currency::getCurrencyInstance($cart->id_currency);
+                $orderTotal = \Tools::ps_round($cart->getOrderTotal(true), 2);
+                if (!$orderTotal) {
+                    // This page has been revisited
+                    Tools::redirectLink(
+                        $this->context->link->getModuleLink(
+                            $this->module->name,
+                            'expresscheckout',
+                            [],
+                            true
+                        )
+                    );
+                    exit;
+                }
+                $authorization = $rest->capturePayment(
+                    $payment->transactions[0]->related_resources[0]->authorization->id,
+                    $orderTotal,
+                    strtoupper($currency->iso_code)
+                );
+                $customer = new \Customer((int) $cart->id_customer);
 
-            // When all information are checked before, we can validate the payment to paypal
-            // and create the prestashop order
+                $this->validateOrder($customer, $cart, $payment, $authorization);
 
-            $this->validateOrder($customer, $cart, $payment);
+                unset($this->context->cookie->express_checkout);
 
-            unset($this->context->cookie->express_checkout);
-
-            if (!$this->module->currentOrder) {
-//                $ppec->logs[] = $this->module->l('Cannot create order');
-            } else {
                 $idOrder = (int) $this->module->currentOrder;
                 $order = new \Order($idOrder);
+
+                /* Check payment details to display the appropriate content */
+                if (isset($order) && (\Tools::strtolower($payment->state) !== 'approved')) {
+                    $values = [
+                        'key' => $customer->secure_key,
+                        'id_module' => (int) $this->module->id,
+                        'id_cart' => (int) $cart->id,
+                        'id_order' => (int) $this->module->currentOrder,
+                    ];
+
+                    $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
+                    \Tools::redirect($link);
+                } elseif (\Tools::strtolower($payment->state) !== 'approved') {
+                    $this->context->smarty->assign([
+                        'logs' => [$this->module->l('Payment not approved')],
+                        'message' => $this->module->l('Error occurred'),
+                    ]);
+
+                    $this->setTemplate('error.tpl');
+                }
             }
-
-            /* Check payment details to display the appropriate content */
-            if (isset($order) && (\Tools::strtolower($payment->state) !== 'approved')) {
-                $values = [
-                    'key' => $customer->secure_key,
-                    'id_module' => (int) $this->module->id,
-                    'id_cart' => (int) $cart->id,
-                    'id_order' => (int) $this->module->currentOrder,
-                ];
-
-                $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
-                \Tools::redirect($link);
-            } elseif (\Tools::strtolower($payment->state) !== 'approved') {
-                $this->context->smarty->assign([
-                    'logs' => [$this->module->l('Payment not approved')],
-                    'message' => $this->module->l('Error occurred'),
-                ]);
-
-                $this->setTemplate('error.tpl');
-            }
-//            } else {
-//                /* If Cart changed, no need to keep the paypal data */
-//                unset($this->context->cookie->{PayPalExpressCheckout::$cookieName});
-//                $ppec->errors[] = $this->module->l('Cart changed since the last checkout express, please make a new Paypal checkout payment');
-//            }
         }
 
         /* Display result if error occurred */
@@ -370,7 +355,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         $context = \Context::getContext();
         $customerAddresses = $customer->getAddresses($context->cookie->id_lang);
         $paypalAddress = false;
-        if (count($customerAddresses) == 0) {
+        if (empty($customerAddresses)) {
             $paypalAddress = $this->setCustomerAddress($payment, $customer);
         } else {
             foreach ($customerAddresses as $address) {
@@ -410,48 +395,35 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      * @param \Customer $customer
      * @param \Cart     $cart
      * @param \stdClass $payment
+     * @param \stdClass $authorization
      */
-    protected function validateOrder($customer, $cart, $payment)
+    protected function validateOrder($customer, $cart, $payment, $authorization = null)
     {
-        $transactionAmount = (float) $payment->transactions[0]->amount->total;
+        if (is_object($authorization) && isset($authorization->state)) {
+            $paymentState = $authorization->state;
+            $transactionAmount = $authorization->amount->total;
+        } elseif (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
+            $authorization = $payment->transactions[0]->related_resources[0]->authorization;
+            $paymentState = $authorization->state;
+            $transactionAmount = $authorization->amount->total;
+        } else {
+            $paymentState = $payment->state;
+            $transactionAmount = (float) $payment->transactions[0]->amount->total;
+        }
         $orderTotal = (float) round($cart->getOrderTotal(true, \Cart::BOTH), 2);
 
-        // Payment succeed
-        if (\Tools::strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
-            if ((bool) \Configuration::get(\PayPal::IMMEDIATE_CAPTURE)) {
+        // Payment check
+        if ($paymentState === 'verified' && $transactionAmount == $orderTotal) {
+            if (!\Configuration::get(\PayPal::IMMEDIATE_CAPTURE)) {
                 $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
                 $message = $this->module->l('Pending payment capture.').'<br />';
             } else {
-                if (isset($payment->state)) {
-                    $paymentStatus = $payment->payer->status;
-                } else {
-                    $paymentStatus = 'Error';
-                }
-
-                if ((strcasecmp($paymentStatus, 'Completed') === 0) || (strcasecmp($paymentStatus, 'Completed_Funds_Held') === 0)) {
-                    $paymentType = (int) \Configuration::get('PS_OS_PAYMENT');
-                    $message = $this->module->l('Payment accepted.').'<br />';
-                } elseif (\Tools::getValue('banktxnpendingurl') && \Tools::getValue('banktxnpendingurl') == 'true') {
-                    $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
-                    $message = $this->module->l('eCheck').'<br />';
-                } elseif (strcasecmp($paymentStatus, 'Pending') === 0) {
-                    $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
-                    $message = $this->module->l('Pending payment confirmation.').'<br />';
-                } else {
-                    $paymentType = (int) \Configuration::get('PS_OS_ERROR');
-//                    $message = implode('<br />', $ppec->logs).'<br />';
-                }
+                $paymentType = (int) \Configuration::get('PS_OS_PAYMENT');
+                $message = $this->module->l('Payment accepted.').'<br />';
             }
         } else {
-            // FIXME: proper error handling
-//            $paymentStatus = isset($ppec->result['PAYMENTINFO_0_PAYMENTSTATUS']) ? $ppec->result['PAYMENTINFO_0_PAYMENTSTATUS'] : false;
-//            $paymentType = (int) \Configuration::get('PS_OS_ERROR');
-//
-//            if ($amountMatch) {
-//                $message = implode('<br />', $ppec->logs).'<br />';
-//            } else {
-//                $message = $this->module->l('Price paid on paypal is not the same that on Thirty Bees.').'<br />';
-//            }
+            $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
+            $message = $this->module->l('Payment on hold.').'<br />';
         }
 
         $transaction = PayPalOrder::getTransactionDetails($payment);

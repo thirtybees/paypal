@@ -1,26 +1,37 @@
 {*
- * 2017 Thirty Bees
- * 2007-2016 PrestaShop
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <contact@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *}
 <script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>
 <script type="text/javascript">
   (function () {
+    function addEventListener(el, eventName, handler) {
+      if (typeof el !== 'object' || !el) {
+        return;
+      }
+
+      if (el.addEventListener) {
+        el.addEventListener(eventName, handler);
+      } else {
+        el.attachEvent('on' + eventName, function(){
+          handler.call(el);
+        });
+      }
+    }
+
     function initPayPalJs() {
       if (typeof document.getElementById('payment_paypal_express_checkout') === 'undefined'
         || typeof window.paypal === 'undefined'
@@ -42,12 +53,17 @@
         });
       }
 
-      document.getElementById('paypal_payment_form').onsubmit(updateFormDatas);
+      addEventListener(document.getElementById('paypal_payment_form'), 'submit', updateFormDatas);
 
       // Empty the express checkout container
       var containerExpressCheckout = document.getElementById('container_express_checkout');
-      while(containerExpressCheckout.firstChild) {
-        containerExpressCheckout.removeChild(containerExpressCheckout.firstChild);
+      if (containerExpressCheckout) {
+        while (containerExpressCheckout.firstChild) {
+          containerExpressCheckout.removeChild(containerExpressCheckout.firstChild);
+        }
+      } else {
+        // No PayPal express checkout container found, so exiting
+        return;
       }
 
       paypal.Button.render({
@@ -79,7 +95,11 @@
                   requestForInContext: true,
                 })
                   .then(function (data) {
-                    resolve(data.paymentID);
+                    if (!data || !data.paymentId) {
+                      reject('Could not initialize payment');
+                    } else {
+                      resolve(data.paymentId);
+                    }
                   })
                   .catch(function (err) {
                     reject(err);
@@ -96,21 +116,20 @@
           {/if}
         },
         onAuthorize: function (data) {
+          console.log(data);
           var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript':'UTF-8'}';
           paypal.request.post(EXECUTE_PAYMENT_URL, {
-            paymentID: data.paymentID,
-            payerID: data.payerID
+            paymentId: data.paymentID, // paymentID should be spelled like this
+            PayerID: data.payerID      // payerID should be spelled like this
           })
             .then(function (data) {
               if (data.success) {
                 window.location.replace(data.confirmUrl);
                 return;
-              } else {
-                alert('fail');
               }
             })
             .catch(function (err) {
-              alert('Payment failure');
+              alert('{l s='Payment failed. Please try again or contact our customer service if the problem persists. Our apologies for the inconvience.' mod='paypal' js=1}');
             });
         }
 
@@ -136,23 +155,21 @@
       {if isset($paypal_confirmation)}
         $('#container_express_checkout').hide();
 
-        $('body').on('click', "#cgv", function () {
-          if ($('#cgv:checked').length != 0) {
+        addEventListener(document.querySelector('body'), 'click', "#cgv", function () {
+          if (typeof document.querySelector('#cgv:checked') !== 'undefined') {
             $(location).attr('href', '{$paypal_confirmation|escape:'javascript':'UTF-8'}');
           }
         });
       {elseif isset($paypal_order_opc)}
-        $('body').on('click', '#cgv', function () {
-          if ($('#cgv:checked').length != 0) {
+        addEventListener(document.querySelector('body'), 'click', '#cgv', function () {
+          if (typeof document.querySelector('#cgv:checked') !== 'undefined') {
             checkOrder();
           }
         });
       {/if}
 
-      var confirmTimer = false;
-
-      if ($('form[target="hss_iframe"]').length == 0) {
-        if ($('select[name^="group_"]').length > 0) {
+      if (document.querySelector('form[target="hss_iframe"]')) {
+        if (document.querySelector('select[name^="group_"]')) {
           displayExpressCheckoutShortcut();
         }
 
@@ -162,30 +179,11 @@
       }
 
       function checkOrder() {
-        if (!confirmTimer) {
-          confirmTimer = setInterval(getOrdersCount, 1000);
-        }
+        {*window.location.replace('{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'javascript':'UTF-8'}');*}
+        {*document.querySelectorAll('p.payment_module, p.cart_navigation').forEach(function (elem) {*}
+          {*elem.style.display = 'none';*}
+        {*});*}
       }
-
-      {if isset($id_cart)}
-      function getOrdersCount() {
-        $.get(
-          '{$link->getModuleLink('paypal', 'incontextconfirm')|escape:'javascript':'UTF-8'}',
-          {
-            id_cart: '{$id_cart|intval}'
-          },
-          function (data) {
-            if ((typeof data !== 'undefined') && (data > 0)) {
-              clearInterval(confirmTimer);
-              window.location.replace('{$link->getModuleLink('paypal', 'submit', ['id_cart' => $id_cart], true)|escape:'javascript':'UTF-8'}');
-              document.querySelectorAll('p.payment_module, p.cart_navigation').forEach(function (elem) {
-                elem.style.display = 'none';
-              });
-            }
-          }
-        );
-      }
-      {/if}
     }
 
     initPayPalJs();

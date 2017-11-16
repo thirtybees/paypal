@@ -16,8 +16,12 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 
-{capture name=path}<a href="order.php">{l s='Your shopping cart' mod='paypal'}</a><span
-        class="navigation-pipe"> {$navigationPipe|escape:'htmlall':'UTF-8'} </span>{l s='PayPal' mod='paypal'}{/capture}
+{capture name=path}
+  <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">
+    {l s='Your shopping cart' mod='paypal'}</a>
+  <span class="navigation-pipe"> {$navigationPipe|escape:'htmlall':'UTF-8'} </span>
+  {l s='PayPal' mod='paypal'}
+{/capture}
 {include file="$tpl_dir./breadcrumb.tpl"}
 <h2>{$message|escape:'htmlall':'UTF-8'}</h2>
 {if isset($logs) && $logs}
@@ -34,13 +38,16 @@
 
     {if isset($order)}
       <p>
-        {l s='Total of the transaction (taxes incl.) :' mod='paypal'} <span
-                class="paypal-bold">{$price|escape:'htmlall':'UTF-8'}</span><br>
+        {l s='Total of the transaction (taxes incl.) :' mod='paypal'} <span class="paypal-bold">{$price|escape:'htmlall':'UTF-8'}</span><br>
         {l s='Your order ID is :' mod='paypal'} <span class="paypal-bold">{$order.id_order|intval}</span><br>
       </p>
     {/if}
 
-    <p><a href="{$base_dir|escape:'htmlall':'UTF-8'}" class="button_small"
-          title="{l s='Back' mod='paypal'}">&laquo; {l s='Back' mod='paypal'}</a></p>
+    <p><a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}"
+          class="button_small"
+          title="{l s='Back' mod='paypal'}">
+        <i class="icon icon-chevron-left"></i> {l s='Back' mod='paypal'}
+      </a>
+    </p>
   </div>
 {/if}

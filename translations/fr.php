@@ -18,10 +18,6 @@ $_MODULE['<{paypal}prestashop>expresscheckout_36ec50c0e914dd2fb48a1b27540512ce']
 $_MODULE['<{paypal}prestashop>expresscheckout_719073527bcc898d5e7cc63fd6d16ce4'] = 'eCheck';
 $_MODULE['<{paypal}prestashop>expresscheckout_c8a31175ee6991be6a0d7a6d32ca4268'] = 'Pending payment confirmation.';
 $_MODULE['<{paypal}prestashop>expresscheckout_2844e3ddde44821bf20d02a0f34b2a93'] = 'Price paid on paypal is not the same that on Thirty Bees.';
-$_MODULE['<{paypal}prestashop>orderconfirmation_67a3fcdb7708219b9d5d6269ad8c4a86'] = 'An error occurred while processing payment.';
-$_MODULE['<{paypal}prestashop>plussubmit_361bbf199fe27d7081c3eeeea7488ca5'] = 'An error occurred during the payment';
-$_MODULE['<{paypal}prestashop>plussubmit_d8da320153c76b817937ace642af6226'] = 'Your payment has been accepted';
-$_MODULE['<{paypal}prestashop>plussubmit_2758fccb8c7506009717e9834717c238'] = 'Your order has been canceled';
 $_MODULE['<{paypal}prestashop>paypal_ad69e733ebae8d264bccaa38d68830e8'] = 'PayPal';
 $_MODULE['<{paypal}prestashop>paypal_6e7012516038a096b9f6bb71ba2cc5a3'] = 'Accepts payments by credit cards (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) with PayPal.';
 $_MODULE['<{paypal}prestashop>paypal_9c635406092f28a84ee320aa7d72303f'] = 'You have to enable the cURL extension on your server in order to use this module';

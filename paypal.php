@@ -74,6 +74,53 @@ class PayPal extends \PaymentModule
     const ENUM_TLS_ERROR = -1;
 
     // @codingStandardsIgnoreStart
+    public static $postalCodeRequired = [
+        'AR',
+        'AU',
+        'AT',
+        'BT',
+        'BR',
+        'CA',
+        'C2',
+        'DK',
+        'FK',
+        'FO',
+        'FR',
+        'GM',
+        'DE',
+        'GL',
+        'IT',
+        'JP',
+        'KI',
+        'KG',
+        'MW',
+        'MR',
+        'YT',
+        'MX',
+        'NR',
+        'NL',
+        'NE',
+        'NU',
+        'NF',
+        'NO',
+        'PN',
+        'PL',
+        'RU',
+        'SG',
+        'ES',
+        'SH',
+        'PM',
+        'SR',
+        'SJ',
+        'SE',
+        'CH',
+        'TV',
+        'GB',
+        'US',
+        'VA',
+        'WF',
+    ];
+
     /** @var array $errors */
     public $errors = [];
     /**
@@ -121,15 +168,13 @@ class PayPal extends \PaymentModule
         $this->controllers = [
             'expresscheckout',
             'expresscheckoutsubmit',
+            'expresscheckoutconfirm',
             'standardcancel',
             'incontextajax',
             'incontextvalidate',
-            'incontextconfirm',
             'pluseu',
-            'plussubmit',
             'pluscancel',
             'logintoken',
-            'orderconfirmation',
         ];
 
         // Only check from Back Office
@@ -807,10 +852,7 @@ class PayPal extends \PaymentModule
 
         $process .= '';
 
-        if (((method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
-                        == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc'))
-                || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name']
-                        == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
+        if (((method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name') == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc')) || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name'] == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
             && Configuration::get(static::LOGIN_ENABLED)
         ) {
             $this->context->smarty->assign([
@@ -991,7 +1033,7 @@ class PayPal extends \PaymentModule
         if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
             $rest = new PayPalRestApi();
             $payment = $rest->createPayment(
-                $this->context->link->getModuleLink($this->name, 'plussubmit', [], true),
+                $this->context->link->getModuleLink($this->name, 'expresscheckoutsubmit', [], true),
                 $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
                 PayPalRestApi::PLUS_PROFILE
             );
@@ -1137,7 +1179,7 @@ class PayPal extends \PaymentModule
 
         if (!empty($detail['payer_id']) && !empty($detail['token'])) {
             $values = ['get_confirmation' => true];
-            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
+            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutconfirm', $values, true));
         }
     }
 
@@ -1245,7 +1287,7 @@ class PayPal extends \PaymentModule
                 return false;
             }
 
-            \Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', ['confirm' => '1', 'token' => $this->context->cookie->paypal_token, 'payerID' => $this->context->cookie->paypal_payer_id], true));
+            \Tools::redirect($this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', ['confirm' => '1', 'token' => $this->context->cookie->paypal_token, 'PayerID' => $this->context->cookie->paypal_payer_id], true));
         }
 
         return null;
@@ -1796,6 +1838,18 @@ class PayPal extends \PaymentModule
         }
 
         return true;
+    }
+
+    /**
+     * Checks if the address can be passed to PayPal
+     *
+     * @param \Address $address
+     *
+     * @return bool
+     */
+    public static function checkAddress($address)
+    {
+        return !in_array(Country::getIsoById($address->id_country), static::$postalCodeRequired) || $address->postcode;
     }
 
     /**

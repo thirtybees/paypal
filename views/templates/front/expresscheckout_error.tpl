@@ -25,5 +25,9 @@
     </ol>
   </div>
 
-  <p><a href="{$base_dir|escape:'htmlall':'UTF-8'}" class="btn btn-sm btn-default" title="{l s='Back' mod='paypal'}">&laquo; {l s='Back' mod='paypal'}</a></p>
+  <p>
+    <a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}" class="btn btn-sm btn-default" title="{l s='Back' mod='paypal'}">
+      <i class="icon icon-chevron-left"></i> {l s='Back' mod='paypal'}
+    </a>
+  </p>
 {/if}

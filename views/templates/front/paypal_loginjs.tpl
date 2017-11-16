@@ -1,46 +1,73 @@
 {*
- * 2017 Thirty Bees
- * 2007-2016 PrestaShop
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <contact@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *}
 <script type="text/javascript">
   (function () {
     function initPayPalLoginJs() {
-      if (typeof $ === 'undefined' || typeof window.paypal === 'undefined' || typeof window.paypal.loginUtils === 'undefined' || typeof window.paypal.login === 'undefined') {
-        setTimeout(initPayPalLoginJs, 100);
+      if (typeof window.paypal === 'undefined'
+        || typeof window.paypal.loginUtils === 'undefined'
+        || typeof window.paypal.login === 'undefined'
+      ) {
+        setTimeout(initPayPalLoginJs, 10);
+
         return;
       }
 
-      if ($("#create-account_form").length > 0) {
-        $("#create-account_form").parent().before('<div id="buttonPaypalLogin1"></div>');
-      } else {
-        $("#login_form").parent().before('<div id="buttonPaypalLogin1"></div>');
-        $("#buttonPaypalLogin1").css({
-          "clear": "both",
-          "margin-bottom": "13px"
-        });
+      var createAccountForm = document.getElementById('create-account_form');
+
+      if (paypalLoginButton) {
+        paypalLoginButton.style.clear = 'both';
+        paypalLoginButton.style.marginBottom = '10px';
+        paypalLoginButton.style.marginLeft = '20px';
+        paypalLoginButton.style.width = '100%';
       }
-      $("#buttonPaypalLogin1").css({
-        "clear": "both",
-        'margin-bottom': '10px',
-        'margin-left': '20px',
-        'width': '100%'
-      });
+
+      var paypalLoginButton;
+      if (createAccountForm) {
+        if (!createAccountForm.parentNode) {
+          createAccountForm.parentNode.insertAdjacentHTML('beforebegin', '<div id="buttonPaypalLogin1"></div>');
+        } else {
+          createAccountForm.parentNode.insertAdjacentHTML('beforebegin', '<div id="buttonPaypalLogin1"></div>');
+        }
+
+        paypalLoginButton = document.getElementById('buttonPaypalLogin1');
+
+        paypalLoginButton.style.clear = 'both';
+        paypalLoginButton.style.marginBottom = '10px';
+        paypalLoginButton.style.marginLeft = '20px';
+        paypalLoginButton.style.width = '100%';
+      } else {
+        var loginForm = document.getElementById('login_form');
+        if (!loginForm) {
+          return;
+        }
+
+        if (!loginForm.parentNode) {
+          loginForm.insertAdjacentHTML('beforebegin', '<div id="buttonPaypalLogin1"></div>');
+        } else {
+          loginForm.parentNode.insertAdjacentHTML('beforebegin', '<div id="buttonPaypalLogin1"></div>');
+        }
+
+        paypalLoginButton = document.getElementById('buttonPaypalLogin1');
+        paypalLoginButton.style.clear = 'both';
+        paypalLoginButton.style.marginBottom = '13px';
+        paypalLoginButton.style.marginLeft = '20px';
+        paypalLoginButton.style.width = '100%';
+      }
 
       window.paypal.loginUtils.applyStyles();
       window.paypal.login.render({

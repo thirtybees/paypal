@@ -1,22 +1,19 @@
 {*
- * 2017 Thirty Bees
- * 2007-2016 PrestaShop
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <contact@thirtybees.com>
- *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
- *  @copyright 2007-2016 PrestaShop SA
- *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
+ * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 <p>
   <img src="{$logos.LocalPayPalLogoMedium|escape:'htmlall':'UTF-8'}" alt="{l s='PayPal' mod='paypal'}" class="paypal_logo"/>
@@ -65,13 +62,17 @@
   </table>
 </div>
 
+{if $addressChanged}
+  <div class="alert alert-warning">
+    {l s='The shipping address has changed during the PayPal checkout.' mod='paypal'}&nbsp;
+    {l s='Therefore the order total has been recalculated based on your new shipping address.' mod='paypal'}<br />
+    {l s='Click' mod='paypal'} <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall':'UTF-8'}">{l s='here' mod='paypal'}</a> {l s='to return to PayPal' mod='paypal'}.
+    {l s='Or go back to' mod='paypal'} <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">{l s='the checkout' mod='paypal'}</a>.
+  </div>
+{/if}
 <p class="paypal_total_amount">
   - {l s='The total amount of your order is' mod='paypal'}
   <span id="amount" class="price"><strong>{$total|escape:'htmlall':'UTF-8'}</strong></span> {if $use_taxes == 1}{l s='(tax incl.)' mod='paypal'}{/if}
 </p>
-<p>
-  - {l s='We accept the following currency to be sent by PayPal:' mod='paypal'}&nbsp;<b>{$currency->name|escape:'htmlall':'UTF-8'}</b>
-</p>
-
 
 <link rel="stylesheet" href="{$module_dir|escape:'htmlall':'UTF-8'}views/css/paypal-cart-summary.css">
