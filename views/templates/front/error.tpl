@@ -25,7 +25,7 @@
 {include file="$tpl_dir./breadcrumb.tpl"}
 <h2>{$message|escape:'htmlall':'UTF-8'}</h2>
 {if isset($logs) && $logs}
-  <div class="error">
+  <div class="alert alert-danger">
     <strong>{l s='Please try to contact the merchant:' mod='paypal'}</strong>
 
     <ol>
@@ -43,7 +43,8 @@
       </p>
     {/if}
 
-    <p><a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}"
+    <p>
+      <a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}"
           class="button_small"
           title="{l s='Back' mod='paypal'}">
         <i class="icon icon-chevron-left"></i> {l s='Back' mod='paypal'}

@@ -52,40 +52,45 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
         $payerId = \Tools::getValue('PayerID');
         $paymentId = \Tools::getValue('paymentId');
 
+        $canShip = $this->assignCartSummary();
+        if (!$canShip) {
+            $this->setTemplate('cant-ship.tpl');
+
+            return;
+        }
+
         $api = new PayPalRestApi();
-
-        $this->assignCartSummary();
-
-        if (!Tools::isSubmit('authorized')) {
-            $payment = $api->lookUpPayment($paymentId);
-            $authorized = false;
-            if (isset($payment->links)) {
-                foreach ($payment->links as $link) {
-                    if ($link->rel === 'capture') {
-                        $authorized = true;
-                        break;
-                    }
+        $previouslyAuthorized = Tools::getValue('authorized');
+        $payment = $api->lookUpPayment($paymentId);
+        $authorized = false;
+        if (isset($payment->links)) {
+            foreach ($payment->links as $link) {
+                if ($link->rel === 'capture') {
+                    $authorized = true;
+                    break;
                 }
-            }
-
-            if (!$authorized) {
-                $api->executePayment($payerId, $paymentId);
-                Tools::redirectLink(
-                    $this->context->link->getModuleLink(
-                        $this->module->name,
-                        'expresscheckoutconfirm',
-                        [
-                            'PayerID'        => $payerId,
-                            'paymentId'      => $paymentId,
-                            'addressChanged' => (int) \Tools::getValue('addressChanged'),
-                            'authorized'     => 1,
-                        ],
-                        true
-                    )
-                );
             }
         }
 
+        if (!$authorized && !$previouslyAuthorized) {
+            $api->executePayment($payerId, $paymentId);
+            Tools::redirectLink(
+                $this->context->link->getModuleLink(
+                    $this->module->name,
+                    'expresscheckoutconfirm',
+                    [
+                        'PayerID'        => $payerId,
+                        'paymentId'      => $paymentId,
+                        'addressChanged' => (int) \Tools::getValue('addressChanged'),
+                        'authorized'     => 1,
+                    ],
+                    true
+                )
+            );
+        } elseif ($previouslyAuthorized) {
+            // Unable to authorize, try again
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', null, true));
+        }
 
         $params = [
             'PayerID'   => $payerId,
@@ -101,69 +106,53 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
 
     /**
      * Assign cart summary
+     *
+     *
      */
     public function assignCartSummary()
     {
         // Rest API object
         $restApi = new PayPalRestApi();
+        $cart = $this->context->cart;
 
         // Get the currency
-        $currency = new \Currency((int) $this->context->cart->id_currency);
+        $currency = new \Currency((int) $cart->id_currency);
 
+        // Indicates whether we have checked the address before
         $addressChanged = (bool) Tools::getValue('addressChanged');
-        $tbShippingAddress = new \Address($this->context->cart->id_address_delivery);
-        $tbBillingAddress = new \Address($this->context->cart->id_address_invoice);
+        $tbShippingAddress = new \Address($cart->id_address_delivery);
+        $tbBillingAddress = new \Address($cart->id_address_invoice);
 
         // Check whether the address has been updated by the user
         $paymentInfo = $restApi->lookUpPayment(Tools::getValue('paymentId'));
 
-        if (isset ($paymentInfo->payer->payer_info->shipping_address)) {
-            // Update the address accordingly
-            $paypalShippingAddress = $paymentInfo->payer->payer_info->shipping_address;
+        if (!$addressChanged && \PayPalModule\PayPalTools::checkAddressChanged($paymentInfo, $tbShippingAddress)) {
+            $tbBillingAddress = $tbShippingAddress = \PayPalModule\PayPalTools::checkAndModifyAddress($paymentInfo, $this->context->customer);
+            $cart->id_address_delivery = $tbShippingAddress->id;
+            $cart->id_address_invoice = $tbShippingAddress->id;
 
-            // Check if the country code and postal code (optional) and city are the same
-            if ($paypalShippingAddress->country_code !== strtoupper(Country::getIsoById($tbShippingAddress->id_country))
-                || $paypalShippingAddress->postal_code !== $tbShippingAddress->postcode
-                || $paypalShippingAddress->city !== $tbShippingAddress->city
-            ) {
-                $names = explode(' ', $paypalShippingAddress->recipient_name);
-                if (count($names) >= 2) {
-                    $tbShippingAddress->firstname = $names[0];
-                    $tbShippingAddress->lastname = implode(' ', array_splice($names, 1));
-                } else {
-                    $tbShippingAddress->firstname = $paymentInfo->payer->payer_info->first_name;
-                    $tbShippingAddress->lastname = $paymentInfo->payer->payer_info->last_name;
-                }
-                $tbShippingAddress->address1 = $paypalShippingAddress->line1;
-                $tbShippingAddress->city = $paypalShippingAddress->city;
-                if (isset($paypalShippingAddress->state) && $paypalShippingAddress->state) {
-                    $tbShippingAddress->id_state = State::getIdByIso($paypalShippingAddress->state);
-                } else {
-                    $tbShippingAddress->id_state = null;
-                }
-                $tbShippingAddress->postcode = $paypalShippingAddress->postal_code;
-                $tbShippingAddress->id_country = Country::getByIso($paypalShippingAddress->country_code);
-                $tbBillingAddress = $tbShippingAddress;
-                $tbBillingAddress->save();
-                $tbShippingAddress->save();
+            $deliveryOption = $cart->getDeliveryOption();
+            if (count($deliveryOption)) {
+                $cart->id_carrier = array_keys($deliveryOption)[0];
+            } else {
+                return false;
+            }
 
-                // Make the cart recalculate shipping costs and save it to DB
-                $this->context->cart->getPackageShippingCost();
-                $this->context->cart->save();
+            $cart->save();
 
-                Tools::redirectLink($this->context->link->getModuleLink(
-                    'paypal',
+            Tools::redirectLink(
+                $this->context->link->getModuleLink(
+                    $this->module->name,
                     'expresscheckoutconfirm',
                     [
-                        'paymentId'      => Tools::getValue('paymentId'),
                         'PayerID'        => Tools::getValue('PayerID'),
+                        'paymentId'      => Tools::getValue('paymentId'),
                         'addressChanged' => 1,
                         'authorized'     => (int) Tools::getValue('authorized'),
                     ],
                     true
-                ));
-                exit;
-            }
+                )
+            );
         }
 
         // Grab the module's file path
@@ -185,5 +174,7 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
         $this->context->smarty->assign([
             'paypal_cart_summary' => $this->module->display($moduleFilepath, 'views/templates/hook/paypal_cart_summary.tpl'),
         ]);
+
+        return true;
     }
 }

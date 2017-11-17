@@ -61,7 +61,7 @@
     {/foreach}
   </table>
 </div>
-
+<div class="clearfix"></div>
 {if $addressChanged}
   <div class="alert alert-warning">
     {l s='The shipping address has changed during the PayPal checkout.' mod='paypal'}&nbsp;

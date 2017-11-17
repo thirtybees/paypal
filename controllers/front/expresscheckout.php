@@ -68,9 +68,9 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             'errors' => $this->errors,
         ]);
 
-        $this->setTemplate('expresscheckout_error.tpl');
-
         parent::initContent();
+
+        $this->setTemplate('expresscheckout_error.tpl');
     }
 
     /**
@@ -105,137 +105,36 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
         $rest = new PayPalRestApi();
         $payment = $rest->lookUpPayment($paymentId);
 
-        // Process this block if the authorization has been approved
-        $ready = false;
-        if (isset($payment->state) && \Tools::strtolower($payment->state) == 'approved') {
-            $ready = true;
-            $address = $customer = null;
-            $email = $payment->payer->payer_info->email;
-
-            /* Create Customer if not exist with address etc */
-            if ($this->context->cookie->logged) {
-                $idCustomer = PaypalCustomer::getPayPalCustomerIdByEmail($email);
-                if (!$idCustomer) {
-                    $ppc = new PayPalCustomer();
-                    $ppc->id_customer = $this->context->customer->id;
-                    $ppc->paypal_email = $email;
-                    $ppc->add();
-                }
-
-                $customer = $this->context->customer;
-            } elseif ($idCustomer = \Customer::customerExists($email, true)) {
-                $customer = new \Customer($idCustomer);
-            } else {
-                $customer = $this->setCustomerInformation($payment, $email);
-                $customer->add();
-
-                $ppc = new PayPalCustomer();
-                $ppc->id_customer = $this->context->customer->id;
-                $ppc->paypal_email = $email;
-                $ppc->add();
-            }
-
-            $shippingAddress = $payment->payer->payer_info->shipping_address;
-            if (!isset($shippingAddress->line1) || !isset($shippingAddress->city)
-                || !isset($shippingAddress->postal_code) || !isset($shippingAddress->country_code)
-            ) {
-                Tools::redirectLink($this->context->link->getPageLink('order'));
-            }
-
-            $addresses = $customer->getAddresses($this->context->language->id);
-            foreach ($addresses as $address) {
-                if ($address['alias'] == 'Paypal_Address') {
-                    //If address has already been created
-                    $address = new \Address($address['id_address']);
-                    break;
-                }
-            }
-
-            /* Create address */
-            if (is_array($address) && isset($address['id_address'])) {
-                $address = new \Address($address['id_address']);
-            }
-
-            if ((!$address || !$address->id) && $customer->id) {
-                //If address does not exists, we create it
-                $address = $this->setCustomerAddress($payment, $customer);
-                $address->add();
-            }
-
-            /* Create Order */
-            if ($customer->id && $address->id) {
-                $cart->id_customer = $customer->id;
-                $cart->id_address_delivery = $address->id;
-                $cart->id_address_invoice = $address->id;
-                $cart->id_guest = $this->context->cookie->id_guest;
-
-                if (!$this->context->cart->update()) {
-                    $ready = false;
-                }
-            }
-        }
-
-        // if previous steps succeed, the errors array should be empty
-        if ($ready) {
-            /* Check modification on the product cart / quantity */
-            if (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
-                /** @var \Currency $currency */
-                $currency = Currency::getCurrencyInstance($cart->id_currency);
-                $orderTotal = \Tools::ps_round($cart->getOrderTotal(true), 2);
-                if (!$orderTotal) {
-                    // This page has been revisited
-                    Tools::redirectLink(
-                        $this->context->link->getModuleLink(
-                            $this->module->name,
-                            'expresscheckout',
-                            [],
-                            true
-                        )
-                    );
-                    exit;
-                }
-                $authorization = $rest->capturePayment(
-                    $payment->transactions[0]->related_resources[0]->authorization->id,
-                    $orderTotal,
-                    strtoupper($currency->iso_code)
+        /* Check modification on the product cart / quantity */
+        if (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
+            /** @var \Currency $currency */
+            $currency = Currency::getCurrencyInstance($cart->id_currency);
+            $orderTotal = \Tools::ps_round($cart->getOrderTotal(true), 2);
+            if (!$orderTotal) {
+                // This page has been revisited
+                Tools::redirectLink(
+                    $this->context->link->getModuleLink(
+                        $this->module->name,
+                        'expresscheckout',
+                        [],
+                        true
+                    )
                 );
-                $customer = new \Customer((int) $cart->id_customer);
-
-                $this->validateOrder($customer, $cart, $payment, $authorization);
-
-                unset($this->context->cookie->express_checkout);
-
-                $idOrder = (int) $this->module->currentOrder;
-                $order = new \Order($idOrder);
-
-                /* Check payment details to display the appropriate content */
-                if (isset($order) && (\Tools::strtolower($payment->state) !== 'approved')) {
-                    $values = [
-                        'key' => $customer->secure_key,
-                        'id_module' => (int) $this->module->id,
-                        'id_cart' => (int) $cart->id,
-                        'id_order' => (int) $this->module->currentOrder,
-                    ];
-
-                    $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
-                    \Tools::redirect($link);
-                } elseif (\Tools::strtolower($payment->state) !== 'approved') {
-                    $this->context->smarty->assign([
-                        'logs' => [$this->module->l('Payment not approved')],
-                        'message' => $this->module->l('Error occurred'),
-                    ]);
-
-                    $this->setTemplate('error.tpl');
-                }
             }
+            $authorization = $rest->capturePayment(
+                $payment->transactions[0]->related_resources[0]->authorization->id,
+                $orderTotal,
+                strtoupper($currency->iso_code)
+            );
+            $customer = new \Customer((int) $cart->id_customer);
+
+            $this->validateOrder($customer, $cart, $payment, $authorization);
+        } elseif (isset($payment->transactions[0]) && isset($payment->state) && $payment->state === 'approved') {
+            // Authorized, but unable to capture due to a 15%+ price increase, redirect to PayPal for a new auth
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
         }
 
-        /* Display result if error occurred */
-        if (!$this->context->cart->id) {
-            $this->context->cart->delete();
-//            $ppec->logs[] = $this->module->l('Your cart is empty.');
-        }
-        $logs = [sprintf($this->module->l('An unknown error occurred. The payment status is `%s`'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
+        $logs = [sprintf($this->module->l('An unknown error occurred. The authorization status is `%s`, but the amount has not been charged (yet).'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
         if (_PS_MODE_DEV_) {
             $logs[] = json_encode(['The full payment object looks like' => $payment]);
         }
@@ -259,123 +158,6 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
         ]);
 
         $this->setTemplate($template);
-    }
-
-    /**
-     * Set customer information
-     * Used to create user account with PayPal account information
-     *
-     * @param \stdClass $payment
-     * @param string    $email
-     *
-     * @return \Customer
-     */
-    protected function setCustomerInformation($payment, $email)
-    {
-        $customer = new \Customer();
-        $customer->email = $email;
-        $customer->firstname = $payment->payer->payer_info->first_name;
-        $customer->lastname = $payment->payer->payer_info->last_name;
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
-
-        return $customer;
-    }
-
-    /**
-     * Set customer address (when not logged in)
-     * Used to create user address with PayPal account information
-     *
-     * @param \stdClass $payment
-     * @param \Customer $customer
-     * @param int       $idAddress
-     *
-     * @return Address
-     */
-    protected function setCustomerAddress($payment, $customer, $idAddress = null)
-    {
-        $payerInfo = $payment->payer->payer_info;
-        $shippingAddress = $payerInfo->shipping_address;
-
-        $address = new \Address($idAddress);
-        $address->id_country = \Country::getByIso($shippingAddress->country_code);
-        if ($idAddress == null) {
-            $address->alias = 'Paypal_Address';
-        }
-
-        $name = trim($shippingAddress->recipient_name);
-        $name = explode(' ', $name);
-        if (isset($name[1])) {
-            $firstname = $name[0];
-            unset($name[0]);
-            $lastname = implode(' ', $name);
-        } else {
-            $firstname = $payerInfo->first_name;
-            $lastname = $payerInfo->last_name;
-        }
-
-        $address->lastname = $lastname;
-        $address->firstname = $firstname;
-        $address->address1 = $shippingAddress->line1;
-        if (isset($shippingAddress->line2)) {
-            $address->address2 = $shippingAddress->line2;
-        }
-
-        $address->city = $shippingAddress->city;
-        if (\Country::containsStates($address->id_country)) {
-            $address->id_state = (int) \State::getIdByIso($shippingAddress->state, $address->id_country);
-        }
-
-        $address->postcode = $shippingAddress->postal_code;
-        $address->phone = '0000000000';
-
-        $address->id_customer = $customer->id;
-
-        return $address;
-    }
-
-    /**
-     * @param \stdClass $payment
-     * @param \Customer $customer
-     *
-     * @return \Address|bool
-     */
-    protected function checkAndModifyAddress($payment, $customer)
-    {
-        $context = \Context::getContext();
-        $customerAddresses = $customer->getAddresses($context->cookie->id_lang);
-        $paypalAddress = false;
-        if (empty($customerAddresses)) {
-            $paypalAddress = $this->setCustomerAddress($payment, $customer);
-        } else {
-            foreach ($customerAddresses as $address) {
-                if ($address['alias'] == 'Paypal_Address') {
-                    //If a PayPal address already exists we use it to override new address from paypal
-                    $paypalAddress = $this->setCustomerAddress($payment, $customer, $address['id_address']);
-                    break;
-                } else {
-                    $payerInfo = $payment->payer->payer_info;
-                    $shippingAddress = $payerInfo->shipping_address;
-                    //We check if an address exists with the same country / city / street
-                    if ($address['firstname'] == $payerInfo->first_name &&
-                    $address['lastname'] == $payerInfo->last_name &&
-                    $address['id_country'] == \Country::getByIso($shippingAddress->country_code) &&
-                    $address['address1'] == $shippingAddress->line1 &&
-                    $address['address2'] == isset($shippingAddress->line2) ? $shippingAddress->line2 : null &&
-                        $address['city'] == $shippingAddress->city
-                    ) {
-                        $paypalAddress = new \Address($address['id_address']);
-                        break;
-                    }
-                }
-            }
-        }
-        if ($paypalAddress == false) {
-            $paypalAddress = $this->setCustomerAddress($payment, $customer);
-        }
-
-        $paypalAddress->save();
-
-        return $paypalAddress;
     }
 
     /**
@@ -431,6 +213,10 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             $this->context->shop
         );
 
-        Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
+        if ($customer->isGuest()) {
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckoutguest', null, true));
+        } else {
+            Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
+        }
     }
 }
