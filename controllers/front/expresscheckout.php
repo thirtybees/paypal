@@ -265,10 +265,6 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
      * Set customer information
      * Used to create user account with PayPal account information
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     *
      * @param \stdClass $payment
      * @param string    $email
      *
@@ -288,10 +284,6 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
     /**
      * Set customer address (when not logged in)
      * Used to create user address with PayPal account information
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      *
      * @param \stdClass $payment
      * @param \Customer $customer
@@ -346,10 +338,6 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
      * @param \Customer $customer
      *
      * @return \Address|bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected function checkAndModifyAddress($payment, $customer)
     {

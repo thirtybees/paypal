@@ -44,10 +44,6 @@ class PayPalPlusEUModuleFrontController extends \ModuleFrontController
 
     /**
      * PayPalSubmitplusModuleFrontController constructor.
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function __construct()
     {
@@ -56,9 +52,7 @@ class PayPalPlusEUModuleFrontController extends \ModuleFrontController
     }
 
     /**
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @return void
      */
     public function initContent()
     {
@@ -91,8 +85,7 @@ class PayPalPlusEUModuleFrontController extends \ModuleFrontController
         if ($approvalUrl) {
             $this->setTemplate('paypal_plus_payment_eu.tpl');
         } else {
-            // FIXME: file is missing
-            $this->setTemplate('paypal_plus_payment_eu_failed.tpl');
+            Tools::redirectLink($this->context->link->getPageLink('order', Tools::usingSecureMode(), null, ['step' => 3]));
         }
     }
 }

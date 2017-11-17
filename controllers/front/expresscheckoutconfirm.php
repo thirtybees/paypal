@@ -49,10 +49,6 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
     {
         parent::initContent();
 
-        if (\Tools::isSubmit('update')) {
-            $this->updateOrder();
-        }
-
         $payerId = \Tools::getValue('PayerID');
         $paymentId = \Tools::getValue('paymentId');
 

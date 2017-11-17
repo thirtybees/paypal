@@ -165,7 +165,6 @@ class PayPal extends \PaymentModule
 
         $this->controllers = [
             'expresscheckout',
-            'expresscheckoutsubmit',
             'expresscheckoutconfirm',
             'standardcancel',
             'incontextajax',
@@ -1033,7 +1032,7 @@ class PayPal extends \PaymentModule
         if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
             $rest = new PayPalRestApi();
             $payment = $rest->createPayment(
-                $this->context->link->getModuleLink($this->name, 'expresscheckoutsubmit', [], true),
+                $this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', [], true),
                 $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
                 PayPalRestApi::PLUS_PROFILE
             );
