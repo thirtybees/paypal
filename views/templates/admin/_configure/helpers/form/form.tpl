@@ -45,7 +45,7 @@
                    id="{$value.id|intval}"
                    value="{$value.value|escape:'htmlall':'UTF-8'}"
                    {if $fields_value[$input.name] == $value.value}checked="checked"{/if}
-                    {if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}
+                   {if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}
             >
             {$value.label|escape:'htmlall':'UTF-8'}&nbsp;&nbsp;&nbsp;<img src="{$value.image|escape:'htmlall':'UTF-8'}">
           </label>

@@ -25,9 +25,9 @@ use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalRestApi;
 
 /**
- * Class paypalincontextvalidateModuleFrontController
+ * Class PayPalInContextValidateModuleFrontController
  */
-class paypalincontextvalidateModuleFrontController extends ModuleFrontController
+class PayPalInContextValidateModuleFrontController extends ModuleFrontController
 {
     public $ssl = true;
 

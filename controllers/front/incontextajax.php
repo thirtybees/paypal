@@ -24,9 +24,9 @@ if (!defined('_TB_VERSION_')) {
 }
 
 /**
- * Class PayPalIncontextajaxModuleFrontController
+ * Class PayPalInContextAjaxModuleFrontController
  */
-class paypalincontextajaxModuleFrontController extends \ModuleFrontController
+class PayPalInContextAjaxModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;

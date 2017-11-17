@@ -20,8 +20,8 @@
     {l s='Order' mod='paypal'}
   </a>
   <span class="navigation-pipe">
-		{$navigationPipe|escape:'html':'UTF-8'}
-	</span>
+    {$navigationPipe|escape:'html':'UTF-8'}
+  </span>
   {l s='PayPal checkout' mod='paypal'}
 {/capture}
 <div id="ppplus"></div>

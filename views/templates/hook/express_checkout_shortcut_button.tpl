@@ -15,8 +15,9 @@
  * @copyright 2017 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
-
-<div id="container_express_checkout" style="float:right; margin: 10px 40px 0 0">
-  <img id="payment_paypal_express_checkout" src=""/>
-</div>
-<div class="clearfix"></div>
+{if !$is_logged}
+  <div id="container_express_checkout" class="pull-right clearfix">
+    <img id="payment_paypal_express_checkout" src=""/>
+  </div>
+  <div class="clearfix"></div>
+{/if}

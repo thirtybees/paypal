@@ -22,9 +22,9 @@ if (!defined('_TB_VERSION_')) {
 }
 
 /**
- * Class paypalexpresscheckoutcancelModuleFrontController
+ * Class PayPalExpressCheckoutCancelModuleFrontController
  */
-class paypalexpresscheckoutcancelModuleFrontController extends \ModuleFrontController
+class PayPalExpressCheckoutCancelModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;

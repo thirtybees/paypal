@@ -39,6 +39,8 @@ class PayPalRestApi
     const PATH_EXECUTE_PAYMENT = '/v1/payments/payment/';
     const PATH_EXECUTE_REFUND = '/v1/payments/sale/';
     const PATH_AUTHORIZATION = '/v1/payments/authorization/';
+    const PATH_WEBHOOK_EVENT = '/v1/notifications/webhooks-events/';
+    const PATH_WEBHOOK = '/v1/notifications/webhooks/';
 
     const STANDARD_PROFILE = 1;
     const PLUS_PROFILE = 2;
@@ -497,6 +499,99 @@ class PayPalRestApi
             'Authorization' => 'Bearer '.$accessToken,
         ];
         $result = $this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header);
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
+    }
+
+    /**
+     * Register a webhook
+     *
+     * @param string $webhookUrl
+     *
+     * @return \stdClass|false
+     */
+    public function registerWebhook($webhookUrl)
+    {
+        // The types we need
+        $types = [
+            [
+                'name' => 'PAYMENT.AUTHORIZATION.CREATED',
+            ], [
+                'name' => 'PAYMENT.AUTHORIZATION.VOIDED',
+            ], [
+                'name' => 'PAYMENT.CAPTURE.COMPLETED',
+            ], [
+                'name' => 'PAYMENT.CAPTURE.DENIED',
+            ], [
+                'name' => 'PAYMENT.CAPTURE.PENDING',
+            ], [
+                'name' => 'PAYMENT.CAPTURE.REFUNDED',
+            ], [
+                'name' => 'PAYMENT.CAPTURE.REVERSED',
+            ],
+        ];
+
+        $accessToken = $this->refreshToken();
+
+        $data = [
+            'url'         => $webhookUrl,
+            'event_types' => $types,
+        ];
+
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+        $result = $this->send(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'), json_encode($data), $header, false, 'POST');
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
+    }
+
+    /**
+     * Get a list of webhooks
+     *
+     * @return bool|mixed
+     */
+    public function getWebhooks()
+    {
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+        $result = $this->send(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'), false, $header);
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
+    }
+
+    /**
+     * @param string $webhookId
+     *
+     * @return bool|mixed
+     */
+    public function lookUpWebhook($webhookId)
+    {
+        if (!$webhookId) {
+            return false;
+        }
+
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+        $result = $this->send(PayPalRestApi::PATH_WEBHOOK_EVENT.$webhookId, false, $header);
         if (!$result) {
             return false;
         }

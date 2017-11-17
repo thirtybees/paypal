@@ -49,7 +49,6 @@ class PayPalOrder extends \ObjectModel
      */
     public static $definition = [
         'table'   => 'paypal_order',
-        'primary' => 'id_paypal_order',
         'fields'  => [
             'id_order'       => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedId',  'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
             'id_transaction' => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
@@ -116,17 +115,18 @@ class PayPalOrder extends \ObjectModel
         $paymentId = pSQL($payment->id);
         $payerId = pSQL($payment->payer->payer_info->payer_id);
         $transaction = $payment->transactions[0];
+        $paymentDate = isset($payment->create_time) ? $payment->create_time : (isset($payment->update_time) ? $payment->update_time : '');
 
         return [
-            'currency' => pSQL($payment->transactions[0]->amount->currency),
-            'id_invoice' => null,
-            'id_payer' => $payerId,
-            'id_payment' => $paymentId,
+            'currency'       => pSQL($payment->transactions[0]->amount->currency),
+            'id_invoice'     => null,
+            'id_payer'       => $payerId,
+            'id_payment'     => $paymentId,
             'id_transaction' => $transactionId,
             'transaction_id' => $transactionId,
-            'total_paid' => (float) $transaction->amount->total,
-            'shipping' => isset($transaction->amount->details->shipping) ? (float) $transaction->amount->details->shipping : 0,
-            'payment_date' => pSQL($payment->update_time),
+            'total_paid'     => (float) $transaction->amount->total,
+            'shipping'       => isset($transaction->amount->details->shipping) ? (float) $transaction->amount->details->shipping : 0,
+            'payment_date'   => pSQL($paymentDate),
             'payment_status' => pSQL($payment->state),
         ];
     }
@@ -134,15 +134,11 @@ class PayPalOrder extends \ObjectModel
     /**
      * @param int $idOrder
      *
-     * @return array|bool|null|object
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @return array
      */
-    public static function getOrderById($idOrder)
+    public static function getByOrderId($idOrder)
     {
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+        return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
             (new \DbQuery())
                 ->select('*')
                 ->from(bqSQL(self::$definition['table']))
@@ -186,16 +182,16 @@ class PayPalOrder extends \ObjectModel
         \Db::getInstance()->insert(
             bqSQL(self::$definition['table']),
             [
-                'id_order' => (int) $idOrder,
-                'id_payer' => pSQL($transaction['id_payer']),
-                'id_payment' => pSQL($transaction['id_payment']),
+                'id_order'       => (int) $idOrder,
+                'id_payer'       => pSQL($transaction['id_payer']),
+                'id_payment'     => pSQL($transaction['id_payment']),
                 'id_transaction' => pSQL($transaction['id_transaction']),
-                'id_invoice' => pSQL($transaction['id_invoice']),
-                'currency' => pSQL($transaction['currency']),
-                'total_paid' => $totalPaid,
-                'shipping' => (float) $transaction['shipping'],
-                'capture' => (int) \Configuration::get('PAYPAL_CAPTURE'),
-                'payment_date' => pSQL($transaction['payment_date']),
+                'id_invoice'     => pSQL($transaction['id_invoice']),
+                'currency'       => pSQL($transaction['currency']),
+                'total_paid'     => $totalPaid,
+                'shipping'       => (float) $transaction['shipping'],
+                'capture'        => (int) \Configuration::get('PAYPAL_CAPTURE'),
+                'payment_date'   => pSQL($transaction['payment_date']),
                 'payment_method' => (int) \Configuration::get('PAYPAL_PAYMENT_METHOD'),
                 'payment_status' => pSQL($transaction['payment_status']),
             ]
@@ -226,19 +222,15 @@ class PayPalOrder extends \ObjectModel
      *
      * @param string $paymentId
      *
-     * @return bool|PayPalOrder
+     * @return array
      */
     public static function getByPaymentId($paymentId)
     {
-        if ($id = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+        return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
             (new \DbQuery())
-                ->select(bqSQL(self::$definition['primary']))
-                ->from(bqSQL(self::$definition['table']))
+                ->select('*')
+                ->from(bqSQL(static::$definition['table']))
                 ->where('`id_payment` = \''.pSQL($paymentId).'\'')
-        )) {
-            return new self($id);
-        }
-
-        return false;
+        );
     }
 }

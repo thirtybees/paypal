@@ -25,11 +25,11 @@ if (!defined('_TB_VERSION_')) {
 }
 
 /**
- * Class paypalincontextconfirmModuleFrontController
+ * Class PayPalExpressCheckoutConfirmModuleFrontController
  *
  * Used for In-Context, Website Payments Standards and Website Payments Plus
  */
-class paypalexpresscheckoutconfirmModuleFrontController extends \ModuleFrontController
+class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
@@ -189,15 +189,5 @@ class paypalexpresscheckoutconfirmModuleFrontController extends \ModuleFrontCont
         $this->context->smarty->assign([
             'paypal_cart_summary' => $this->module->display($moduleFilepath, 'views/templates/hook/paypal_cart_summary.tpl'),
         ]);
-    }
-
-    protected function updateOrder()
-    {
-        // TODO: implement
-    }
-
-    protected function cancelOrder()
-    {
-//        $this->module->cancelOrder();
     }
 }

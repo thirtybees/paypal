@@ -22,9 +22,9 @@ if (!defined('_TB_VERSION_')) {
 }
 
 /**
- * Class paypalpluscancelModuleFrontController
+ * Class PayPalPlusCancelModuleFrontController
  */
-class paypalpluscancelModuleFrontController extends \ModuleFrontController
+class PayPalPlusCancelModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */

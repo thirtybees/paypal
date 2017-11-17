@@ -26,9 +26,9 @@ use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 
 /**
- * Class PayPalexpresscheckoutModuleFrontController
+ * Class PayPalExpressCheckoutModuleFrontController
  */
-class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
+class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
 {
     /** @var int $idOrder */
     public $idOrder;
@@ -105,6 +105,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         $rest = new PayPalRestApi();
         $payment = $rest->lookUpPayment($paymentId);
 
+        // Process this block if the authorization has been approved
         $ready = false;
         if (isset($payment->state) && \Tools::strtolower($payment->state) == 'approved') {
             $ready = true;
@@ -400,20 +401,20 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     protected function validateOrder($customer, $cart, $payment, $authorization = null)
     {
         if (is_object($authorization) && isset($authorization->state)) {
-            $paymentState = $authorization->state;
+            $authorizationState = $authorization->state;
             $transactionAmount = $authorization->amount->total;
         } elseif (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
             $authorization = $payment->transactions[0]->related_resources[0]->authorization;
-            $paymentState = $authorization->state;
+            $authorizationState = $authorization->state;
             $transactionAmount = $authorization->amount->total;
         } else {
-            $paymentState = $payment->state;
+            $authorizationState = $payment->state;
             $transactionAmount = (float) $payment->transactions[0]->amount->total;
         }
         $orderTotal = (float) round($cart->getOrderTotal(true, \Cart::BOTH), 2);
 
         // Payment check
-        if ($paymentState === 'verified' && $transactionAmount == $orderTotal) {
+        if ($authorizationState === 'completed' && $transactionAmount == $orderTotal) {
             if (!\Configuration::get(\PayPal::IMMEDIATE_CAPTURE)) {
                 $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
                 $message = $this->module->l('Pending payment capture.').'<br />';
@@ -423,7 +424,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             }
         } else {
             $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
-            $message = $this->module->l('Payment on hold.').'<br />';
+            $message = $this->module->l('Pending payment capture.').'<br />';
         }
 
         $transaction = PayPalOrder::getTransactionDetails($payment);
@@ -443,31 +444,5 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         );
 
         Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
-    }
-
-    /**
-     * @param \Customer $customer
-     * @param bool      $redirect
-     */
-    public function redirectToCheckout(\Customer $customer, $redirect = false)
-    {
-        $this->ready = true;
-
-        $context = $this->context;
-        $context->cookie->id_customer = (int) $customer->id;
-        $context->cookie->customer_lastname = $customer->lastname;
-        $context->cookie->customer_firstname = $customer->firstname;
-        $context->cookie->passwd = $customer->passwd;
-        $context->cookie->email = $customer->email;
-        $context->cookie->is_guest = $customer->isGuest();
-        $context->cookie->logged = 1;
-
-        \Hook::exec('authentication');
-
-        if ($redirect) {
-            $link = $context->link->getPageLink('order', false, null, ['step' => '1']);
-            \Tools::redirectLink($link);
-            exit(0);
-        }
     }
 }

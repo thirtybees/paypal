@@ -1,26 +1,20 @@
 <?php
 /**
- * 2007-2016 PrestaShop
- *
- * Thirty Bees is an extension to the PrestaShop e-commerce software developed by PrestaShop SA
- * Copyright (C) 2017 Thirty Bees
+ * Copyright (C) 2017 thirty bees
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- * @author    Thirty Bees <contact@thirtybees.com>
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2017 Thirty Bees
- * @copyright 2007-2016 PrestaShop SA
+ * @author    thirty bees <contact@thirtybees.com>
+ * @copyright 2017 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- *  PrestaShop is an internationally registered trademark & property of PrestaShop SA
  */
 
 if (!defined('_TB_VERSION_')) {
@@ -54,6 +48,10 @@ class PayPal extends \PaymentModule
     const STANDARD_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_WEB_PROFILE_ID_LIVE';
     const EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_EC_WEB_PROFILE_ID_LIVE';
     const PLUS_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_WPP_WEB_PROFILE_ID_LIVE';
+
+    const WEBHOOK_CHECK_INTERVAL = 86400;
+    const WEBHOOK_LAST_CHECK = 'PAYPAL_WEBHOOK_UPD';
+    const WEBHOOK_ID = 'PAYPAL_WEBHOOK_ID'; //daily check
 
     const WPS = 1;
     const EC = 4;
@@ -184,6 +182,8 @@ class PayPal extends \PaymentModule
                 'tab_module'  => $this->tab,
                 'module_name' => $this->name,
             ]);
+
+            $this->checkWebhooks();
         }
     }
 
@@ -1196,23 +1196,25 @@ class PayPal extends \PaymentModule
 
         $paypalLogos = PayPalLogos::getLogos($this->getLocale());
 
-        $this->context->smarty->assign(
-            [
-                'PayPal_payment_type'                   => 'cart',
-                'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
-                'PayPal_current_page'                   => $this->getCurrentUrl(),
-                'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
-                'PayPal_tracking_code'                  => '',
-                'include_form'                          => true,
-                'template_dir'                          => dirname(__FILE__).'/views/templates/hook/',
-                'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
-            ]
-        );
+        $this->context->smarty->assign([
+            'PayPal_payment_type'                   => 'cart',
+            'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
+            'PayPal_current_page'                   => $this->getCurrentUrl(),
+            'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
+            'PayPal_tracking_code'                  => '',
+            'include_form'                          => true,
+            'template_dir'                          => dirname(__FILE__).'/views/templates/hook/',
+            'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
+        ]);
 
         return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
     }
 
     /**
+     * Payment return hook (confirmation page content)
+     *
+     * @param array $params Hook parameters
+     *
      * @return string
      */
     public function hookPaymentReturn($params)
@@ -1238,12 +1240,41 @@ class PayPal extends \PaymentModule
             $this->context->smarty->assign('status', 'ok');
         }
 
+        $params = [
+            'id_order'   => $order->id,
+            'reference'  => $reference,
+            'params'     => $params,
+            'total'      => Tools::displayPrice($totalToPay, $currency, false),
+        ];
+
+        // Add the PayPal order details to the template
+        $paypalOrder = PayPalOrder::getByOrderId($order->id);
+        foreach ([
+            'id_transaction',
+            'id_payment',
+            'id_payer',
+            'id_invoice',
+            'currency',
+            'total_paid',
+            'shipping',
+            'capture',
+            'payment_date',
+            'payment_method',
+            'payment_status',
+        ] as $property) {
+            if (isset($paypalOrder[$property])) {
+                $params[$property] = $paypalOrder[$property];
+            } else {
+                $params[$property] = '';
+            }
+        }
+
         $this->context->smarty->assign(
             [
-                'id_order'  => $order->id,
-                'reference' => $reference,
-                'params'    => $params,
-                'total'     => Tools::displayPrice($totalToPay, $currency, false),
+                'id_order'   => $order->id,
+                'reference'  => $reference,
+                'params'     => $params,
+                'total'      => Tools::displayPrice($totalToPay, $currency, false),
             ]
         );
 
@@ -1478,7 +1509,7 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $paypalOrder = PayPalOrder::getOrderById((int) $order->id);
+        $paypalOrder = PayPalOrder::getByOrderId((int) $order->id);
         if (!$paypalOrder) {
             return false;
         }
@@ -1589,14 +1620,6 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @return array
-     */
-    public function hookActionPSCleanerGetModulesTables()
-    {
-        return ['paypal_customer', 'paypal_order'];
-    }
-
-    /**
      * @return null|string
      */
     public function hookBackOfficeHeader()
@@ -1606,7 +1629,6 @@ class PayPal extends \PaymentModule
         ) {
             $this->context->controller->addJquery();
             $this->context->controller->addJQueryPlugin('fancybox');
-            $this->context->controller->addCSS($this->_path.'views/css/paypal.css');
 
             $this->context->smarty->assign(
                 [
@@ -1616,173 +1638,9 @@ class PayPal extends \PaymentModule
                     'PayPal_PPP'        => (int) static::WPP,
                 ]
             );
-
-            //return (isset($output) ? $output : null).$this->display(__FILE__, 'views/templates/admin/header.tpl');
         }
 
         return null;
-    }
-
-    /**
-     * @param string $type
-     *
-     * @return null|string
-     */
-    public function renderExpressCheckoutButton($type)
-    {
-        if ((!\Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT') && !$this->context->getMobileDevice())) {
-            return null;
-        }
-
-        $paypalLogos = PayPalLogos::getLogos($this->getLocale());
-        $isoLang = [
-            'en' => 'en_US',
-            'fr' => 'fr_FR',
-            'de' => 'de_DE',
-        ];
-
-        $this->context->smarty->assign(
-            [
-                'use_mobile'                            => (bool) $this->context->getMobileDevice(),
-                'PayPal_payment_type'                   => $type,
-                'PayPal_current_page'                   => $this->getCurrentUrl(),
-                'PayPal_lang_code'                      => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
-                'PayPal_tracking_code'                  => '',
-                'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
-                'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
-            ]
-        );
-
-        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
-    }
-
-    /**
-     * @return bool
-     */
-    public function getTranslations()
-    {
-        $file = dirname(__FILE__).'/'.static::_PAYPAL_TRANSLATIONS_XML_;
-        if (file_exists($file)) {
-            $xml = simplexml_load_file($file);
-            if (isset($xml) && $xml) {
-                $index = -1;
-                $content = $default = [];
-
-                while (isset($xml->country[++$index])) {
-                    $country = $xml->country[$index];
-                    $countryIso = $country->attributes()->iso_code;
-
-                    if (($this->iso_code != 'default') && ($countryIso == $this->iso_code)) {
-                        $content = (array) $country;
-                    } elseif ($countryIso == 'default') {
-                        $default = (array) $country;
-                    }
-
-                }
-
-                $content += $default;
-                $this->context->smarty->assign('PayPal_content', $content);
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @return string PayPal Website Payments Standard or Express Checkout URL
-     */
-    public function getPaypalStandardUrl()
-    {
-        return 'https://'.$this->getPayPalURL().'/cgi-bin/webscr';
-    }
-
-    /**
-     * @return string PayPal base URL
-     */
-    public function getPayPalURL()
-    {
-        return 'www'.(!\Configuration::get(static::LIVE) ? '.sandbox' : '').'.paypal.com';
-    }
-
-    /**
-     * Get PayPal API URL
-     *
-     * @return string
-     */
-    public function getAPIURL()
-    {
-        return 'api-3t'.(!\Configuration::get(static::LIVE) ? '.sandbox' : '').'.paypal.com';
-    }
-
-    /**
-     * Get API Script
-     *
-     * @return string API Script
-     */
-    public function getAPIScript()
-    {
-        return '/nvp';
-    }
-
-    /**
-     * @param string $message
-     * @param bool   $log
-     *
-     * @return string
-     */
-    public function displayPayPalAPIError($message, $log = false)
-    {
-        $send = true;
-        // Sanitize log
-        if (is_array($log)) {
-            foreach ($log as $key => $string) {
-                if ($string == 'ACK -> Success') {
-                    $send = false;
-                } elseif (\Tools::substr($string, 0, 6) == 'METHOD') {
-                    $values = explode('&', $string);
-                    foreach ($values as $key2 => $value) {
-                        $values2 = explode('=', $value);
-                        foreach ($values2 as $key3 => $value2) {
-                            if ($value2 == 'PWD' || $value2 == 'SIGNATURE') {
-                                $values2[$key3 + 1] = '*********';
-                            }
-                        }
-
-                        $values[$key2] = implode('=', $values2);
-                    }
-                    $log[$key] = implode('&', $values);
-                }
-            }
-        }
-
-        $this->context->smarty->assign(['message' => $message, 'logs' => $log]);
-
-        if ($send) {
-            $idLang = (int) $this->context->language->id;
-            $isoLang = \Language::getIsoById($idLang);
-
-            if (!is_dir(dirname(__FILE__).'/mails/'.\Tools::strtolower($isoLang))) {
-                $idLang = \Language::getIdByIso('en');
-            }
-
-            \Mail::Send(
-                $idLang,
-                'error_reporting',
-                \Mail::l('Error reporting from your PayPal module', (int) $this->context->language->id),
-                ['{logs}' => implode('<br />', $log)],
-                \Configuration::get('PS_SHOP_EMAIL'),
-                null,
-                null,
-                null,
-                null,
-                null,
-                _PS_MODULE_DIR_.$this->name.'/mails/'
-            );
-        }
-
-        return $this->display(__FILE__, 'error.tpl');
     }
 
     /**
@@ -1853,77 +1711,56 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * Get gift wrapping price
+     * Check webhooks + update info
      *
-     * @return float
+     * @return void
+     *
+     * @since 2.0.0
      */
-    public function getGiftWrappingPrice()
+    protected function checkWebhooks()
     {
-        $wrappingFeesTaxInc = $this->context->cart->getGiftWrappingPrice();
-
-        return (float) \Tools::convertPrice($wrappingFeesTaxInc, $this->context->currency);
-    }
-
-    /**
-     * Assign cart summary
-     */
-    public function assignCartSummary()
-    {
-        $currency = new \Currency((int) $this->context->cart->id_currency);
-
-        $this->context->smarty->assign(
-            [
-                'total'            => \Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
-                'logos'            => PayPalLogos::getLogos($this->getLocale()),
-                'use_mobile'       => (bool) $this->context->getMobileDevice(),
-                'address_shipping' => new \Address($this->context->cart->id_address_delivery),
-                'address_billing'  => new \Address($this->context->cart->id_address_invoice),
-                'cart'             => $this->context->cart,
-                'patternRules'     => ['avoid' => []],
-                'cart_image_size'  => 'cart_default',
-                'useStyle14'       => false,
-                'useStyle15'       => false,
-            ]
+        $lastCheck = (int) Configuration::get(
+            static::WEBHOOK_LAST_CHECK,
+            (int) Configuration::get('PS_LANG_DEFAULT'),
+            Shop::getGroupFromShop((int) Configuration::get('PS_SHOP_DEFAULT')),
+            (int) Configuration::get('PS_SHOP_DEFAULT')
         );
+        $webHookId = Configuration::get(static::WEBHOOK_ID);
 
-        $this->context->smarty->assign(
-            [
-                'paypal_cart_summary' => $this->display(__FILE__, 'views/templates/hook/paypal_cart_summary.tpl'),
-            ]
-        );
-    }
+        if (time() > $lastCheck + static::WEBHOOK_CHECK_INTERVAL || !$webHookId) {
+            // Time to update/check webhooks
+            $rest = new PayPalRestApi();
+            $data = $rest->getWebhooks();
 
-    /**
-     * Do a capture
-     *
-     * @param int        $idOrder
-     * @param bool|float $captureAmount
-     * @param bool       $isComplete
-     *
-     * @return bool
-     */
-    protected function doCapture($idOrder, $captureAmount = false, $isComplete = false)
-    {
-        // FIXME: not implemented
+            if ($data) {
+                $found = false;
+                $idWebhook = (int) Configuration::get(static::WEBHOOK_ID);
+                $sslEnabled = (bool) Configuration::get('PS_SSL_ENABLED');
+                $webhookUrl = Context::getContext()->link->getModuleLink($this->name, 'hook', [], $sslEnabled);
+                if (isset($data->webhooks)) {
+                    foreach ($data->webhooks as $webhook) {
+                        if ((int) $webhook->id !== $idWebhook) {
+                            continue;
+                        } elseif ($webhook->url === $webhookUrl) {
+                            $found = true;
 
-        return null;
-    }
+                            break;
 
-    /**
-     * Check cart currency
-     *
-     * @param \Cart $cart
-     *
-     * @return bool Indicates whether this module can accept the currency
-     */
-    protected function checkCurrency(\Cart $cart)
-    {
-        $currencyModule = $this->getCurrency((int) $cart->id_currency);
+                        }
+                    }
+                }
 
-        if ((int) $cart->id_currency == (int) $currencyModule->id) {
-            return true;
-        } else {
-            return false;
+                if (!$found) {
+                    $rest = new PayPalRestApi();
+                    $registration = $rest->registerWebhook($webhookUrl);
+
+                    if ($registration) {
+                        Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
+                    }
+                }
+
+                Configuration::updateValue(self::WEBHOOK_LAST_CHECK, time(), false, 0, 0);
+            }
         }
     }
 }

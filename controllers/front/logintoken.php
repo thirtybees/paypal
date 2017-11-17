@@ -24,13 +24,18 @@ if (!defined('_TB_VERSION_')) {
 use PayPalModule\PayPalLogin;
 
 /**
- * Class paypallogintokenModuleFrontController
+ * Class PayPalLoginTokenModuleFrontController
  */
-class paypallogintokenModuleFrontController extends \ModuleFrontController
+class PayPalLoginTokenModuleFrontController extends \ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
 
+    /**
+     * Init content
+     *
+     * @return void
+     */
     public function initContent()
     {
         $login = new PayPalLogin();

@@ -24,9 +24,9 @@ if (!defined('_TB_VERSION_')) {
 }
 
 /**
- * Class paypalpluseuModuleFrontController
+ * Class PayPalPlusEUModuleFrontController
  */
-class paypalpluseuModuleFrontController extends \ModuleFrontController
+class PayPalPlusEUModuleFrontController extends \ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */

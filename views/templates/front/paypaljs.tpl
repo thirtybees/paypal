@@ -74,6 +74,11 @@
           // Prepare the cart first
           var idProduct = parseInt(document.querySelector('input[name="id_product"]').value, 10);
           var idProductAttribute = parseInt(document.querySelector('input[name="id_product_attribute"]').value, 10);
+          if (isNaN(idProduct) || isNaN(idProductAttribute)) {
+            document.getElementById('container_express_checkout').style.display = 'none';
+
+            reject('Not available');
+          }
           $.ajax({
             type: 'GET',
             url: '{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}',
@@ -116,7 +121,6 @@
           {/if}
         },
         onAuthorize: function (data) {
-          console.log(data);
           var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript':'UTF-8'}';
           paypal.request.post(EXECUTE_PAYMENT_URL, {
             paymentId: data.paymentID, // paymentID should be spelled like this
@@ -134,56 +138,6 @@
         }
 
       }, '#container_express_checkout');
-
-      {if isset($paypal_authorization)}
-        var qty = $('.qty-field.cart_quantity_input').val();
-        $('.qty-field.cart_quantity_input').after(qty);
-        $('.qty-field.cart_quantity_input, .cart_total_bar, .cart_quantity_delete, #cart_voucher *').remove();
-
-        var br = $('.cart > a').prev();
-        br.prev().remove();
-        br.remove();
-        $('.cart.ui-content > a').remove();
-
-        var gift_fieldset = $('#gift_div').prev();
-        var gift_title = gift_fieldset.prev();
-        $('#gift_div, #gift_mobile_div').remove();
-        gift_fieldset.remove();
-        gift_title.remove();
-      {/if}
-
-      {if isset($paypal_confirmation)}
-        $('#container_express_checkout').hide();
-
-        addEventListener(document.querySelector('body'), 'click', "#cgv", function () {
-          if (typeof document.querySelector('#cgv:checked') !== 'undefined') {
-            $(location).attr('href', '{$paypal_confirmation|escape:'javascript':'UTF-8'}');
-          }
-        });
-      {elseif isset($paypal_order_opc)}
-        addEventListener(document.querySelector('body'), 'click', '#cgv', function () {
-          if (typeof document.querySelector('#cgv:checked') !== 'undefined') {
-            checkOrder();
-          }
-        });
-      {/if}
-
-      if (document.querySelector('form[target="hss_iframe"]')) {
-        if (document.querySelector('select[name^="group_"]')) {
-          displayExpressCheckoutShortcut();
-        }
-
-        return false;
-      } else {
-        checkOrder();
-      }
-
-      function checkOrder() {
-        {*window.location.replace('{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'javascript':'UTF-8'}');*}
-        {*document.querySelectorAll('p.payment_module, p.cart_navigation').forEach(function (elem) {*}
-          {*elem.style.display = 'none';*}
-        {*});*}
-      }
     }
 
     initPayPalJs();
