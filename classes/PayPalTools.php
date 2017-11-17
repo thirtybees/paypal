@@ -106,13 +106,13 @@ class PayPalTools
             $uniqueFound = false;
             while (!$uniqueFound) {
                 foreach ($customerAddresses as $customerAddress) {
-                    if ($customerAddress['alias'] === (!$id ? 'Paypal_Address' : 'Paypal_Address'.$id)) {
+                    if ($customerAddress['alias'] === (!$id ? 'PayPal_Address' : 'PayPal_Address'.$id)) {
                         $id++;
                         continue 2;
                     }
                 }
 
-                $address->alias = 'Paypal_Address'.$id;
+                $address->alias = (!$id ? 'PayPal_Address' : 'PayPal_Address'.$id);
                 $uniqueFound = true;
             }
         }

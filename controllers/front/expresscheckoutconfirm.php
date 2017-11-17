@@ -59,9 +59,9 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
             return;
         }
 
-        $api = new PayPalRestApi();
+        $rest = new PayPalRestApi();
         $previouslyAuthorized = Tools::getValue('authorized');
-        $payment = $api->lookUpPayment($paymentId);
+        $payment = $rest->lookUpPayment($paymentId);
         $authorized = false;
         if (isset($payment->links)) {
             foreach ($payment->links as $link) {
@@ -73,7 +73,7 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
         }
 
         if (!$authorized && !$previouslyAuthorized) {
-            $api->executePayment($payerId, $paymentId);
+            $rest->executePayment($payerId, $paymentId);
             Tools::redirectLink(
                 $this->context->link->getModuleLink(
                     $this->module->name,
@@ -87,9 +87,11 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
                     true
                 )
             );
-        } elseif ($previouslyAuthorized) {
+        } elseif ($previouslyAuthorized && $payment->state === 'authorized') {
+            $rest->voidAuthorization($payment->id);
+
             // Unable to authorize, try again
-            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', null, true));
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
         }
 
         $params = [

@@ -83,7 +83,7 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
 
             $addresses = $customer->getAddresses($this->context->language->id);
             foreach ($addresses as $address) {
-                if ($address['alias'] == 'Paypal_Address') {
+                if ($address['alias'] == 'PayPal_Address') {
                     //If address has already been created
                     $address = new \Address($address['id_address']);
                     break;
@@ -113,16 +113,16 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
 
             if (isset($payment->state) && $payment->state === 'created') {
                 $params = [
-                    'id_cart' => $this->context->cart->id,
-                    'id_module' => $this->module->id,
+                    'id_cart'    => $this->context->cart->id,
+                    'id_module'  => $this->module->id,
                     'secure_key' => $this->context->cart->secure_key,
-                    'PayerID' => $this->payerId,
-                    'paymentId' => $this->paymentId,
+                    'PayerID'    => $this->payerId,
+                    'paymentId'  => $this->paymentId,
                 ];
 
                 header('Content-Type: application/json');
                 die(json_encode([
-                    'success' => true,
+                    'success'    => true,
                     'confirmUrl' => $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', $params, true),
                 ]));
             } else {

@@ -613,6 +613,28 @@ class PayPalRestApi
 
     /**
      * @param string $authorizationId
+     *
+     * @return bool|mixed
+     */
+    public function voidAuthorization($authorizationId)
+    {
+        $accessToken = $this->refreshToken();
+
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+
+        $result = $this->send(PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/void', '{}', $header, false, 'POST');
+        if (!$result) {
+            return false;
+        }
+
+        return json_decode($result);
+    }
+
+    /**
+     * @param string $authorizationId
      * @param float  $amount
      * @param string $currencyCode
      *

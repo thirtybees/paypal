@@ -126,11 +126,22 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
                 $orderTotal,
                 strtoupper($currency->iso_code)
             );
+
+            if (isset($authorization->name) && isset($authorization->message)) {
+                // Capture failed: void and redirect
+                $rest->voidAuthorization($payment->id);
+                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+            }
+
             $customer = new \Customer((int) $cart->id_customer);
 
             $this->validateOrder($customer, $cart, $payment, $authorization);
+        } elseif ($payment->state === 'authorized') {
+            // Authorized, void and redirect
+            $rest->voidAuthorization($payment->id);
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
         } elseif (isset($payment->transactions[0]) && isset($payment->state) && $payment->state === 'approved') {
-            // Authorized, but unable to capture due to a 15%+ price increase, redirect to PayPal for a new auth
+            // Unable to authorize, try again, but unable to capture due to a 15%+ price increase, redirect to PayPal for a new auth
             Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
         }
 
@@ -214,7 +225,7 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
         );
 
         if ($customer->isGuest()) {
-            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckoutguest', null, true));
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckoutguest', [], true));
         } else {
             Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
         }
