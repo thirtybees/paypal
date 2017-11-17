@@ -1753,7 +1753,7 @@ class PayPal extends \PaymentModule
                     $rest = new PayPalRestApi();
                     $registration = $rest->registerWebhook($webhookUrl);
 
-                    if ($registration) {
+                    if (isset($registration->id)) {
                         Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
                     }
                 }
