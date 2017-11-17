@@ -46,6 +46,6 @@ class PayPalExpressCheckoutCancelModuleFrontController extends \ModuleFrontContr
     {
         unset($this->context->cookie->express_checkout);
 
-        \Tools::redirectLink($this->context->link->getPageLink('order', true));
+        \Tools::redirectLink($this->context->link->getPageLink('order', true, null, ['step' => 3]));
     }
 }
