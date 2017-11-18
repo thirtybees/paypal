@@ -1718,12 +1718,7 @@ class PayPal extends \PaymentModule
      */
     protected function checkWebhooks()
     {
-        $lastCheck = (int) Configuration::get(
-            static::WEBHOOK_LAST_CHECK,
-            (int) Configuration::get('PS_LANG_DEFAULT'),
-            (int) Shop::getGroupFromShop((int) Configuration::get('PS_SHOP_DEFAULT'), true),
-            (int) Configuration::get('PS_SHOP_DEFAULT')
-        );
+        $lastCheck = (int) Configuration::get(static::WEBHOOK_LAST_CHECK);
         $webHookId = Configuration::get(static::WEBHOOK_ID);
 
         if (time() > $lastCheck + static::WEBHOOK_CHECK_INTERVAL || !$webHookId) {
@@ -1760,10 +1755,7 @@ class PayPal extends \PaymentModule
 
                 Configuration::updateValue(
                     static::WEBHOOK_LAST_CHECK,
-                    time(),
-                    false,
-                    (int) Shop::getGroupFromShop((int) Configuration::get('PS_SHOP_DEFAULT'), true),
-                    (int) Configuration::get('PS_SHOP_DEFAULT')
+                    time()
                 );
             }
         }
