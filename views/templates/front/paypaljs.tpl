@@ -74,7 +74,11 @@
           // Prepare the cart first
           var idProduct = parseInt(document.querySelector('input[name="id_product"]').value, 10);
           var idProductAttribute = parseInt(document.querySelector('input[name="id_product_attribute"]').value, 10);
-          if (isNaN(idProduct) || isNaN(idProductAttribute)) {
+          if (isNaN(idProductAttribute)) {
+            // Not a page with attributes
+            idProductAttribute = 0;
+          }
+          if (isNaN(idProduct)) {
             document.getElementById('container_express_checkout').style.display = 'none';
 
             reject('Not available');
