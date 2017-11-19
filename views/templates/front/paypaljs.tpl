@@ -124,7 +124,7 @@
           });
           {/if}
         },
-        onAuthorize: function (data) {
+        onAuthorize: function (data, actions) {
           var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript':'UTF-8'}';
           paypal.request.post(EXECUTE_PAYMENT_URL, {
             paymentId: data.paymentID, // paymentID should be spelled like this
@@ -132,8 +132,7 @@
           })
             .then(function (data) {
               if (data.success) {
-                window.location.replace(data.confirmUrl);
-                return;
+                return actions.redirect();
               }
             })
             .catch(function (err) {
