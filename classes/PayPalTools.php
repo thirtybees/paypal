@@ -141,7 +141,11 @@ class PayPalTools
         }
 
         $address->postcode = $shippingAddress->postal_code;
-        $address->phone = '0000000000';
+        if (isset($shippingAddress->phone)) {
+            $address->phone = $shippingAddress->phone;
+        } else {
+            $address->phone = '0000000000';
+        }
 
         $address->id_customer = $customer->id;
 

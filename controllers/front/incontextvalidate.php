@@ -29,12 +29,12 @@ use PayPalModule\PayPalRestApi;
  */
 class PayPalInContextValidateModuleFrontController extends ModuleFrontController
 {
+    /** @var bool $ssl */
     public $ssl = true;
-
+    /** @var string $payerId */
     public $payerId;
-
+    /** @var string $paymentId */
     public $paymentId;
-
     /** @var \PayPal $module */
     public $module;
 
@@ -97,7 +97,7 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
 
             if ((!isset($address) || !$address || !$address->id) && $customer->id) {
                 //If address does not exists, we create it
-                $address = $this->setCustomerAddress($payment, $customer);
+                $address = PayPalModule\PayPalTools::setCustomerAddress($payment, $customer);
                 $address->add();
             }
 
@@ -127,7 +127,7 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
                 ]));
             } else {
                 if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-                    /* If guest we clear the cookie for security reason */
+                    /* If guest we clear the cookie for security reasons */
                     $this->context->customer->mylogout();
                 }
 
@@ -155,60 +155,5 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
         $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
 
         return $customer;
-    }
-
-    /**
-     * Set customer address (when not logged in)
-     * Used to create user address with PayPal account information
-     *
-     * @param \stdClass $payment
-     * @param \Customer $customer
-     * @param int|null  $id
-     *
-     * @return Address
-     *
-     * @todo: figure out what $id is xD
-     */
-    protected function setCustomerAddress($payment, \Customer $customer, $id = null)
-    {
-        $address = new \Address($id);
-        $payerInfo = $payment->payer->payer_info;
-        $shippingAddress = $payerInfo->shipping_address;
-        $address->id_country = \Country::getByIso($shippingAddress->country_code);
-        if ($id == null) {
-            $address->alias = 'Paypal address';
-        }
-
-        $name = trim($shippingAddress->recipient_name);
-        $name = explode(' ', $name);
-        if (isset($name[1])) {
-            $firstname = $name[0];
-            unset($name[0]);
-            $lastname = implode(' ', $name);
-        } else {
-            $firstname = $payerInfo->first_name;
-            $lastname = $payerInfo->last_name;
-        }
-
-        $address->lastname = $lastname;
-        $address->firstname = $firstname;
-        $address->address1 = $shippingAddress->line1;
-        if (isset($shippingAddress->line2)) {
-            $address->address2 = $shippingAddress->line2;
-        }
-
-        $address->city = $shippingAddress->city;
-        if (\Country::containsStates($address->id_country)) {
-            $address->id_state = (int) \State::getIdByIso($shippingAddress->state, $address->id_country);
-        }
-
-        $address->postcode = $shippingAddress->postal_code;
-        if (isset($shippingAddress->phone)) {
-            $address->phone = $shippingAddress->phone;
-        }
-
-        $address->id_customer = $customer->id;
-
-        return $address;
     }
 }
