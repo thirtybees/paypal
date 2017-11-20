@@ -1752,12 +1752,12 @@ class PayPal extends \PaymentModule
                         Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
                     }
                 }
-
-                Configuration::updateValue(
-                    static::WEBHOOK_LAST_CHECK,
-                    time()
-                );
             }
+
+            Configuration::updateValue(
+                static::WEBHOOK_LAST_CHECK,
+                time()
+            );
         }
     }
 }
