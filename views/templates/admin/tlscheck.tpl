@@ -38,6 +38,6 @@
       {l s='Status is unknown. Please check if TLS v1.2 is supported.' mod='paypal'}
     </div>
   {/if}
-  <a class="btn btn-default" href="{$module_url}&checktls=1">{l s='Check for TLS v1.2 support' mod='paypal'}</a>
+  <a class="btn btn-default" href="{$module_url|escape:'htmlall':'UTF-8'}&checktls=1">{l s='Check for TLS v1.2 support' mod='paypal'}</a>
 </div>
 

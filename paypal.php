@@ -346,6 +346,7 @@ class PayPal extends \PaymentModule
 
         $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
         $output .= $this->display(__FILE__, 'views/templates/admin/tlscheck.tpl');
+        $output .= $this->display(__FILE__, 'views/templates/admin/webhookscheck.tpl');
 
         return $output.$this->renderMainForm();
     }
@@ -359,6 +360,11 @@ class PayPal extends \PaymentModule
             $this->tlsCheck();
         }
 
+        if (Tools::isSubmit('checkWebhooks') && (bool) Tools::getValue('checkWebhooks')) {
+            $this->checkWebhooks(true);
+            $this->_confirmations[] = $this->l('Webhook check was successfully run. The result is shown in the corresponding panel.');
+        }
+
         if (\Tools::isSubmit('submit'.$this->name)) {
             // General
             \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
@@ -366,6 +372,10 @@ class PayPal extends \PaymentModule
             \Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) \Tools::getValue(static::IMMEDIATE_CAPTURE));
 
             // REST API
+            if (\Configuration::get(static::CLIENT_ID) !== \Tools::getValue(static::CLIENT_ID)) {
+                // Client ID has changed, reset webhook status
+                \Configuration::updateValue(static::WEBHOOK_ID, null);
+            }
             \Configuration::updateValue(static::CLIENT_ID, \Tools::getValue(static::CLIENT_ID));
             \Configuration::updateValue(static::SECRET, \Tools::getValue(static::SECRET));
 
@@ -1712,34 +1722,32 @@ class PayPal extends \PaymentModule
     /**
      * Check webhooks + update info
      *
-     * @return void
+     * @param bool $force
      *
+     * @return void
      * @since 2.0.0
      */
-    protected function checkWebhooks()
+    protected function checkWebhooks($force = false)
     {
         $lastCheck = (int) Configuration::get(static::WEBHOOK_LAST_CHECK);
         $webHookId = Configuration::get(static::WEBHOOK_ID);
 
-        if (time() > $lastCheck + static::WEBHOOK_CHECK_INTERVAL || !$webHookId) {
+        if (time() > $lastCheck + static::WEBHOOK_CHECK_INTERVAL || !$webHookId || $force) {
             // Time to update/check webhooks
             $rest = new PayPalRestApi();
             $data = $rest->getWebhooks();
 
             if ($data) {
                 $found = false;
-                $idWebhook = (int) Configuration::get(static::WEBHOOK_ID);
                 $sslEnabled = (bool) Configuration::get('PS_SSL_ENABLED');
                 $webhookUrl = Context::getContext()->link->getModuleLink($this->name, 'hook', [], $sslEnabled);
                 if (isset($data->webhooks)) {
                     foreach ($data->webhooks as $webhook) {
-                        if ((int) $webhook->id !== $idWebhook) {
-                            continue;
-                        } elseif ($webhook->url === $webhookUrl) {
+                        if ($webhook->url === $webhookUrl) {
                             $found = true;
+                            Configuration::updateValue(static::WEBHOOK_ID, $webhook->id);
 
                             break;
-
                         }
                     }
                 }
