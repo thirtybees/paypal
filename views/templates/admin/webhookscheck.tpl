@@ -20,9 +20,8 @@
   <p>
     {l s='PayPal requires webhook to process payments asynchronously. I.e. when a payment is first pending, then turns into a captured one after a brief audit check.' mod='paypal'}<br/>
   </p>
-  {assign var=$webhookId value=Configuration::get(PayPal::WEBHOOK_ID)}
-  {if $webhookId}
-    <div class="alert alert-success">{l s='A webhook with ID %s has been registered and is currently active.' mod='paypal' sprintf=[$webhookId]}</div>
+  {if $id_webhook}
+    <div class="alert alert-success">{l s='A webhook with ID %s has been registered and is currently active.' mod='paypal' sprintf=[$id_webhook]}</div>
   {else}
     <div class="alert alert-danger">{l s='There is currently no active webhook or the Client ID has changed recently. Please run a new check to get this fixed.' mod='paypal'}</div>
   {/if}

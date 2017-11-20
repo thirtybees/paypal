@@ -341,6 +341,7 @@ class PayPal extends \PaymentModule
             [
                 'module_url' => $this->moduleUrl,
                 'tls_ok'     => (int) Configuration::get(static::TLS_OK),
+                'id_webhook' => Configuration::get(static::WEBHOOK_ID),
             ]
         );
 
