@@ -362,8 +362,8 @@ class PayPalRestApi
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => $quantity - 1,
-                    'price'    => round($cartItem['price'], 2),
-                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2),
+                    'price'    => number_format($cartItem['price'], 2),
+                    'tax'      => number_format($cartItem['price_wt'] - $cartItem['price'], 2),
                 ];
                 $remaining -= round($cartItem['price'], 2) * ($quantity - 1);
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
@@ -373,8 +373,8 @@ class PayPalRestApi
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => 1,
-                    'price'    => round($cartItem['price'], 2) + $lastItemPriceDifference,
-                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference,
+                    'price'    => number_format($cartItem['price'], 2) + $lastItemPriceDifference,
+                    'tax'      => number_format($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference,
                 ];
                 $remaining -= round($cartItem['price'], 2) + $lastItemPriceDifference;
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference;
@@ -385,8 +385,8 @@ class PayPalRestApi
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => $quantity,
-                    'price'    => round($cartItem['price'], 2),
-                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2),
+                    'price'    => number_format($cartItem['price'], 2),
+                    'tax'      => number_format($cartItem['price_wt'] - $cartItem['price'], 2),
                 ];
                 $remaining -= round($cartItem['price'], 2) * $quantity;
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * $quantity;
@@ -396,9 +396,9 @@ class PayPalRestApi
         }
 
         $details = [
-            'shipping'     => round($totalShippingCostWithoutTax, 2),
-            'tax'          => round($subTotalTax, 2),
-            'subtotal'     => round($subTotal, 2),
+            'shipping'     => number_format($totalShippingCostWithoutTax, 2),
+            'tax'          => number_format($subTotalTax, 2),
+            'subtotal'     => number_format($subTotal, 2),
         ];
 
         $remaining -= round($totalShippingCostWithoutTax, 2);
@@ -407,14 +407,14 @@ class PayPalRestApi
         // if despite the gift wrapping costs, the remaining number is negative, we have applied some discounts
         // that couldn't be handled in a PayPal way. Therefore, we fill the `shipping_discount` field.
         if (round($remaining - $giftWithoutTax, 2) < 0) {
-            $details['shipping_discount'] = abs(round($remaining - $giftWithoutTax, 2));
+            $details['shipping_discount'] = number_format(abs($remaining - $giftWithoutTax), 2);
         } else {
-            $details['handling_fee'] = round($remaining - $giftWithoutTax, 2);
+            $details['handling_fee'] = number_format($remaining - $giftWithoutTax, 2);
         }
 
         /* Amount */
         $amount = (object) [
-            'total'    => round($totalCartWithTax, 2),
+            'total'    => number_format($totalCartWithTax, 2),
             'currency' => $oCurrency->iso_code,
             'details'  => $details,
         ];
