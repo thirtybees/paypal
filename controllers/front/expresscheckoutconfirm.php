@@ -135,7 +135,7 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
 
             $deliveryOption = $cart->getDeliveryOption();
             if (count($deliveryOption)) {
-                $cart->id_carrier = array_keys($deliveryOption)[0];
+                $cart->id_carrier = array_values($deliveryOption)[0];
             } else {
                 return false;
             }
