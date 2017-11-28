@@ -333,6 +333,10 @@ class PayPal extends \PaymentModule
      */
     public function getContent()
     {
+        if (!Configuration::get('PS_SHOP_ENABLE')) {
+            $this->context->controller->warnings[] = $this->l('Maintenance mode has been enabled. Note that you will not be able to do test payments as long as maintenance mode is enabled.');
+        }
+
         $output = '';
 
         $this->postProcess();
