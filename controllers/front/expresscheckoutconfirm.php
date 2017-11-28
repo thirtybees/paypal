@@ -62,6 +62,10 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
         $rest = new PayPalRestApi();
         $previouslyAuthorized = Tools::getValue('authorized');
         $payment = $rest->lookUpPayment($paymentId);
+        if (!empty($payment->transactions[0]->related_resources[0]->authorization->id)) {
+            $this->redirectToPayment($payerId, $paymentId);
+        }
+
         $authorized = false;
         if (isset($payment->links)) {
             foreach ($payment->links as $link) {
@@ -178,5 +182,26 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
         ]);
 
         return true;
+    }
+
+    /**
+     * Redirect to payment
+     *
+     * @param string $payerId
+     * @param string $paymentId
+     */
+    protected function redirectToPayment($payerId, $paymentId)
+    {
+        Tools::redirectLink(
+            $this->context->link->getModuleLink(
+                $this->module->name,
+                'expresscheckout',
+                [
+                    'PayerID'   => $payerId,
+                    'paymentId' => $paymentId,
+                ],
+                true
+            )
+        );
     }
 }

@@ -106,20 +106,14 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
         $payment = $rest->lookUpPayment($paymentId);
 
         /* Check modification on the product cart / quantity */
-        if (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
+        if (!empty($payment->transactions[0]->related_resources[0]->authorization->id)) {
             /** @var \Currency $currency */
             $currency = Currency::getCurrencyInstance($cart->id_currency);
             $orderTotal = \Tools::ps_round($cart->getOrderTotal(true), 2);
             if (!$orderTotal) {
-                // This page has been revisited
-                Tools::redirectLink(
-                    $this->context->link->getModuleLink(
-                        $this->module->name,
-                        'expresscheckout',
-                        [],
-                        true
-                    )
-                );
+                // This page has been revisited, redirect to order history
+                // TODO: handle guests
+                Tools::redirectLink($this->context->link->getPageLink('order-history', true));
             }
             $authorization = $rest->capturePayment(
                 $payment->transactions[0]->related_resources[0]->authorization->id,
