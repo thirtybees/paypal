@@ -134,8 +134,8 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
             $cart->id_address_invoice = $tbShippingAddress->id;
 
             $deliveryOption = $cart->getDeliveryOption();
-            if (count($deliveryOption)) {
-                $cart->id_carrier = array_values($deliveryOption)[0];
+            if (!empty($deliveryOption)) {
+                $cart->id_carrier = key($deliveryOption);
             } else {
                 return false;
             }

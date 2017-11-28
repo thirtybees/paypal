@@ -297,7 +297,6 @@ class PayPalRestApi
     public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
         $cart = $this->cart;
-        $customer = $this->customer;
 
         if (!$returnUrl) {
             $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
@@ -308,9 +307,9 @@ class PayPalRestApi
         }
 
         $oCurrency = new \Currency($this->cart->id_currency);
-        $address = new \Address((int) $this->cart->id_address_invoice);
+        $shippingAddress = new \Address((int) $this->cart->id_address_delivery);
 
-        $country = new \Country((int) $address->id_country);
+        $country = new \Country((int) $shippingAddress->id_country);
         $isoCode = $country->iso_code;
 
         $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
@@ -331,14 +330,14 @@ class PayPalRestApi
 
         $cartItems = $cart->getProducts();
 
-        $state = new \State($address->id_state);
+        $state = new \State($shippingAddress->id_state);
         $shippingAddress = [
-            'recipient_name' => $customer->firstname.' '.$customer->lastname,
-            'line1'          => $address->address1,
-            'line2'          => $address->address2,
-            'city'           => $address->city,
+            'recipient_name' => $shippingAddress->firstname.' '.$shippingAddress->lastname,
+            'line1'          => $shippingAddress->address1,
+            'line2'          => $shippingAddress->address2,
+            'city'           => $shippingAddress->city,
             'country_code'   => $isoCode,
-            'postal_code'    => $address->postcode,
+            'postal_code'    => $shippingAddress->postcode,
             'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
         ];
 
@@ -425,7 +424,7 @@ class PayPalRestApi
             'description' => 'Payment description',
             'item_list'   => [
                 'items' => $aItems,
-                'shipping_address' => \Validate::isLoadedObject($address) && \PayPal::checkAddress($address) ? $shippingAddress : null,
+                'shipping_address' => \Validate::isLoadedObject($shippingAddress) && \PayPal::checkAddress($shippingAddress) ? $shippingAddress : null,
             ],
         ];
 
@@ -652,7 +651,7 @@ class PayPalRestApi
         $data = [
             'amount' => [
                 'currency' => strtoupper($currencyCode),
-                'total'    => (string) $amount,
+                'total'    => number_format($amount, 2),
             ],
             'is_final_capture' => true,
         ];
