@@ -21,7 +21,6 @@ if (!defined('_TB_VERSION_')) {
     exit;
 }
 
-use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 
