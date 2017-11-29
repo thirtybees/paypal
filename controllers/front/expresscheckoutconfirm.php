@@ -141,7 +141,10 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
             if (is_array($deliveryOption) && !empty($deliveryOption)) {
                 $deliveryOption = array_values($deliveryOption);
                 if (!in_array($cart->id_carrier, $deliveryOption)) {
-                    $cart->id_carrier = key($deliveryOption);
+                    $cart->id_carrier = $deliveryOption[0];
+                }
+                if (!$cart->id_carrier) {
+                    return false;
                 }
             } else {
                 return false;
