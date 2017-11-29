@@ -39,10 +39,6 @@ class PayPalLogin
 
     /**
      * PayPalLogin constructor.
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function __construct()
     {
@@ -164,10 +160,6 @@ class PayPalLogin
 
     /**
      * @return array|bool|mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getRefreshToken()
     {

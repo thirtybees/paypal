@@ -48,8 +48,8 @@ class PayPalLoginUser extends \ObjectModel
             'account_type'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
             'user_id'          => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
             'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',                         'db_type' => 'VARCHAR(255)'],
+            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString',                         'db_type' => 'VARCHAR(255)'],
         ],
     ];
     /** @var int $id_customer */
@@ -82,10 +82,6 @@ class PayPalLoginUser extends \ObjectModel
      * @param bool $refreshToken
      *
      * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function getPaypalLoginUsers($idPaypalLoginUser = false, $idCustomer = false, $refreshToken = false)
     {
@@ -122,10 +118,6 @@ class PayPalLoginUser extends \ObjectModel
      * @param int $idCustomer
      *
      * @return array|bool|mixed
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function getByIdCustomer($idCustomer)
     {
