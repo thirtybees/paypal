@@ -147,12 +147,12 @@ class PayPalLogin
                 $login = $temp;
             }
 
-            $login->id_customer = $customer->id;
-            $login->token_type = $result->token_type;
+            $login->id_customer = (int) $customer->id;
+            $login->token_type = (string) $result->token_type;
             $login->expires_in = (string) (time() + (int) $result->expires_in);
-            $login->refresh_token = $result->refresh_token;
-            $login->id_token = $result->id_token;
-            $login->access_token = $result->access_token;
+            $login->refresh_token = (string) $result->refresh_token;
+            $login->id_token = (string) $result->id_token;
+            $login->access_token = (string) $result->access_token;
 
             $login->save();
 
@@ -261,11 +261,11 @@ class PayPalLogin
                 $customer = $this->setCustomer($result);
             }
 
-            $login->account_type = $result->account_type;
-            $login->user_id = $result->user_id;
-            $login->verified_account = $result->verified_account;
-            $login->zoneinfo = $result->zoneinfo;
-            $login->age_range = $result->age_range;
+            $login->account_type = (string) $result->account_type;
+            $login->user_id = (string) $result->user_id;
+            $login->verified_account = (string) $result->verified_account;
+            $login->zoneinfo = (string) $result->zoneinfo;
+            $login->age_range = (string) $result->age_range;
 
             return $customer;
         }
