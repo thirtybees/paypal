@@ -1,5 +1,5 @@
 {*
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -12,7 +12,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 <div class="panel">
@@ -38,6 +38,6 @@
       {l s='Status is unknown. Please check if TLS v1.2 is supported.' mod='paypal'}
     </div>
   {/if}
-  <a class="btn btn-default" href="{$module_url|escape:'htmlall':'UTF-8'}&checktls=1">{l s='Check for TLS v1.2 support' mod='paypal'}</a>
+  <a class="btn btn-default" href="{$module_url|escape:'htmlall':'UTF-8'}&checktls=1">{l s='Check for TLS v1.2 support' mod='paypal'} <i class="icon icon-chevron-right"></i></a>
 </div>
 
