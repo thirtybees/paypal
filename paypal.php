@@ -971,7 +971,7 @@ class PayPal extends \PaymentModule
                     'title' => $this->l('PayPal Login'),
                     'icon'  => 'icon-key',
                 ],
-                'description' => $this->l('Use the following link for this store (repeat if you have multiple stores!) as the `redirect_uri` setting:').' '.PayPalLogin::getReturnLink(),
+                'description' => sprintf($this->l('Use the following link for this store (repeat if you have multiple stores!) as the %sredirect_uri%s setting:'), '<code>', '</code>').' '.PayPalLogin::getReturnLink(),
                 'input'       => [
                     [
                         'type'   => 'switch',
