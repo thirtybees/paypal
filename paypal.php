@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -13,7 +13,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -118,7 +118,21 @@ class PayPal extends \PaymentModule
         'VA',
         'WF',
     ];
-
+    /** @var array $hooks */
+    public $hooks = [
+        'payment',
+        'paymentReturn',
+        'shoppingCartExtra',
+        'backBeforePayment',
+        'rightColumn',
+        'cancelProduct',
+        'productFooter',
+        'header',
+        'adminOrder',
+        'backOfficeHeader',
+        'displayPaymentEU',
+        'actionPSCleanerGetModulesTables',
+    ];
     /** @var array $errors */
     public $errors = [];
     /**
@@ -158,7 +172,10 @@ class PayPal extends \PaymentModule
         $this->currencies = true;
         $this->currencies_mode = 'radio';
 
-        parent::__construct();
+        try {
+            parent::__construct();
+        } catch (PrestaShopException $e) {
+        }
 
         $this->displayName = $this->l('PayPal');
         $this->description = $this->l('Accepts payments by credit cards (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) with PayPal.');
@@ -176,7 +193,12 @@ class PayPal extends \PaymentModule
 
         // Only check from Back Office
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id) {
-            $this->moduleUrl = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
+            try {
+                $adminModulesLocation = $this->context->link->getAdminLink('AdminModules', true);
+            } catch (PrestaShopException $e) {
+                Context::getContext()->controller->errors[] = $this->l('Unable to figure out how to reach the admin modules page');
+            }
+            $this->moduleUrl = $adminModulesLocation.'&'.http_build_query([
                 'configure'   => $this->name,
                 'tab_module'  => $this->tab,
                 'module_name' => $this->name,
@@ -193,12 +215,20 @@ class PayPal extends \PaymentModule
      */
     public static function getPayPalEmailByIdCustomer($idCustomer)
     {
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new DbQuery())
-                ->select('pc.`paypal_email`')
-                ->from('paypal_customer', 'pc')
-                ->where('pc.`id_customer` = '.(int) $idCustomer)
-        );
+        try {
+            return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+                (new DbQuery())
+                    ->select('pc.`paypal_email`')
+                    ->from('paypal_customer', 'pc')
+                    ->where('pc.`id_customer` = '.(int) $idCustomer)
+            );
+        } catch (PrestaShopDatabaseException $e) {
+            Logger::addLog("PayPal: Database error {$e->getMessage()}");
+
+            return false;
+        } catch (PrestaShopException $e) {
+            return false;
+        }
     }
 
     /**
@@ -208,31 +238,32 @@ class PayPal extends \PaymentModule
      */
     public function install()
     {
-        if (!parent::install()
-            || !$this->registerHook('payment')
-            || !$this->registerHook('paymentReturn')
-            || !$this->registerHook('shoppingCartExtra')
-            || !$this->registerHook('backBeforePayment')
-            || !$this->registerHook('rightColumn')
-            || !$this->registerHook('cancelProduct')
-            || !$this->registerHook('productFooter')
-            || !$this->registerHook('header')
-            || !$this->registerHook('adminOrder')
-            || !$this->registerHook('backOfficeHeader')
-        ) {
+        try {
+            if (!parent::install()) {
+                return false;
+            }
+        } catch (PrestaShopException $e) {
             return false;
         }
 
-        // Optional hooks
-        $this->registerHook('displayPaymentEU');
-        $this->registerHook('actionPSCleanerGetModulesTables');
+        foreach ($this->hooks as $hook) {
+            try {
+                $this->registerHook($hook);
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Error during install - {$e->getMessage()}", 3);
+            }
+        }
 
-        if (!(PayPalCapture::createDatabase()
-            && PayPalCustomer::createDatabase()
-            && PayPalLoginUser::createDatabase()
-            && PayPalOrder::createDatabase())
-        ) {
-            return false;
+        try {
+            if (!(PayPalCapture::createDatabase()
+                && PayPalCustomer::createDatabase()
+                && PayPalLoginUser::createDatabase()
+                && PayPalOrder::createDatabase())
+            ) {
+                return false;
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Error during install - {$e->getMessage()}", 3);
         }
 
         $this->updateConfiguration();
@@ -250,46 +281,54 @@ class PayPal extends \PaymentModule
      */
     public function updateConfiguration()
     {
-        \Configuration::updateValue(static::LIVE, false);
+        try {
+            \Configuration::updateValue(static::LIVE, false);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Error during install - {$e->getMessage()}");
+        }
 
-        \Configuration::updateValue(static::IMMEDIATE_CAPTURE, true);
+        try {
+            \Configuration::updateValue(static::IMMEDIATE_CAPTURE, true);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Error during install - {$e->getMessage()}");
+        }
     }
 
     /**
      * Create a new order state
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function createOrderState()
     {
-        if (!\Configuration::get('PAYPAL_OS_AUTHORIZATION')) {
-            $orderState = new \OrderState();
-            $orderState->name = [];
+        try {
+            if (!\Configuration::get('PAYPAL_OS_AUTHORIZATION')) {
+                $orderState = new \OrderState();
+                $orderState->name = [];
 
-            foreach (\Language::getLanguages() as $language) {
-                if (\Tools::strtolower($language['iso_code']) == 'fr') {
-                    $orderState->name[$language['id_lang']] = 'Autorisation acceptée par PayPal';
-                } else {
-                    $orderState->name[$language['id_lang']] = 'Authorization accepted from PayPal';
+                foreach (\Language::getLanguages() as $language) {
+                    if (\Tools::strtolower($language['iso_code']) == 'fr') {
+                        $orderState->name[$language['id_lang']] = 'Autorisation acceptée par PayPal';
+                    } else {
+                        $orderState->name[$language['id_lang']] = 'Authorization accepted from PayPal';
+                    }
+
                 }
 
-            }
+                $orderState->send_email = false;
+                $orderState->color = '#DDEEFF';
+                $orderState->hidden = false;
+                $orderState->delivery = false;
+                $orderState->logable = true;
+                $orderState->invoice = true;
 
-            $orderState->send_email = false;
-            $orderState->color = '#DDEEFF';
-            $orderState->hidden = false;
-            $orderState->delivery = false;
-            $orderState->logable = true;
-            $orderState->invoice = true;
-
-            if ($orderState->add()) {
-                $source = dirname(__FILE__).'/../../img/os/'.\Configuration::get('PS_OS_PAYPAL').'.gif';
-                $destination = dirname(__FILE__).'/../../img/os/'.(int) $orderState->id.'.gif';
-                copy($source, $destination);
+                if ($orderState->add()) {
+                    $source = dirname(__FILE__).'/../../img/os/'.\Configuration::get('PS_OS_PAYPAL').'.gif';
+                    $destination = dirname(__FILE__).'/../../img/os/'.(int) $orderState->id.'.gif';
+                    copy($source, $destination);
+                }
+                \Configuration::updateValue('PAYPAL_OS_AUTHORIZATION', (int) $orderState->id);
             }
-            \Configuration::updateValue('PAYPAL_OS_AUTHORIZATION', (int) $orderState->id);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Error during install - {$e->getMessage()}");
         }
     }
 
@@ -302,7 +341,13 @@ class PayPal extends \PaymentModule
     {
         $this->deleteConfiguration();
 
-        return parent::uninstall();
+        try {
+            return parent::uninstall();
+        } catch (PrestaShopException $e) {
+            $this->context->controller->errors[] = "{$this->name}: {$e->getMessage()}";
+
+            return false;
+        }
     }
 
     /**
@@ -314,16 +359,20 @@ class PayPal extends \PaymentModule
      */
     public function deleteConfiguration()
     {
-        \Configuration::deleteByName(static::LIVE);
+        try {
+            \Configuration::deleteByName(static::LIVE);
 
-        \Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
-        \Configuration::deleteByName(static::DEBUG_MODE);
-        \Configuration::deleteByName(static::STORE_COUNTRY);
+            \Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
+            \Configuration::deleteByName(static::DEBUG_MODE);
+            \Configuration::deleteByName(static::STORE_COUNTRY);
 
-        \Configuration::deleteByName(static::LOGIN_ENABLED);
-        \Configuration::deleteByName(static::CLIENT_ID);
-        \Configuration::deleteByName(static::SECRET);
-        \Configuration::deleteByName(static::LOGIN_THEME);
+            \Configuration::deleteByName(static::LOGIN_ENABLED);
+            \Configuration::deleteByName(static::CLIENT_ID);
+            \Configuration::deleteByName(static::SECRET);
+            \Configuration::deleteByName(static::LOGIN_THEME);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Error during uninstall - {$e->getMessage()}");
+        }
     }
 
     /**
@@ -333,27 +382,46 @@ class PayPal extends \PaymentModule
      */
     public function getContent()
     {
-        if (!Configuration::get('PS_SHOP_ENABLE')) {
-            $this->context->controller->warnings[] = $this->l('Maintenance mode has been enabled. Note that you will not be able to do test payments as long as maintenance mode is enabled.');
+        try {
+            if (!Configuration::get('PS_SHOP_ENABLE')) {
+                $this->context->controller->warnings[] = $this->l('Maintenance mode has been enabled. Note that you will not be able to do test payments as long as maintenance mode is enabled.');
+            }
+        } catch (PrestaShopException $e) {
         }
 
         $output = '';
 
         $this->postProcess();
 
-        $this->context->smarty->assign(
-            [
+        try {
+            $this->context->smarty->assign([
                 'module_url' => $this->moduleUrl,
                 'tls_ok'     => (int) Configuration::get(static::TLS_OK),
                 'id_webhook' => Configuration::get(static::WEBHOOK_ID),
-            ]
-        );
+            ]);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Unable to figure out webhook/tsl info");
+        }
 
-        $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
-        $output .= $this->display(__FILE__, 'views/templates/admin/tlscheck.tpl');
-        $output .= $this->display(__FILE__, 'views/templates/admin/webhookscheck.tpl');
+        try {
+            $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
+        } catch (Exception $e) {
+        }
+        try {
+            $output .= $this->display(__FILE__, 'views/templates/admin/tlscheck.tpl');
+        } catch (Exception $e) {
+        }
+        try {
+            $output .= $this->display(__FILE__, 'views/templates/admin/webhookscheck.tpl');
+        } catch (Exception $e) {
+        }
 
-        return $output.$this->renderMainForm();
+        try {
+            $output .= $this->renderMainForm();
+        } catch (Exception $e) {
+        }
+
+        return $output;
     }
 
     /**
@@ -372,17 +440,41 @@ class PayPal extends \PaymentModule
 
         if (\Tools::isSubmit('submit'.$this->name)) {
             // General
-            \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
-            \Configuration::updateValue(static::LIVE, (int) \Tools::getValue(static::LIVE));
-            \Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) \Tools::getValue(static::IMMEDIATE_CAPTURE));
+            try {
+                \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
+            try {
+                \Configuration::updateValue(static::LIVE, (int) \Tools::getValue(static::LIVE));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
+            try {
+                \Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) \Tools::getValue(static::IMMEDIATE_CAPTURE));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
 
             // REST API
-            if (\Configuration::get(static::CLIENT_ID) !== \Tools::getValue(static::CLIENT_ID)) {
-                // Client ID has changed, reset webhook status
-                \Configuration::updateValue(static::WEBHOOK_ID, null);
+            try {
+                if (\Configuration::get(static::CLIENT_ID) !== \Tools::getValue(static::CLIENT_ID)) {
+                    // Client ID has changed, reset webhook status
+                    \Configuration::updateValue(static::WEBHOOK_ID, null);
+                }
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
             }
-            \Configuration::updateValue(static::CLIENT_ID, \Tools::getValue(static::CLIENT_ID));
-            \Configuration::updateValue(static::SECRET, \Tools::getValue(static::SECRET));
+            try {
+                \Configuration::updateValue(static::CLIENT_ID, \Tools::getValue(static::CLIENT_ID));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
+            try {
+                \Configuration::updateValue(static::SECRET, \Tools::getValue(static::SECRET));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
 
             if (\Tools::getValue(static::CLIENT_ID) && \Tools::getValue(static::SECRET)) {
                 $rest = new PayPalRestApi(\Tools::getValue(static::CLIENT_ID), \Tools::getValue(static::SECRET));
@@ -393,39 +485,83 @@ class PayPal extends \PaymentModule
 
                 if (\Tools::getValue(static::LIVE)) {
                     if ($standardProfile) {
-                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                        try {
+                            \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+                        }
                     }
                     if ($plusProfile) {
-                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                        try {
+                            \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+                        }
                     }
                     if ($expressCheckoutProfile) {
-                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                        try {
+                            \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+                        }
                     }
                 } else {
                     if ($standardProfile) {
-                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                        try {
+                            \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+                        }
                     }
                     if ($plusProfile) {
-                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                        try {
+                            \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+                        }
                     }
                     if ($expressCheckoutProfile) {
-                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                        try {
+                            \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+                        }
                     }
                 }
             }
 
             // Website Payments Standard
-            \Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
+            try {
+                \Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
 
             // Website Payments Plus
-            \Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
+            try {
+                \Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
 
             // Express Checkout
-            \Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, \Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+            try {
+                \Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, \Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
 
             // PayPal Login
-            \Configuration::updateValue(static::LOGIN_ENABLED, (int) \Tools::getValue(static::LOGIN_ENABLED));
-            \Configuration::updateValue(static::LOGIN_THEME, (int) \Tools::getValue(static::LOGIN_THEME));
+            try {
+                \Configuration::updateValue(static::LOGIN_ENABLED, (int) \Tools::getValue(static::LOGIN_ENABLED));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
+            try {
+                \Configuration::updateValue(static::LOGIN_THEME, (int) \Tools::getValue(static::LOGIN_THEME));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
         }
     }
 
@@ -460,9 +596,17 @@ class PayPal extends \PaymentModule
     public function updateAllValue($key, $values, $html = false)
     {
         foreach (Shop::getShops() as $shop) {
-            Configuration::updateValue($key, $values, $html, $shop['id_shop_group'], $shop['id_shop']);
+            try {
+                Configuration::updateValue($key, $values, $html, $shop['id_shop_group'], $shop['id_shop']);
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+            }
         }
-        Configuration::updateGlobalValue($key, $values, $html);
+        try {
+            Configuration::updateGlobalValue($key, $values, $html);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Unable to update configuration - {$e->getMessage()}");
+        }
     }
 
     /**
@@ -477,7 +621,11 @@ class PayPal extends \PaymentModule
         $helper->show_toolbar = false;
         $helper->module = $this;
         $helper->default_form_language = $this->context->language->id;
-        $helper->allow_employee_form_lang = \Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
+        try {
+            $helper->allow_employee_form_lang = \Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
+        } catch (PrestaShopException $e) {
+            $helper->allow_employee_form_lang = 0;
+        }
 
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submit'.$this->name;
@@ -485,24 +633,42 @@ class PayPal extends \PaymentModule
             'configure' => $this->name,
         ]);
 
-        $helper->token = \Tools::getAdminTokenLite('AdminModules');
+        try {
+            $helper->token = \Tools::getAdminTokenLite('AdminModules');
+        } catch (PrestaShopException $e) {
+            $this->context->controller->errors[] = $this->l('Unable to retrieve admin token. Do you have access to this page?');
 
-        $helper->tpl_vars = [
-            'fields_value' => $this->getMainFormValues(),
-            'languages'    => $this->context->controller->getLanguages(),
-            'id_language'  => $this->context->language->id,
-        ];
+            return '';
+        }
 
-        return $helper->generateForm(
-            [
-                $this->getGeneralForm(),
-                $this->getRestApiForm(),
-                $this->getWebsitePaymentsStandardForm(),
-                $this->getWebsitePaymentsPlusForm(),
-                $this->getExpressCheckoutForm(),
-                $this->getLoginForm(),
-            ]
-        );
+        try {
+            $helper->tpl_vars = [
+                'fields_value' => $this->getMainFormValues(),
+                'languages'    => $this->context->controller->getLanguages(),
+                'id_language'  => $this->context->language->id,
+            ];
+        } catch (PrestaShopException $e) {
+            $this->context->controller->errors[] = $e->getMessage();
+
+            return '';
+        }
+
+        try {
+            return $helper->generateForm(
+                [
+                    $this->getGeneralForm(),
+                    $this->getRestApiForm(),
+                    $this->getWebsitePaymentsStandardForm(),
+                    $this->getWebsitePaymentsPlusForm(),
+                    $this->getExpressCheckoutForm(),
+                    $this->getLoginForm(),
+                ]
+            );
+        } catch (Exception $e) {
+            $this->context->controller->errors[] = $e->getMessage();
+        }
+
+        return '';
     }
 
     /**
@@ -512,20 +678,26 @@ class PayPal extends \PaymentModule
      */
     protected function getMainFormValues()
     {
-        return [
-            static::STORE_COUNTRY               => (int) \Configuration::get(static::STORE_COUNTRY),
-            static::LIVE                        => \Configuration::get(static::LIVE),
-            static::STANDARD_WEBSITE_PROFILE_ID => \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
+        try {
+            return [
+                static::STORE_COUNTRY               => (int) \Configuration::get(static::STORE_COUNTRY),
+                static::LIVE                        => \Configuration::get(static::LIVE),
+                static::STANDARD_WEBSITE_PROFILE_ID => \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
 
-            static::WEBSITE_PAYMENTS_STANDARD_ENABLED => \Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
-            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => \Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
-            static::EXPRESS_CHECKOUT_ENABLED          => \Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
-            static::LOGIN_ENABLED                     => \Configuration::get(static::LOGIN_ENABLED),
-            static::LOGIN_THEME                       => \Configuration::get(static::LOGIN_THEME),
+                static::WEBSITE_PAYMENTS_STANDARD_ENABLED => \Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
+                static::WEBSITE_PAYMENTS_PLUS_ENABLED     => \Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
+                static::EXPRESS_CHECKOUT_ENABLED          => \Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
+                static::LOGIN_ENABLED                     => \Configuration::get(static::LOGIN_ENABLED),
+                static::LOGIN_THEME                       => \Configuration::get(static::LOGIN_THEME),
 
-            static::CLIENT_ID => \Configuration::get(static::CLIENT_ID),
-            static::SECRET    => \Configuration::get(static::SECRET),
-        ];
+                static::CLIENT_ID => \Configuration::get(static::CLIENT_ID),
+                static::SECRET    => \Configuration::get(static::SECRET),
+            ];
+        } catch (PrestaShopException $e) {
+            $this->context->controller->errors[] = $this->l('Unable to get settings from database');
+
+            return [];
+        }
     }
 
     /**
@@ -535,6 +707,14 @@ class PayPal extends \PaymentModule
      */
     protected function getGeneralForm()
     {
+        try {
+            $countries = \Country::getCountries($this->context->language->id);
+        } catch (PrestaShopException $e) {
+            $this->context->controller->errors[] = $e->getMessage();
+
+            return '';
+        }
+
         return [
             'form' => [
                 'legend' => [
@@ -548,7 +728,7 @@ class PayPal extends \PaymentModule
                         'name'     => static::STORE_COUNTRY,
                         'required' => true,
                         'options'  => [
-                            'query' => \Country::getCountries($this->context->language->id),
+                            'query' => $countries,
                             'id'    => 'id_country',
                             'name'  => 'name',
                         ],
@@ -586,14 +766,20 @@ class PayPal extends \PaymentModule
      */
     protected function getRestApiForm()
     {
-        if (\Configuration::get(static::LIVE)) {
-            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
-            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
-        } else {
-            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID);
-            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID);
-            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+        try {
+            if (\Configuration::get(static::LIVE)) {
+                $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
+                $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+            } else {
+                $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID);
+                $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID);
+                $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+            }
+        } catch (PrestaShopException $e) {
+            $this->context->controller->errors[] = $e->getMessage();
+
+            return [];
         }
 
         if (!$this->context->smarty->getTemplateVars('standardProfile')) {
@@ -608,10 +794,18 @@ class PayPal extends \PaymentModule
 
         if ($standardProfile && $plusProfile && $expressCheckoutProfile) {
             $profileType = 'confirmation';
-            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_correct.tpl');
+            try {
+                $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_correct.tpl');
+            } catch (Exception $e) {
+                $this->context->controller->errors[] = $e->getMessage();
+            }
         } else {
             $profileType = 'error';
-            $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_missing.tpl');
+            try {
+                $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_missing.tpl');
+            } catch (Exception $e) {
+                $this->context->controller->errors[] = $e->getMessage();
+            }
         }
 
         return [
@@ -856,29 +1050,47 @@ class PayPal extends \PaymentModule
         }
 
         $smarty = $this->context->smarty;
-        $smarty->assign([
-            static::LIVE    => Configuration::get(static::LIVE),
-            'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
-            'paypal_locale' => $this->getLocale(),
-        ]);
+        try {
+            $smarty->assign([
+                static::LIVE    => Configuration::get(static::LIVE),
+                'incontextType' => (Tools::getValue('controller') == 'product') ? 'product' : 'cart',
+                'paypal_locale' => $this->getLocale(),
+            ]);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
 
-        $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
+            return '';
+        }
+
+        try {
+            $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
 
         $process .= '';
 
-        if (((method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name') == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc')) || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name'] == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
-            && Configuration::get(static::LOGIN_ENABLED)
-        ) {
-            $this->context->smarty->assign([
-                'client_id'     => Configuration::get(static::CLIENT_ID),
-                'login_theme'   => Configuration::get(static::LOGIN_THEME),
-                'live'          => Configuration::get(static::LIVE),
-                'return_link'   => PayPalLogin::getReturnLink(),
-            ]);
+        try {
+            if (((method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name') == 'authentication' || $smarty->getTemplateVars('page_name') == 'order-opc')) || (isset($smarty->_tpl_vars) && ($smarty->_tpl_vars['page_name'] == 'authentication' || $smarty->_tpl_vars['page_name'] == 'order-opc')))
+                && Configuration::get(static::LOGIN_ENABLED)
+            ) {
+                $this->context->smarty->assign([
+                    'client_id'   => Configuration::get(static::CLIENT_ID),
+                    'login_theme' => Configuration::get(static::LOGIN_THEME),
+                    'live'        => Configuration::get(static::LIVE),
+                    'return_link' => PayPalLogin::getReturnLink(),
+                ]);
 
-            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
-            $process .= '<script async defer type="text/javascript" src="'.\Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
-            $process .= $this->display(__FILE__, 'views/templates/front/paypal_loginjs.tpl');
+                $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
+                $process .= '<script async defer type="text/javascript" src="'.\Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
+                $process .= $this->display(__FILE__, 'views/templates/front/paypal_loginjs.tpl');
+            }
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
         }
 
         return $process;
@@ -956,7 +1168,13 @@ class PayPal extends \PaymentModule
      */
     public function hookProductActions()
     {
-        return $this->hookProductFooter();
+        try {
+            return $this->hookProductFooter();
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -966,11 +1184,23 @@ class PayPal extends \PaymentModule
      */
     public function hookProductFooter()
     {
-        if (!\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
+        try {
+            if (!\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
+                return '';
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
             return '';
         }
 
-        return $this->renderExpressCheckoutForm('product');
+        try {
+            return $this->renderExpressCheckoutForm('product');
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -981,23 +1211,47 @@ class PayPal extends \PaymentModule
     public function renderExpressCheckoutForm($type)
     {
         $idProduct = (int) \Tools::getValue('id_product');
-        $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
+        try {
+            $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
         if ($idProductAttribute) {
-            $minimalQuantity = \Attribute::getAttributeMinimalQty($idProductAttribute);
+            try {
+                $minimalQuantity = \Attribute::getAttributeMinimalQty($idProductAttribute);
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return '';
+            }
         } else {
             $product = new \Product($idProduct);
             $minimalQuantity = $product->minimal_quantity;
         }
 
-        $this->context->smarty->assign([
-            'PayPal_payment_type'           => $type,
-            'PayPal_current_page'           => $this->getCurrentUrl(),
-            'id_product_attribute_ecs'      => $idProductAttribute,
-            'product_minimal_quantity'      => $minimalQuantity,
-            'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
-        ]);
+        try {
+            $this->context->smarty->assign([
+                'PayPal_payment_type'           => $type,
+                'PayPal_current_page'           => $this->getCurrentUrl(),
+                'id_product_attribute_ecs'      => $idProductAttribute,
+                'product_minimal_quantity'      => $minimalQuantity,
+                'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
+            ]);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
 
-        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+            return '';
+        }
+
+        try {
+            return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -1017,7 +1271,13 @@ class PayPal extends \PaymentModule
 
         $params = urlencode($_SERVER['QUERY_STRING']);
 
-        return $protocolLink.\Tools::getShopDomainSsl().$request.'?'.$params;
+        try {
+            return $protocolLink.\Tools::getShopDomainSsl().$request.'?'.$params;
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -1029,52 +1289,70 @@ class PayPal extends \PaymentModule
      */
     public function hookPayment($params)
     {
-        $this->context->smarty->assign(
-            [
-                'logos'            => PayPalLogos::getLogos($this->getLocale()),
-                static::LIVE       => \Configuration::get(static::LIVE),
-                'use_mobile'       => true,
-                'PayPal_lang_code' => $this->getLocale(),
-                'params'           => $params,
-            ]
-        );
+        try {
+            $this->context->smarty->assign(
+                [
+                    'logos'            => PayPalLogos::getLogos($this->getLocale()),
+                    static::LIVE       => \Configuration::get(static::LIVE),
+                    'use_mobile'       => true,
+                    'PayPal_lang_code' => $this->getLocale(),
+                    'params'           => $params,
+                ]
+            );
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
 
-        $output = '';
-        if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
-            $output .= $this->display(__FILE__, 'express_checkout_payment.tpl');
+            return '';
         }
 
-        if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
-            $rest = new PayPalRestApi();
-            $payment = $rest->createPayment(
-                $this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', [], true),
-                $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
-                PayPalRestApi::PLUS_PROFILE
-            );
-
-            $approvalUrl = '';
-            if (isset($payment->id) && $payment->id) {
-                foreach ($payment->links as $link) {
-                    if ($link->rel === 'approval_url') {
-                        $approvalUrl = $link->href;
-                        break;
-                    }
-                }
+        $output = '';
+        try {
+            if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+                $output .= $this->display(__FILE__, 'express_checkout_payment.tpl');
             }
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
 
-            if ($approvalUrl) {
-                $this->context->smarty->assign(
-                    [
-                        'approval_url' => $approvalUrl,
-                        'mode'         => \Configuration::get(static::LIVE) ? 'live' : 'sandbox',
-                        'language'     => $this->getLocalePayPalPlus(),
-                        'country'      => $this->getCountryCode(),
-                    ]
+            return '';
+        }
+
+        try {
+            if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+                $rest = new PayPalRestApi();
+                $payment = $rest->createPayment(
+                    $this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', [], true),
+                    $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
+                    PayPalRestApi::PLUS_PROFILE
                 );
 
-                $output .= '<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
-                $output .= $this->display(__FILE__, 'paypal_plus_payment.tpl');
+                $approvalUrl = '';
+                if (isset($payment->id) && $payment->id) {
+                    foreach ($payment->links as $link) {
+                        if ($link->rel === 'approval_url') {
+                            $approvalUrl = $link->href;
+                            break;
+                        }
+                    }
+                }
+
+                if ($approvalUrl) {
+                    $this->context->smarty->assign(
+                        [
+                            'approval_url' => $approvalUrl,
+                            'mode'         => \Configuration::get(static::LIVE) ? 'live' : 'sandbox',
+                            'language'     => $this->getLocalePayPalPlus(),
+                            'country'      => $this->getCountryCode(),
+                        ]
+                    );
+
+                    $output .= '<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>';
+                    $output .= $this->display(__FILE__, 'paypal_plus_payment.tpl');
+                }
             }
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
         }
 
         return $output;
@@ -1159,25 +1437,43 @@ class PayPal extends \PaymentModule
         }
 
         if (isset($this->context->cookie->express_checkout)) {
-            $this->redirectToConfirmation();
+            try {
+                $this->redirectToConfirmation();
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return null;
+            }
         }
 
         $paymentOptions = [];
 
-        if (\Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
-            $paymentOptions[] = [
-                'cta_text' => $this->l('PayPal or credit card'),
-                'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
-                'action'   => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
-            ];
+        try {
+            if (\Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+                $paymentOptions[] = [
+                    'cta_text' => $this->l('PayPal or credit card'),
+                    'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
+                    'action'   => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
+                ];
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return null;
         }
 
-        if (\Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
-            $paymentOptions[] = [
-                'cta_text' => $this->l('PayPal or credit card'),
-                'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
-                'action'   => $this->context->link->getModuleLink($this->name, 'pluseu', [], true),
-            ];
+        try {
+            if (\Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+                $paymentOptions[] = [
+                    'cta_text' => $this->l('PayPal or credit card'),
+                    'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
+                    'action'   => $this->context->link->getModuleLink($this->name, 'pluseu', [], true),
+                ];
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return null;
         }
 
         return $paymentOptions;
@@ -1193,35 +1489,57 @@ class PayPal extends \PaymentModule
 
         if (!empty($detail['payer_id']) && !empty($detail['token'])) {
             $values = ['get_confirmation' => true];
-            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutconfirm', $values, true));
+            try {
+                \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutconfirm', $values, true));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+            }
         }
     }
 
     /**
-     * @return null|string
+     * @return string
      */
     public function hookShoppingCartExtra()
     {
-        if (!$this->active
-            || !\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)
-        ) {
-            return null;
+        try {
+            if (!$this->active
+                || !\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)
+            ) {
+                return '';
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
         }
 
         $paypalLogos = PayPalLogos::getLogos($this->getLocale());
 
-        $this->context->smarty->assign([
-            'PayPal_payment_type'                   => 'cart',
-            'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
-            'PayPal_current_page'                   => $this->getCurrentUrl(),
-            'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
-            'PayPal_tracking_code'                  => '',
-            'include_form'                          => true,
-            'template_dir'                          => dirname(__FILE__).'/views/templates/hook/',
-            'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
-        ]);
+        try {
+            $this->context->smarty->assign([
+                'PayPal_payment_type'                   => 'cart',
+                'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
+                'PayPal_current_page'                   => $this->getCurrentUrl(),
+                'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
+                'PayPal_tracking_code'                  => '',
+                'include_form'                          => true,
+                'template_dir'                          => dirname(__FILE__).'/views/templates/hook/',
+                'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
+            ]);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
 
-        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+            return '';
+        }
+
+        try {
+            return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -1243,26 +1561,50 @@ class PayPal extends \PaymentModule
         $currency = new Currency($order->id_currency);
 
         if (isset($order->reference) && $order->reference) {
-            $totalToPay = (float) $order->getTotalPaid($currency);
+            try {
+                $totalToPay = (float) $order->getTotalPaid($currency);
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return '';
+            }
             $reference = $order->reference;
         } else {
             $totalToPay = $order->total_paid_tax_incl;
             $reference = $this->l('Unknown');
         }
 
-        if ($order->getCurrentOrderState()->id != Configuration::get('PS_OS_ERROR')) {
-            $this->context->smarty->assign('status', 'ok');
+        try {
+            if ($order->getCurrentOrderState()->id != Configuration::get('PS_OS_ERROR')) {
+                $this->context->smarty->assign('status', 'ok');
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
         }
 
-        $params = [
-            'id_order'   => $order->id,
-            'reference'  => $reference,
-            'params'     => $params,
-            'total'      => Tools::displayPrice($totalToPay, $currency, false),
-        ];
+        try {
+            $params = [
+                'id_order'  => $order->id,
+                'reference' => $reference,
+                'params'    => $params,
+                'total'     => Tools::displayPrice($totalToPay, $currency, false),
+            ];
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
 
         // Add the PayPal order details to the template
-        $paypalOrder = PayPalOrder::getByOrderId($order->id);
+        try {
+            $paypalOrder = PayPalOrder::getByOrderId($order->id);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
         foreach ([
             'id_transaction',
             'id_payment',
@@ -1283,16 +1625,28 @@ class PayPal extends \PaymentModule
             }
         }
 
-        $this->context->smarty->assign(
-            [
-                'id_order'   => $order->id,
-                'reference'  => $reference,
-                'params'     => $params,
-                'total'      => Tools::displayPrice($totalToPay, $currency, false),
-            ]
-        );
+        try {
+            $this->context->smarty->assign(
+                [
+                    'id_order'  => $order->id,
+                    'reference' => $reference,
+                    'params'    => $params,
+                    'total'     => Tools::displayPrice($totalToPay, $currency, false),
+                ]
+            );
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
 
-        return $this->display(__FILE__, 'confirmation.tpl');
+            return '';
+        }
+
+        try {
+            return $this->display(__FILE__, 'confirmation.tpl');
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -1300,7 +1654,13 @@ class PayPal extends \PaymentModule
      */
     public function hookLeftColumn()
     {
-        return $this->hookRightColumn();
+        try {
+            return $this->hookRightColumn();
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -1310,7 +1670,13 @@ class PayPal extends \PaymentModule
     {
         $this->context->smarty->assign('logo', PayPalLogos::getCardsLogo($this->getLocale(), true));
 
-        return $this->display(__FILE__, 'column.tpl');
+        try {
+            return $this->display(__FILE__, 'column.tpl');
+        } catch (Exception $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
+        }
     }
 
     /**
@@ -1321,21 +1687,27 @@ class PayPal extends \PaymentModule
     public function hookBackBeforePayment($params)
     {
         if (!$this->active) {
-            return null;
+            return '';
         }
 
         /* Only execute if you use PayPal API for payment */
-        if ($this->isPayPalAPIAvailable()) {
-            if ($params['module'] != $this->name || !$this->context->cookie->paypal_token
-                || !$this->context->cookie->paypal_payer_id
-            ) {
-                return false;
-            }
+        try {
+            if ($this->isPayPalAPIAvailable()) {
+                if ($params['module'] != $this->name || !$this->context->cookie->paypal_token
+                    || !$this->context->cookie->paypal_payer_id
+                ) {
+                    return false;
+                }
 
-            \Tools::redirect($this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', ['confirm' => '1', 'token' => $this->context->cookie->paypal_token, 'PayerID' => $this->context->cookie->paypal_payer_id], true));
+                \Tools::redirect($this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', ['confirm' => '1', 'token' => $this->context->cookie->paypal_token, 'PayerID' => $this->context->cookie->paypal_payer_id], true));
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return '';
         }
 
-        return null;
+        return '';
     }
 
     /**
@@ -1343,8 +1715,14 @@ class PayPal extends \PaymentModule
      */
     public function isPayPalAPIAvailable()
     {
-        if (\Configuration::get(static::CLIENT_ID) && \Configuration::get(static::SECRET)) {
-            return true;
+        try {
+            if (\Configuration::get(static::CLIENT_ID) && \Configuration::get(static::SECRET)) {
+                return true;
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return false;
         }
 
         return false;
@@ -1361,23 +1739,35 @@ class PayPal extends \PaymentModule
             if ($captureAmount = \Tools::getValue('totalCaptureMoney')) {
                 if ($captureAmount = PayPalCapture::parsePrice($captureAmount)) {
                     if (\Validate::isFloat($captureAmount)) {
-                        $captureAmount = \Tools::ps_round($captureAmount, '6');
+                        try {
+                            $captureAmount = \Tools::ps_round($captureAmount, '6');
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                            return '';
+                        }
                         $ord = new \Order((int) $params['id_order']);
                         $cpt = new PayPalCapture();
 
-                        if (($captureAmount > \Tools::ps_round(0, '6')) && (\Tools::ps_round($cpt->getRestToPaid($ord), '6') >= $captureAmount)) {
-                            $complete = false;
+                        try {
+                            if (($captureAmount > \Tools::ps_round(0, '6')) && (\Tools::ps_round($cpt->getRestToPaid($ord), '6') >= $captureAmount)) {
+                                $complete = false;
 
-                            if ($captureAmount > \Tools::ps_round((float) $ord->total_paid, '6')) {
-                                $captureAmount = \Tools::ps_round((float) $ord->total_paid, '6');
-                                $complete = true;
-                            }
-                            if ($captureAmount == \Tools::ps_round($cpt->getRestToPaid($ord), '6')) {
-                                $complete = true;
-                            }
+                                if ($captureAmount > \Tools::ps_round((float) $ord->total_paid, '6')) {
+                                    $captureAmount = \Tools::ps_round((float) $ord->total_paid, '6');
+                                    $complete = true;
+                                }
+                                if ($captureAmount == \Tools::ps_round($cpt->getRestToPaid($ord), '6')) {
+                                    $complete = true;
+                                }
 
-                            // TODO: implement manual capture
-//                            $this->doCapture($params['id_order'], $captureAmount, $complete);
+                                // TODO: implement manual capture
+                                //                            $this->doCapture($params['id_order'], $captureAmount, $complete);
+                            }
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                            return '';
                         }
                     }
                 }
@@ -1391,16 +1781,34 @@ class PayPal extends \PaymentModule
 
         $adminTemplates = [];
         if ($this->isPayPalAPIAvailable()) {
-            if ($this->needsValidation((int) $params['id_order'])) {
-                $adminTemplates[] = 'validation';
+            try {
+                if ($this->needsValidation((int) $params['id_order'])) {
+                    $adminTemplates[] = 'validation';
+                }
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return '';
             }
 
-            if ($this->needsCapture((int) $params['id_order'])) {
-                $adminTemplates[] = 'capture';
+            try {
+                if ($this->needsCapture((int) $params['id_order'])) {
+                    $adminTemplates[] = 'capture';
+                }
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return '';
             }
 
-            if ($this->canRefund((int) $params['id_order'])) {
-                $adminTemplates[] = 'refund';
+            try {
+                if ($this->canRefund((int) $params['id_order'])) {
+                    $adminTemplates[] = 'refund';
+                }
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return '';
             }
 
         }
@@ -1412,20 +1820,32 @@ class PayPal extends \PaymentModule
             $cpt->id_order = (int) $order->id;
             $orderState = $order->current_state;
 
-            $this->context->smarty->assign([
-                'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
-                'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
-                'module_name'     => $this->name,
-                'order_state'     => $orderState,
-                'params'          => $params,
-                'id_currency'     => $currency->getSign(),
-                'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
-                'list_captures'   => $cpt->getListCaptured(),
-                'ps_version'      => _PS_VERSION_,
-            ]);
+            try {
+                $this->context->smarty->assign([
+                    'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
+                    'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
+                    'module_name'     => $this->name,
+                    'order_state'     => $orderState,
+                    'params'          => $params,
+                    'id_currency'     => $currency->getSign(),
+                    'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
+                    'list_captures'   => $cpt->getListCaptured(),
+                    'ps_version'      => _PS_VERSION_,
+                ]);
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                return '';
+            }
 
             foreach ($adminTemplates as $adminTemplate) {
-                $this->html .= $this->display(__FILE__, 'views/templates/admin/admin_order/'.$adminTemplate.'.tpl');
+                try {
+                    $this->html .= $this->display(__FILE__, 'views/templates/admin/admin_order/'.$adminTemplate.'.tpl');
+                } catch (Exception $e) {
+                    Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+                    return '';
+                }
                 $this->postProcess();
                 $this->html .= '</fieldset>';
             }
@@ -1445,12 +1865,18 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new DbQuery())
-                ->select('po.`payment_method`, po.`payment_status`')
-                ->from('paypal_order', 'po')
-                ->where('po.`id_order` = '.(int) $idOrder)
-        );
+        try {
+            $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+                (new DbQuery())
+                    ->select('po.`payment_method`, po.`payment_status`')
+                    ->from('paypal_order', 'po')
+                    ->where('po.`id_order` = '.(int) $idOrder)
+            );
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return false;
+        }
 
         return $order && $order['payment_status'] === 'Pending_validation';
     }
@@ -1472,7 +1898,13 @@ class PayPal extends \PaymentModule
         $sql->where('po.`id_order` = '.(int) $idOrder);
         $sql->where('po.`capture` = 1');
 
-        $result = \Db::getInstance()->getRow($sql);
+        try {
+            $result = \Db::getInstance()->getRow($sql);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return false;
+        }
 
         return $result && $result['payment_status'] == 'Pending_capture';
     }
@@ -1493,7 +1925,13 @@ class PayPal extends \PaymentModule
         $sql->from('paypal_order', 'po');
         $sql->where('po.`id_order` = '.(int) $idOrder);
 
-        $paypalOrder = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+        try {
+            $paypalOrder = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+
+            return false;
+        }
 
         return $paypalOrder && ($paypalOrder['payment_status'] == 'Completed' || $paypalOrder['payment_status'] == 'approved') && $paypalOrder['capture'] == 0;
     }
@@ -1506,15 +1944,19 @@ class PayPal extends \PaymentModule
     public function hookCancelProduct($params)
     {
         /** @var \Order $order */
-        if (\Tools::isSubmit('generateDiscount') || !$this->isPayPalAPIAvailable()
-            || \Tools::isSubmit('generateCreditSlip')
-        ) {
-            return false;
-        } elseif ($params['order']->module != $this->name || !($order = $params['order'])
-            || !\Validate::isLoadedObject($order)
-        ) {
-            return false;
-        } elseif (!$order->hasBeenPaid()) {
+        try {
+            if (\Tools::isSubmit('generateDiscount') || !$this->isPayPalAPIAvailable()
+                || \Tools::isSubmit('generateCreditSlip')
+            ) {
+                return false;
+            } elseif ($params['order']->module != $this->name || !($order = $params['order'])
+                || !\Validate::isLoadedObject($order)
+            ) {
+                return false;
+            } elseif (!$order->hasBeenPaid()) {
+                return false;
+            }
+        } catch (PrestaShopException $e) {
             return false;
         }
 
@@ -1523,12 +1965,24 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $paypalOrder = PayPalOrder::getByOrderId((int) $order->id);
+        try {
+            $paypalOrder = PayPalOrder::getByOrderId((int) $order->id);
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->name}: Unable to retrieve PayPal info for order {$order->id}");
+
+            return false;
+        }
         if (!$paypalOrder) {
             return false;
         }
 
-        $products = $order->getProducts();
+        try {
+            $products = $order->getProducts();
+        } catch (PrestaShopException $e) {
+            Logger::addLog("{$this->displayName}: Unable to retrieve products for order {$order->id}");
+
+            return false;
+        }
         $cancelQuantity = \Tools::getValue('cancelQuantity');
         $message = $this->l('Cancel products result:').'<br>';
 
@@ -1630,7 +2084,11 @@ class PayPal extends \PaymentModule
         $newMessage->id_order = (int) $idOrder;
         $newMessage->private = 1;
 
-        return $newMessage->add();
+        try {
+            return $newMessage->add();
+        } catch (PrestaShopException $e) {
+            return false;
+        }
     }
 
     /**
@@ -1705,7 +2163,11 @@ class PayPal extends \PaymentModule
             );
 
             if (count($transaction) > 0) {
-                PayPalOrder::saveOrder((int) $this->currentOrder, $transaction);
+                try {
+                    PayPalOrder::saveOrder((int) $this->currentOrder, $transaction);
+                } catch (PrestaShopException $e) {
+                    Logger::addLog("{$this->name}: Unable to save order data", 4);
+                }
             }
         }
 
@@ -1721,7 +2183,11 @@ class PayPal extends \PaymentModule
      */
     public static function checkAddress($address)
     {
-        return !in_array(Country::getIsoById($address->id_country), static::$postalCodeRequired) || $address->postcode;
+        try {
+            return !in_array(Country::getIsoById($address->id_country), static::$postalCodeRequired) || $address->postcode;
+        } catch (PrestaShopException $e) {
+            return false;
+        }
     }
 
     /**
@@ -1734,8 +2200,16 @@ class PayPal extends \PaymentModule
      */
     protected function checkWebhooks($force = false)
     {
-        $lastCheck = (int) Configuration::get(static::WEBHOOK_LAST_CHECK);
-        $webHookId = Configuration::get(static::WEBHOOK_ID);
+        try {
+            $lastCheck = (int) Configuration::get(static::WEBHOOK_LAST_CHECK);
+        } catch (PrestaShopException $e) {
+            $lastCheck = 0;
+        }
+        try {
+            $webHookId = Configuration::get(static::WEBHOOK_ID);
+        } catch (PrestaShopException $e) {
+            $webhookId = null;
+        }
 
         if (time() > $lastCheck + static::WEBHOOK_CHECK_INTERVAL || !$webHookId || $force) {
             // Time to update/check webhooks
@@ -1744,13 +2218,25 @@ class PayPal extends \PaymentModule
 
             if ($data) {
                 $found = false;
-                $sslEnabled = (bool) Configuration::get('PS_SSL_ENABLED');
-                $webhookUrl = Context::getContext()->link->getModuleLink($this->name, 'hook', [], $sslEnabled);
+                try {
+                    $sslEnabled = (bool) Configuration::get('PS_SSL_ENABLED');
+                } catch (PrestaShopException $e) {
+                    return;
+                }
+                try {
+                    $webhookUrl = Context::getContext()->link->getModuleLink($this->name, 'hook', [], $sslEnabled);
+                } catch (PrestaShopException $e) {
+                    return;
+                }
                 if (isset($data->webhooks)) {
                     foreach ($data->webhooks as $webhook) {
                         if ($webhook->url === $webhookUrl) {
                             $found = true;
-                            Configuration::updateValue(static::WEBHOOK_ID, $webhook->id);
+                            try {
+                                Configuration::updateValue(static::WEBHOOK_ID, $webhook->id);
+                            } catch (PrestaShopException $e) {
+                                Logger::addLog("{$this->displayName}: Unable to update webhook ID", 3);
+                            }
 
                             break;
                         }
@@ -1762,15 +2248,23 @@ class PayPal extends \PaymentModule
                     $registration = $rest->registerWebhook($webhookUrl);
 
                     if (isset($registration->id)) {
-                        Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
+                        try {
+                            Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
+                        } catch (PrestaShopException $e) {
+                            Logger::addLog("{$this->displayName}: Unable to update webhook ID", 3);
+                        }
                     }
                 }
             }
 
-            Configuration::updateValue(
-                static::WEBHOOK_LAST_CHECK,
-                time()
-            );
+            try {
+                Configuration::updateValue(
+                    static::WEBHOOK_LAST_CHECK,
+                    time()
+                );
+            } catch (PrestaShopException $e) {
+                Logger::addLog("{$this->displayName}: Unable to update timestamp of last webhook check", 3);
+            }
         }
     }
 }
