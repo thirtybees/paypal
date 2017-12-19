@@ -573,6 +573,14 @@ class PayPalRestApi
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$accessToken,
         ];
+
+        try {
+            if (!\Configuration::get(\PayPal::LIVE) && !empty($_COOKIE['PayPal-Mock-Response'])) {
+                $header[] = ['PayPal-Mock-Response' => $_COOKIE['PayPal-Mock-Response']];
+            }
+        } catch (\PrestaShopException $e) {
+        }
+
         $result = $this->send(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'), json_encode($data), $header, false, 'POST');
         if (!$result) {
             return false;
