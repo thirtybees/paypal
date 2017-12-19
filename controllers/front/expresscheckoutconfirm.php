@@ -137,34 +137,54 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
             $cart->id_address_delivery = $tbShippingAddress->id;
             $cart->id_address_invoice = $tbShippingAddress->id;
 
-            $deliveryOption = $cart->getDeliveryOption();
+            try {
+                $deliveryOption = $cart->getDeliveryOption();
+            } catch (Exception $e) {
+                Logger::addLog("PayPal module error: {$e->getMessage()}", 4);
+
+                return false;
+            }
             if (is_array($deliveryOption) && !empty($deliveryOption)) {
                 $deliveryOption = array_values($deliveryOption);
                 if (!in_array($cart->id_carrier, $deliveryOption)) {
-                    $cart->id_carrier = $deliveryOption[0];
-                }
-                if (!$cart->id_carrier) {
-                    return false;
+                    $idCarrier = (int) trim($deliveryOption[0], ", ");
+                    if (!$idCarrier) {
+                        return false;
+                    }
+                    $cart->id_carrier = $idCarrier;
+
                 }
             } else {
                 return false;
             }
 
-            $cart->save();
+            try {
+                $cart->save();
+            } catch (PrestaShopException $e) {
+                Logger::addLog("PayPal module error: {$e->getMessage()}", 4);
 
-            Tools::redirectLink(
-                $this->context->link->getModuleLink(
-                    $this->module->name,
-                    'expresscheckoutconfirm',
-                    [
-                        'PayerID'        => Tools::getValue('PayerID'),
-                        'paymentId'      => Tools::getValue('paymentId'),
-                        'addressChanged' => 1,
-                        'authorized'     => (int) Tools::getValue('authorized'),
-                    ],
-                    true
-                )
-            );
+                return false;
+            }
+
+            try {
+                Tools::redirectLink(
+                    $this->context->link->getModuleLink(
+                        $this->module->name,
+                        'expresscheckoutconfirm',
+                        [
+                            'PayerID'        => Tools::getValue('PayerID'),
+                            'paymentId'      => Tools::getValue('paymentId'),
+                            'addressChanged' => 1,
+                            'authorized'     => (int) Tools::getValue('authorized'),
+                        ],
+                        true
+                    )
+                );
+            } catch (PrestaShopException $e) {
+                Logger::addLog("PayPal module error: {$e->getMessage()}", 4);
+
+                return false;
+            }
         }
 
         // Grab the module's file path

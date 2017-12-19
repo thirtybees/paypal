@@ -48,7 +48,9 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
     public function initContent()
     {
         if (\Tools::isSubmit('paymentId') && \Tools::isSubmit('PayerID')) {
-            $this->processPayment();
+            if (!$this->processPayment()) {
+                parent::initContent();
+            }
 
             return;
         }
@@ -63,10 +65,7 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             'errors' => $this->errors,
         ]);
 
-        try {
-            parent::initContent();
-        } catch (Exception $e) {
-        }
+        parent::initContent();
 
         try {
             $this->setTemplate('expresscheckout_error.tpl');
@@ -98,6 +97,8 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
 
     /**
      * Process PayPal payment
+     *
+     * @return bool Status
      */
     public function processPayment()
     {
@@ -193,6 +194,8 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
         } catch (PrestaShopException $e) {
         } catch (Exception $e) {
         }
+
+        return false;
     }
 
     /**
