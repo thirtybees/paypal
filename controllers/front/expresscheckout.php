@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -13,7 +13,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -31,16 +31,12 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
 {
     /** @var int $idOrder */
     public $idOrder;
-
     /** @var int $idModule */
     public $idModule;
-
     /** @var string $payPalKey */
     public $payPalKey;
-
     /** @var \PayPal $module */
     public $module;
-
     /** @var bool $ssl */
     public $ssl = true;
 
@@ -67,9 +63,16 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             'errors' => $this->errors,
         ]);
 
-        parent::initContent();
+        try {
+            parent::initContent();
+        } catch (Exception $e) {
+        }
 
-        $this->setTemplate('expresscheckout_error.tpl');
+        try {
+            $this->setTemplate('expresscheckout_error.tpl');
+        } catch (Exception $e) {
+            Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
+        }
     }
 
     /**
@@ -123,22 +126,46 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             if (isset($authorization->name) && isset($authorization->message)) {
                 // Capture failed: void and redirect
                 $rest->voidAuthorization($payment->id);
-                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+                try {
+                    Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+                } catch (PrestaShopException $e) {
+                    Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
+
+                    exit;
+                }
             }
 
             $customer = new \Customer((int) $cart->id_customer);
 
-            $this->validateOrder($customer, $cart, $payment, $authorization);
+            try {
+                $this->validateOrder($customer, $cart, $payment, $authorization);
+            } catch (PrestaShopException $e) {
+                Logger::addLog("PayPal order validation problem: {$e->getMessage()}", 4);
+
+                exit;
+            }
         } elseif ($payment->state === 'authorized') {
             // Authorized, void and redirect
             $rest->voidAuthorization($payment->id);
-            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+            try {
+                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
+
+                exit;
+            }
         } elseif (isset($payment->transactions[0]) && isset($payment->state) && $payment->state === 'approved') {
             // Unable to authorize, try again, but unable to capture due to a 15%+ price increase, redirect to PayPal for a new auth
-            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+            try {
+                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
+            } catch (PrestaShopException $e) {
+                Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
+
+                exit;
+            }
         }
 
-        $logs = [sprintf($this->module->l('An unknown error occurred. The authorization status is `%s`, but the amount has not been charged (yet).'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
+        $logs = [sprintf($this->module->l('An unknown error occurred. The authorization status is `%s`. The amount has not been charged (yet).'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
         if (_PS_MODE_DEV_) {
             $logs[] = json_encode(['The full payment object looks like' => $payment]);
         }
@@ -161,7 +188,11 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             'use_mobile' => (bool) $this->context->getMobileDevice(),
         ]);
 
-        $this->setTemplate($template);
+        try {
+            $this->setTemplate($template);
+        } catch (PrestaShopException $e) {
+        } catch (Exception $e) {
+        }
     }
 
     /**
@@ -217,10 +248,14 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             $this->context->shop
         );
 
-        if ($customer->isGuest()) {
-            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckoutguest', [], true));
-        } else {
-            Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
+        try {
+            if ($customer->isGuest()) {
+                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckoutguest', [], true));
+            } else {
+                Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
+            }
+        } catch (PrestaShopException $e) {
+            Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
         }
     }
 }

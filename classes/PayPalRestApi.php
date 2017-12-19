@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -13,7 +13,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -75,8 +75,15 @@ class PayPalRestApi
         $this->cart = $this->context->cart;
         $this->customer = $this->context->customer;
 
-        $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
-        $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
+        try {
+            $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
+            $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            $this->clientId = '';
+            $this->secret = '';
+        }
     }
 
     /**
@@ -183,10 +190,14 @@ class PayPalRestApi
      */
     public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
     {
-        if (!\Configuration::get(\PayPal::LIVE)) {
-            $baseUri = 'https://api.sandbox.paypal.com';
-        } else {
-            $baseUri = 'https://api.paypal.com';
+        try {
+            if (!\Configuration::get(\PayPal::LIVE)) {
+                $baseUri = 'https://api.sandbox.paypal.com';
+            } else {
+                $baseUri = 'https://api.paypal.com';
+            }
+        } catch (\PrestaShopException $e) {
+            return false;
         }
 
         $guzzle = new Client(
@@ -299,11 +310,19 @@ class PayPalRestApi
         $cart = $this->cart;
 
         if (!$returnUrl) {
-            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
+            try {
+                $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
+            } catch (\PrestaShopException $e) {
+                \Logger::addLog("PayPal module error: {$e->getMessage()}");
+            }
         }
 
         if (!$cancelUrl) {
-            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
+            try {
+                $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
+            } catch (\PrestaShopException $e) {
+                \Logger::addLog("PayPal module error: {$e->getMessage()}");
+            }
         }
 
         $oCurrency = new \Currency($this->cart->id_currency);
@@ -328,7 +347,13 @@ class PayPalRestApi
         // fields when necessary.
         $remaining = round($totalCartWithTax, 2);
 
-        $cartItems = $cart->getProducts();
+        try {
+            $cartItems = $cart->getProducts();
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            $cartItems = [];
+        }
 
         $state = new \State($shippingAddress->id_state);
         $shippingAddress = [
@@ -440,30 +465,34 @@ class PayPalRestApi
             'payer'        => $payer,
             'intent'       => 'authorize',
         ];
-        if (\Configuration::get(\PayPal::LIVE)) {
-            switch ($profile) {
-                case self::PLUS_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                    break;
-                case self::EXPRESS_CHECKOUT_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                    break;
-                default:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                    break;
+        try {
+            if (\Configuration::get(\PayPal::LIVE)) {
+                switch ($profile) {
+                    case self::PLUS_PROFILE:
+                        $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE);
+                        break;
+                    case self::EXPRESS_CHECKOUT_PROFILE:
+                        $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+                        break;
+                    default:
+                        $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                        break;
+                }
+            } else {
+                switch ($profile) {
+                    case self::PLUS_PROFILE:
+                        $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID);
+                        break;
+                    case self::EXPRESS_CHECKOUT_PROFILE:
+                        $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+                        break;
+                    default:
+                        $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                        break;
+                }
             }
-        } else {
-            switch ($profile) {
-                case self::PLUS_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
-                    break;
-                case self::EXPRESS_CHECKOUT_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
-                    break;
-                default:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
-                    break;
-            }
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
         }
 
         $payment->redirect_urls = $redirectUrls;
@@ -728,17 +757,29 @@ class PayPalRestApi
     protected function createWebProfile($type)
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
-        $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
-        $language = new \Language($idLang);
-        $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
+        try {
+            $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
+            $language = new \Language($idLang);
+            $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
+            $brandName = \Configuration::get('PS_SHOP_NAME');
+            $logoImage = _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO');
+
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            $iso = 'en';
+            $brandName = '';
+            $logoImage = '';
+        }
+
 
         switch ($type) {
             case self::PLUS_PROFILE:
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'brand_name'  => $brandName,
+                        'logo_image'  => $logoImage,
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -754,8 +795,8 @@ class PayPalRestApi
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'brand_name'  => $brandName,
+                        'logo_image'  => $logoImage,
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -771,8 +812,8 @@ class PayPalRestApi
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'brand_name'  => $brandName,
+                        'logo_image'  => $logoImage,
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [

@@ -15,7 +15,7 @@
  *
  *  @author    Thirty Bees <contact@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
- *  @copyright 2017 Thirty Bees
+ *  @copyright 2017-2018 thirty bees
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */

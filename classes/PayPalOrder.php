@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -13,7 +13,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -138,12 +138,18 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getByOrderId($idOrder)
     {
-        return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new \DbQuery())
-                ->select('*')
-                ->from(bqSQL(self::$definition['table']))
-                ->where('`id_order` = '.(int) $idOrder)
-        );
+        try {
+            return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+                (new \DbQuery())
+                    ->select('*')
+                    ->from(bqSQL(self::$definition['table']))
+                    ->where('`id_order` = '.(int) $idOrder)
+            );
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            return [];
+        }
     }
 
     /**
@@ -153,12 +159,18 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getIdOrderByTransactionId($idTransaction)
     {
-        $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new \DbQuery())
-                ->select('po.`id_order`')
-                ->from('paypal_order', 'po')
-                ->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'')
-        );
+        try {
+            $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+                (new \DbQuery())
+                    ->select('po.`id_order`')
+                    ->from('paypal_order', 'po')
+                    ->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'')
+            );
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            $result = false;
+        }
 
         if ($result != false) {
             return (int) $result['id_order'];
@@ -179,23 +191,27 @@ class PayPalOrder extends \ObjectModel
             $transaction['payment_status'] = 'NULL';
         }
 
-        \Db::getInstance()->insert(
-            bqSQL(self::$definition['table']),
-            [
-                'id_order'       => (int) $idOrder,
-                'id_payer'       => pSQL($transaction['id_payer']),
-                'id_payment'     => pSQL($transaction['id_payment']),
-                'id_transaction' => pSQL($transaction['id_transaction']),
-                'id_invoice'     => pSQL($transaction['id_invoice']),
-                'currency'       => pSQL($transaction['currency']),
-                'total_paid'     => $totalPaid,
-                'shipping'       => (float) $transaction['shipping'],
-                'capture'        => (int) \Configuration::get('PAYPAL_CAPTURE'),
-                'payment_date'   => pSQL($transaction['payment_date']),
-                'payment_method' => (int) \Configuration::get('PAYPAL_PAYMENT_METHOD'),
-                'payment_status' => pSQL($transaction['payment_status']),
-            ]
-        );
+        try {
+            \Db::getInstance()->insert(
+                bqSQL(self::$definition['table']),
+                [
+                    'id_order'       => (int) $idOrder,
+                    'id_payer'       => pSQL($transaction['id_payer']),
+                    'id_payment'     => pSQL($transaction['id_payment']),
+                    'id_transaction' => pSQL($transaction['id_transaction']),
+                    'id_invoice'     => pSQL($transaction['id_invoice']),
+                    'currency'       => pSQL($transaction['currency']),
+                    'total_paid'     => $totalPaid,
+                    'shipping'       => (float) $transaction['shipping'],
+                    'capture'        => (int) \Configuration::get('PAYPAL_CAPTURE'),
+                    'payment_date'   => pSQL($transaction['payment_date']),
+                    'payment_method' => (int) \Configuration::get('PAYPAL_PAYMENT_METHOD'),
+                    'payment_status' => pSQL($transaction['payment_status']),
+                ]
+            );
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+        }
     }
 
     /**
@@ -208,13 +224,17 @@ class PayPalOrder extends \ObjectModel
             $transaction['payment_status'] = 'NULL';
         }
 
-        \Db::getInstance()->update(
-            bqSQL(static::$definition['table']),
-            [
-                'payment_status' => pSQL($transaction['payment_status']),
-            ],
-            '`id_order` = \''.(int) $idOrder.'\' AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\' AND `currency` = \''.pSQL($transaction['currency']).'\''.((\Configuration::get(\PayPal::LIVE)) ? 'AND `total_paid` = \''.$transaction['total_paid'].'\' AND `shipping` = \''.(float) $transaction['shipping'].'\'' : '')
-        );
+        try {
+            \Db::getInstance()->update(
+                bqSQL(static::$definition['table']),
+                [
+                    'payment_status' => pSQL($transaction['payment_status']),
+                ],
+                '`id_order` = \''.(int) $idOrder.'\' AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\' AND `currency` = \''.pSQL($transaction['currency']).'\''.((\Configuration::get(\PayPal::LIVE)) ? 'AND `total_paid` = \''.$transaction['total_paid'].'\' AND `shipping` = \''.(float) $transaction['shipping'].'\'' : '')
+            );
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+        }
     }
 
     /**
@@ -226,11 +246,17 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getByPaymentId($paymentId)
     {
-        return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new \DbQuery())
-                ->select('*')
-                ->from(bqSQL(static::$definition['table']))
-                ->where('`id_payment` = \''.pSQL($paymentId).'\'')
-        );
+        try {
+            return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+                (new \DbQuery())
+                    ->select('*')
+                    ->from(bqSQL(static::$definition['table']))
+                    ->where('`id_payment` = \''.pSQL($paymentId).'\'')
+            );
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            return [];
+        }
     }
 }

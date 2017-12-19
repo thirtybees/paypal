@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -13,7 +13,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -56,15 +56,19 @@ class PayPalCustomer extends \ObjectModel
      *
      * @param string $email
      *
-     * @return false|null|string
+     * @return false|int
      */
     public static function getPayPalCustomerIdByEmail($email)
     {
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new \DbQuery())
-                ->select('pc.`id_customer`')
-                ->from(bqSQL(self::$definition['table']), 'pc')
-                ->where('pc.`paypal_email` = \''.pSQL($email).'\'')
-        );
+        try {
+            return (int) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+                (new \DbQuery())
+                    ->select('pc.`id_customer`')
+                    ->from(bqSQL(self::$definition['table']), 'pc')
+                    ->where('pc.`paypal_email` = \''.pSQL($email).'\'')
+            );
+        } catch (\PrestaShopException $e) {
+            return false;
+        }
     }
 }

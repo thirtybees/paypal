@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2017 thirty bees
+ * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
  *
@@ -13,7 +13,7 @@
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017 thirty bees
+ * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -65,30 +65,27 @@ class PayPalCapture extends \ObjectModel
      * @param int $idOrder
      *
      * @return float Total amount captured
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function getTotalAmountCapturedByIdOrder($idOrder)
     {
-        return \Tools::ps_round(\Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new \DbQuery())
-                ->select('SUM(`capture_amount`)')
-                ->from(self::$definition['table'])
-                ->where('`id_order` = '.(int) $idOrder)
-                ->where('`result` = \'Completed\'')
-        ), 2);
+        try {
+            return \Tools::ps_round(\Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+                (new \DbQuery())
+                    ->select('SUM(`capture_amount`)')
+                    ->from(self::$definition['table'])
+                    ->where('`id_order` = '.(int) $idOrder)
+                    ->where('`result` = \'Completed\'')
+            ), 2);
+        } catch (\PrestaShopException $e) {
+        }
+
+        return 0;
     }
 
     /**
      * @param \Order $order
      *
      * @return float
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getRestToPaid(\Order $order)
     {
@@ -102,14 +99,16 @@ class PayPalCapture extends \ObjectModel
      * @param int $idOrder
      *
      * @return bool
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getRestToCapture($idOrder)
     {
-        $cart = \Cart::getCartByOrderId($idOrder);
+        try {
+            $cart = \Cart::getCartByOrderId($idOrder);
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            return false;
+        }
 
         $total = \Tools::ps_round($cart->getOrderTotal(), 2) - \Tools::ps_round(self::getTotalAmountCapturedByIdOrder($idOrder), 2);
 
@@ -121,20 +120,22 @@ class PayPalCapture extends \ObjectModel
     }
 
     /**
-     * @return array|false|\mysqli_result|null|\PDOStatement|resource
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @return array
      */
     public function getListCaptured()
     {
-        $result = \Db::getInstance()->executeS(
-            (new \DbQuery())
-                ->from(bqSQL(static::$definition['table']))
-                ->where('`id_order` = '.$this->id_order)
-                ->orderBy('`date_add` DESC')
-        );
+        try {
+            $result = (array) \Db::getInstance()->executeS(
+                (new \DbQuery())
+                    ->from(bqSQL(static::$definition['table']))
+                    ->where('`id_order` = '.$this->id_order)
+                    ->orderBy('`date_add` DESC')
+            );
+        } catch (\PrestaShopException $e) {
+            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+
+            return [];
+        }
 
         return $result;
     }
@@ -143,10 +144,6 @@ class PayPalCapture extends \ObjectModel
      * @param float $price
      *
      * @return bool|float
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function parsePrice($price)
     {
@@ -161,6 +158,5 @@ class PayPalCapture extends \ObjectModel
         } else {
             return false;
         }
-
     }
 }
