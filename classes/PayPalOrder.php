@@ -48,6 +48,7 @@ class PayPalOrder extends \ObjectModel
      * @see ObjectModel::$definition
      */
     public static $definition = [
+        'primary' => 'id_paypal_order',
         'table'   => 'paypal_order',
         'fields'  => [
             'id_order'       => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedId',  'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
