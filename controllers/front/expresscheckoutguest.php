@@ -21,10 +21,6 @@ if (!defined('_TB_VERSION_')) {
     exit;
 }
 
-use PayPalModule\PayPalCustomer;
-use PayPalModule\PayPalOrder;
-use PayPalModule\PayPalRestApi;
-
 /**
  * Class PayPalExpressCheckoutGuestModuleFrontController
  */
@@ -40,6 +36,8 @@ class PayPalExpressCheckoutGuestModuleFrontController extends \ModuleFrontContro
      * Initialize content
      *
      * @return void
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function initContent()
     {

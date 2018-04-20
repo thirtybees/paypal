@@ -20,6 +20,10 @@
 
 namespace PayPalModule;
 
+use Db;
+use ObjectModel;
+use Validate;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -29,7 +33,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalLoginUser extends \ObjectModel
+class PayPalLoginUser extends ObjectModel
 {
     // @codingStandardsIgnoreStart
     /**
@@ -39,17 +43,17 @@ class PayPalLoginUser extends \ObjectModel
         'table'   => 'paypal_login_user',
         'primary' => 'id_paypal_login_user',
         'fields'  => [
-            'id_customer'      => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
-            'token_type'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'expires_in'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'refresh_token'    => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'id_token'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'access_token'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'account_type'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'user_id'          => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',                         'db_type' => 'VARCHAR(255)'],
-            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString',                         'db_type' => 'VARCHAR(255)'],
+            'id_customer'      => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
+            'token_type'       => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'expires_in'       => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'refresh_token'    => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_token'         => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'access_token'     => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'account_type'     => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'user_id'          => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'db_type' => 'VARCHAR(255)'],
+            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'db_type' => 'VARCHAR(255)'],
         ],
     ];
     /** @var int $id_customer */
@@ -77,11 +81,14 @@ class PayPalLoginUser extends \ObjectModel
     // @codingStandardsIgnoreEnd
 
     /**
-     * @param bool $idPaypalLoginUser
-     * @param bool $idCustomer
-     * @param bool $refreshToken
+     * @param int|bool    $idPaypalLoginUser
+     * @param int|bool    $idCustomer
+     * @param string|bool $refreshToken
      *
      * @return array
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      */
     public static function getPaypalLoginUsers($idPaypalLoginUser = false, $idCustomer = false, $refreshToken = false)
     {
@@ -89,11 +96,11 @@ class PayPalLoginUser extends \ObjectModel
         $sql->select(bqSQL(self::$definition['primary']));
         $sql->from(bqSQL(self::$definition['table']));
 
-        if ($idPaypalLoginUser && \Validate::isInt($idPaypalLoginUser)) {
+        if ($idPaypalLoginUser && Validate::isInt($idPaypalLoginUser)) {
             $sql->where('`'.bqSQL(self::$definition['primary']).'` = '.(int) $idPaypalLoginUser);
         }
 
-        if ($idCustomer && \Validate::isInt($idCustomer)) {
+        if ($idCustomer && Validate::isInt($idCustomer)) {
             $sql->where('`id_customer` = '.(int) $idCustomer);
         }
 
@@ -101,13 +108,7 @@ class PayPalLoginUser extends \ObjectModel
             $sql->where('`refresh_token` = '.$refreshToken);
         }
 
-        try {
-            $results = \Db::getInstance()->executeS($sql);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            $results = [];
-        }
+        $results = Db::getInstance()->executeS($sql);
         $logins = [];
 
         if ($results && count($results)) {
@@ -124,6 +125,9 @@ class PayPalLoginUser extends \ObjectModel
      * @param int $idCustomer
      *
      * @return array|bool|mixed
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      */
     public static function getByIdCustomer($idCustomer)
     {

@@ -19,6 +19,16 @@
 
 namespace PayPalModule;
 
+use Address;
+use Context;
+use Country;
+use Customer;
+use Hook;
+use Module;
+use PrestaShopDatabaseException;
+use PrestaShopException;
+use State;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -46,13 +56,16 @@ class PayPalTools
      * @param int $position
      *
      * @return bool
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      */
     public function moveTopPayments($position)
     {
         try {
-            $hookPayment = (int) \Hook::getIdByName('payment');
-            $moduleInstance = \Module::getInstanceByName($this->name);
-            $moduleInfo = \Hook::getModulesFromHook($hookPayment, $moduleInstance->id);
+            $hookPayment = (int) Hook::getIdByName('payment');
+            $moduleInstance = Module::getInstanceByName($this->name);
+            $moduleInfo = Hook::getModulesFromHook($hookPayment, $moduleInstance->id);
 
 
             if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
@@ -72,60 +85,49 @@ class PayPalTools
      * @param int $position
      *
      * @return bool
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      */
     public function moveRightColumn($position)
     {
-        try {
-            $hookRight = (int) \Hook::getIdByName('rightColumn');
-            $moduleInstance = \Module::getInstanceByName($this->name);
-            $moduleInfo = \Hook::getModulesFromHook($hookRight, $moduleInstance->id);
+        $hookRight = (int) Hook::getIdByName('rightColumn');
+        $moduleInstance = Module::getInstanceByName($this->name);
+        $moduleInfo = Hook::getModulesFromHook($hookRight, $moduleInstance->id);
 
 
-            if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
-                (isset($moduleInfo['m.position']) && (int) $moduleInfo['m.position'] > (int) $position)) {
-                return $moduleInstance->updatePosition($hookRight, 0, (int) $position);
-            }
-
-            return $moduleInstance->updatePosition($hookRight, 1, (int) $position);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: Error during install - {$e->getMessage()}");
-
-            return false;
+        if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
+            (isset($moduleInfo['m.position']) && (int) $moduleInfo['m.position'] > (int) $position)) {
+            return $moduleInstance->updatePosition($hookRight, 0, (int) $position);
         }
+
+        return $moduleInstance->updatePosition($hookRight, 1, (int) $position);
     }
 
     /**
      * Set customer address (when not logged in)
      * Used to create user address with PayPal account information
      *
-     * @param \stdClass $payment
-     * @param \Customer $customer
-     * @param int       $idAddress
+     * @param array    $payment
+     * @param Customer $customer
+     * @param int      $idAddress
      *
-     * @return \Address|false
+     * @return Address|false
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public static function setCustomerAddress($payment, $customer, $idAddress = null)
     {
-        $payerInfo = $payment->payer->payer_info;
-        $shippingAddress = $payerInfo->shipping_address;
+        /** @var array $payerInfo */
+        $payerInfo = $payment['payer']['payer_info'];
+        /** @var array $shippingAddress */
+        $shippingAddress = $payerInfo['shipping_address'];
 
-        $address = new \Address($idAddress);
-        try {
-            $address->id_country = \Country::getByIso($shippingAddress->country_code);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            return false;
-        }
+        $address = new Address($idAddress);
+        $address->id_country = Country::getByIso($shippingAddress['country_code']);
         if (!$idAddress) {
             // Avoid the same alias, increment the number if possible
-            try {
-                $customerAddresses = $customer->getAddresses(\Context::getContext()->language->id);
-            } catch (\PrestaShopException $e) {
-                \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-                return false;
-            }
+            $customerAddresses = $customer->getAddresses(Context::getContext()->language->id);
             $id = 0;
             $uniqueFound = false;
             while (!$uniqueFound) {
@@ -141,36 +143,29 @@ class PayPalTools
             }
         }
 
-        $name = trim($shippingAddress->recipient_name);
+        $name = trim($shippingAddress['recipient_name']);
         $name = explode(' ', $name);
         if (isset($name[1])) {
             $firstname = $name[0];
             unset($name[0]);
             $lastname = implode(' ', $name);
         } else {
-            $firstname = $payerInfo->first_name;
-            $lastname = $payerInfo->last_name;
+            $firstname = $payerInfo['first_name'];
+            $lastname = $payerInfo['last_name'];
         }
 
         $address->lastname = $lastname;
         $address->firstname = $firstname;
-        $address->address1 = $shippingAddress->line1;
-        if (isset($shippingAddress->line2)) {
-            $address->address2 = $shippingAddress->line2;
+        $address->address1 = $shippingAddress['line1'];
+        if (isset($shippingAddress['line2'])) {
+            $address->address2 = $shippingAddress['line2'];
         }
 
-        $address->city = $shippingAddress->city;
-        try {
-            if (\Country::containsStates($address->id_country)) {
-                $address->id_state = (int) \State::getIdByIso($shippingAddress->state, $address->id_country);
-            }
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            return false;
+        $address->city = $shippingAddress['city'];
+        if (Country::containsStates($address->id_country)) {
+            $address->id_state = (int) State::getIdByIso($shippingAddress['state'], $address->id_country);
         }
-
-        $address->postcode = $shippingAddress->postal_code;
+        $address->postcode = $shippingAddress['postal_code'];
         if (isset($shippingAddress->phone)) {
             $address->phone = $shippingAddress->phone;
         } else {
@@ -185,66 +180,60 @@ class PayPalTools
     /**
      * Check if the address has changed
      *
-     * @param \stdClass $payment
-     * @param \Address  $address
+     * @param array   $payment
+     * @param Address $address
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public static function checkAddressChanged($payment, $address)
     {
-        if (!isset($payment->payer->payer_info)) {
+        if (!isset($payment['payer']['payer_info'])) {
             return true;
         }
-        $payerInfo = $payment->payer->payer_info;
-        $paypalAddress = $payerInfo->shipping_address;
+        /** @var array $payerInfo */
+        $payerInfo = $payment['payer']['payer_info'];
+        /** @var array $paypalAddress */
+        $paypalAddress = $payerInfo['shipping_address'];
 
-        try {
-            return !($address->id_country == \Country::getByIso($paypalAddress->country_code)
-                && $address->address1 == $paypalAddress->line1
-                && $address->address2 == (isset($paypalAddress->line2) ? $paypalAddress->line2 : null)
-                && $address->city == $paypalAddress->city);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            return false;
-        }
+        return !($address->id_country == Country::getByIso($paypalAddress['country_code'])
+            && $address->address1 == $paypalAddress['line1']
+            && $address->address2 == (isset($paypalAddress['line2']) ? $paypalAddress['line2'] : null)
+            && $address->city == $paypalAddress['city']);
     }
 
     /**
-     * @param \stdClass $payment
-     * @param \Customer $customer
+     * @param array    $payment
+     * @param Customer $customer
      *
-     * @return \Address|bool
+     * @return Address|bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public static function checkAndModifyAddress($payment, $customer)
     {
-        $context = \Context::getContext();
-        try {
-            $customerAddresses = $customer->getAddresses($context->cookie->id_lang);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-        }
+        $context = Context::getContext();
+        $customerAddresses = $customer->getAddresses($context->cookie->id_lang);
         $paypalAddress = false;
         if (empty($customerAddresses)) {
             $paypalAddress = static::setCustomerAddress($payment, $customer);
         } else {
             foreach ($customerAddresses as $address) {
-                $payerInfo = $payment->payer->payer_info;
-                $shippingAddress = $payerInfo->shipping_address;
+                /** @var array $payerInfo */
+                $payerInfo = $payment['payer']['payer_info'];
+                /** @var array $shippingAddress */
+                $shippingAddress = $payerInfo['shipping_address'];
 
-                try {
-                    if ($address['firstname'] == $payerInfo->first_name
-                        && $address['lastname'] == $payerInfo->last_name
-                        && $address['id_country'] == \Country::getByIso($shippingAddress->country_code)
-                        && $address['address1'] == $shippingAddress->line1
-                        && $address['address2'] == (isset($shippingAddress->line2) ? $shippingAddress->line2 : null)
-                        && $address['city'] == $shippingAddress->city
-                    ) {
-                        $paypalAddress = new \Address($address['id_address']);
-                        break;
-                    }
-                } catch (\PrestaShopException $e) {
-                    \Logger::addLog("PayPal module error: {$e->getMessage()}");
+                if ($address['firstname'] == $payerInfo['first_name']
+                    && $address['lastname'] == $payerInfo['last_name']
+                    && $address['id_country'] == Country::getByIso($shippingAddress['country_code'])
+                    && $address['address1'] == $shippingAddress['line1']
+                    && $address['address2'] == (isset($shippingAddress['line2']) ? $shippingAddress['line2'] : null)
+                    && $address['city'] == $shippingAddress['city']
+                ) {
+                    $paypalAddress = new Address($address['id_address']);
+                    break;
                 }
             }
         }
@@ -253,11 +242,7 @@ class PayPalTools
             $paypalAddress = static::setCustomerAddress($payment, $customer);
         }
 
-        try {
-            $paypalAddress->save();
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-        }
+        $paypalAddress->save();
 
         return $paypalAddress;
     }

@@ -21,13 +21,16 @@ if (!defined('_TB_VERSION_')) {
     exit;
 }
 
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
+use PayPalModule\Exception\PaymentException;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 
 /**
  * Class PayPalExpressCheckoutModuleFrontController
  */
-class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
+class PayPalExpressCheckoutModuleFrontController extends ModuleFrontController
 {
     /** @var int $idOrder */
     public $idOrder;
@@ -44,10 +47,13 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
      * Initialize content
      *
      * @return void
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws Adapter_Exception
      */
     public function initContent()
     {
-        if (\Tools::isSubmit('paymentId') && \Tools::isSubmit('PayerID')) {
+        if (Tools::isSubmit('paymentId') && Tools::isSubmit('PayerID')) {
             if (!$this->processPayment()) {
                 parent::initContent();
             }
@@ -67,31 +73,44 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
 
         parent::initContent();
 
-        try {
-            $this->setTemplate('expresscheckout_error.tpl');
-        } catch (Exception $e) {
-            Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
-        }
+        $this->setTemplate('expresscheckout_error.tpl');
     }
 
     /**
      * Prepare to redirect visitor to PayPal website
+     *
+     * @throws PrestaShopException
+     * @throws Adapter_Exception
      */
     public function preparePayment()
     {
         $rest = new PayPalRestApi();
-        $payment = $rest->createPayment(false, false, PayPalRestApi::STANDARD_PROFILE);
+        /** @var array $payment */
+        try {
+            $payment = $rest->createPayment(false, false, PayPalRestApi::STANDARD_PROFILE);
+        } catch (PaymentException $e) {
+            if ($e->getRequest() instanceof Request && $e->getResponse() instanceof Response) {
+                $requestBody = $e->getRequest()->getBody();
+                $responseBody = $e->getResponse()->getBody();
+            } else {
+                $requestBody = 'Request unavailable';
+                $responseBody = 'Response unavailable';
+            }
+            Logger::addLog("PayPal module error while creating payment: {$requestBody} -- {$responseBody}", 3);
+            $this->errors[] = $this->l('Unable to initialize payment. Please contact support.');
+        }
 
         if (isset($payment->id) && $payment->id) {
-            foreach ($payment->links as $link) {
-                if ($link->rel === 'approval_url') {
-                    Tools::redirectLink($link->href);
+            foreach ($payment['links'] as $link) {
+                /** @var array $link */
+                if ($link['rel'] === 'approval_url') {
+                    Tools::redirectLink($link['href']);
                 }
             }
         }
 
-        if (isset($payment->message)) {
-            $this->errors[] = $payment->message;
+        if (!empty($payment['message'])) {
+            $this->errors[] = $payment['message'];
         }
     }
 
@@ -99,6 +118,8 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
      * Process PayPal payment
      *
      * @return bool Status
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function processPayment()
     {
@@ -110,9 +131,9 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
 
         /* Check modification on the product cart / quantity */
         if (!empty($payment->transactions[0]->related_resources[0]->authorization->id)) {
-            /** @var \Currency $currency */
+            /** @var Currency $currency */
             $currency = Currency::getCurrencyInstance($cart->id_currency);
-            $orderTotal = \Tools::ps_round($cart->getOrderTotal(true), 2);
+            $orderTotal = Tools::ps_round($cart->getOrderTotal(true), 2);
             if (!$orderTotal) {
                 // This page has been revisited, redirect to order history
                 // TODO: handle guests
@@ -127,43 +148,19 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             if (isset($authorization->name) && isset($authorization->message)) {
                 // Capture failed: void and redirect
                 $rest->voidAuthorization($payment->id);
-                try {
-                    Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
-                } catch (PrestaShopException $e) {
-                    Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
-
-                    exit;
-                }
+                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
             }
 
             $customer = new \Customer((int) $cart->id_customer);
 
-            try {
-                $this->validateOrder($customer, $cart, $payment, $authorization);
-            } catch (PrestaShopException $e) {
-                Logger::addLog("PayPal order validation problem: {$e->getMessage()}", 4);
-
-                exit;
-            }
+            $this->validateOrder($customer, $cart, $payment, $authorization);
         } elseif ($payment->state === 'authorized') {
             // Authorized, void and redirect
             $rest->voidAuthorization($payment->id);
-            try {
-                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
-            } catch (PrestaShopException $e) {
-                Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
-
-                exit;
-            }
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
         } elseif (isset($payment->transactions[0]) && isset($payment->state) && $payment->state === 'approved') {
             // Unable to authorize, try again, but unable to capture due to a 15%+ price increase, redirect to PayPal for a new auth
-            try {
-                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
-            } catch (PrestaShopException $e) {
-                Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
-
-                exit;
-            }
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
         }
 
         $logs = [sprintf($this->module->l('An unknown error occurred. The authorization status is `%s`. The amount has not been charged (yet).'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
@@ -189,11 +186,7 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             'use_mobile' => (bool) $this->context->getMobileDevice(),
         ]);
 
-        try {
-            $this->setTemplate($template);
-        } catch (PrestaShopException $e) {
-        } catch (Exception $e) {
-        }
+        $this->setTemplate($template);
 
         return false;
     }
@@ -201,37 +194,40 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
     /**
      * Check payment return
      *
-     * @param \Customer $customer
-     * @param \Cart     $cart
-     * @param \stdClass $payment
-     * @param \stdClass $authorization
+     * @param Customer $customer
+     * @param Cart     $cart
+     * @param array    $payment
+     * @param array    $authorization
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function validateOrder($customer, $cart, $payment, $authorization = null)
     {
-        if (is_object($authorization) && isset($authorization->state)) {
-            $authorizationState = $authorization->state;
-            $transactionAmount = $authorization->amount->total;
-        } elseif (isset($payment->transactions[0]->related_resources[0]->authorization->id)) {
-            $authorization = $payment->transactions[0]->related_resources[0]->authorization;
-            $authorizationState = $authorization->state;
-            $transactionAmount = $authorization->amount->total;
+        if (!empty($authorization['state'])) {
+            $authorizationState = $authorization['state'];
+            $transactionAmount = $authorization['amount']['total'];
+        } elseif (!empty($payment['transactions'][0]['related_resources'][0]['authorization']['id'])) {
+            $authorization = $payment['transactions'][0]['related_resources'][0]['authorization'];
+            $authorizationState = $authorization['state'];
+            $transactionAmount = $authorization['amount']['total'];
         } else {
-            $authorizationState = $payment->state;
-            $transactionAmount = (float) $payment->transactions[0]->amount->total;
+            $authorizationState = $payment['state'];
+            $transactionAmount = (float) $payment['transactions'][0]['amount']['total'];
         }
-        $orderTotal = (float) round($cart->getOrderTotal(true, \Cart::BOTH), 2);
+        $orderTotal = (float) round($cart->getOrderTotal(true, Cart::BOTH), 2);
 
         // Payment check
         if ($authorizationState === 'completed' && $transactionAmount == $orderTotal) {
-            if (!\Configuration::get(\PayPal::IMMEDIATE_CAPTURE)) {
-                $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
+            if (!Configuration::get(PayPal::IMMEDIATE_CAPTURE)) {
+                $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                 $message = $this->module->l('Pending payment capture.').'<br />';
             } else {
-                $paymentType = (int) \Configuration::get('PS_OS_PAYMENT');
+                $paymentType = (int) Configuration::get('PS_OS_PAYMENT');
                 $message = $this->module->l('Payment accepted.').'<br />';
             }
         } else {
-            $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
+            $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
             $message = $this->module->l('Pending payment capture.').'<br />';
         }
 
@@ -240,7 +236,7 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
 
         $this->module->validateOrder(
             (int) $cart->id,
-            isset($paymentType) ? $paymentType : \Configuration::get('PS_OS_PAYMENT'),
+            isset($paymentType) ? $paymentType : Configuration::get('PS_OS_PAYMENT'),
             $orderTotal,
             'PayPal',
             isset($message) ? $message : '',
@@ -251,14 +247,20 @@ class PayPalExpressCheckoutModuleFrontController extends \ModuleFrontController
             $this->context->shop
         );
 
-        try {
-            if ($customer->isGuest()) {
-                Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckoutguest', [], true));
-            } else {
-                Tools::redirectLink($this->context->link->getPageLink('order-confirmation', true, null, ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]));
-            }
-        } catch (PrestaShopException $e) {
-            Logger::addLog("PayPal module error: {$e->getMessage()}", 3);
+        if ($customer->isGuest()) {
+            Tools::redirectLink($this->context->link->getModuleLink(
+                $this->module->name,
+                'expresscheckoutguest',
+                [],
+                true
+            ));
+        } else {
+            Tools::redirectLink($this->context->link->getPageLink(
+                'order-confirmation',
+                true,
+                null,
+                ['id_cart' => $cart->id, 'id_module' => $this->module->id, 'key' => $customer->secure_key]
+            ));
         }
     }
 }

@@ -19,7 +19,19 @@
 
 namespace PayPalModule;
 
+use Adapter_Exception;
+use Cart;
+use Configuration;
+use Context;
+use Customer;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\TransferException;
+use Language;
+use PayPal;
+use PayPalModule\Exception\PaymentException;
+use PrestaShopDatabaseException;
+use PrestaShopException;
+use Validate;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -47,11 +59,11 @@ class PayPalRestApi
     const EXPRESS_CHECKOUT_PROFILE = 3;
 
     // @codingStandardsIgnoreStart
-    /** @var \Context $context */
+    /** @var Context $context */
     protected $context;
-    /** @var \Cart $cart */
+    /** @var Cart $cart */
     protected $cart;
-    /** @var \Customer $customer */
+    /** @var Customer $customer */
     protected $customer;
     /** @var string $clientId */
     protected $clientId;
@@ -59,8 +71,9 @@ class PayPalRestApi
     protected $secret;
     /** @var null|string $accessToken */
     protected $accessToken = null;
-    /** @var null|\stdClass $profiles */
+    /** @var null|array $profiles */
     protected $profiles = null;
+    protected static $guzzle;
     // @codingStandardsIgnoreEnd
 
     /**
@@ -68,6 +81,9 @@ class PayPalRestApi
      *
      * @param string|null $clientId
      * @param string|null $secret
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function __construct($clientId = null, $secret = null)
     {
@@ -75,21 +91,44 @@ class PayPalRestApi
         $this->cart = $this->context->cart;
         $this->customer = $this->context->customer;
 
-        try {
-            $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
-            $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            $this->clientId = '';
-            $this->secret = '';
-        }
+        $this->clientId = ($clientId) ? $clientId : Configuration::get(PayPal::CLIENT_ID);
+        $this->secret = ($secret) ? $secret : Configuration::get(PayPal::SECRET);
     }
+
+    /**
+     * Get Guzzle client
+     * 
+     * @return Client
+     * @throws PrestaShopException
+     */
+    protected static function getGuzzle()
+    {
+        if (!static::$guzzle) {
+            if (!Configuration::get(PayPal::LIVE)) {
+                $baseUri = 'https://api.sandbox.paypal.com';
+            } else {
+                $baseUri = 'https://api.paypal.com';
+            }
+
+            static::$guzzle = new Client(
+                [
+                    'base_uri'    => $baseUri,
+                    'timeout'     => PayPal::CONNECTION_TIMEOUT,
+                    'verify'      => _PS_TOOL_DIR_.'cacert.pem',
+                    'http_errors' => false,
+                ]
+            );
+        }
+
+        return static::$guzzle;
+    }
+
 
     /**
      * @param int $type
      *
      * @return bool|array
+     * @throws PrestaShopException
      */
     public function getWebProfile($type = self::STANDARD_PROFILE)
     {
@@ -113,17 +152,17 @@ class PayPalRestApi
 
                 if ($profileId) {
                     // DELETE first
-                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
+                    $this->send(static::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
                 }
             }
 
             // Then create
-            $result = $this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST');
+            $result = $this->send(static::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST');
             if (!$result) {
                 return false;
             }
 
-            $result = json_decode($result);
+            $result = json_decode($result, true);
 
             if (isset($result->id)) {
                 return $result->id;
@@ -135,6 +174,7 @@ class PayPalRestApi
 
     /**
      * @return bool
+     * @throws PrestaShopException
      */
     public function getToken()
     {
@@ -143,7 +183,7 @@ class PayPalRestApi
         }
 
         $result = $this->send(
-            self::PATH_CREATE_TOKEN,
+            static::PATH_CREATE_TOKEN,
             http_build_query(['grant_type' => 'client_credentials']),
             ['Content-Type' => 'application/x-www-form-urlencoded'],
             true,
@@ -156,7 +196,7 @@ class PayPalRestApi
         /*
          * Init variable
          */
-        $oPayPalToken = json_decode($result);
+        $oPayPalToken = json_decode($result, true);
 
         if (isset($oPayPalToken->error)) {
             return false;
@@ -180,35 +220,19 @@ class PayPalRestApi
     }
 
     /**
-     * @param string      $url         URL including get params
+     * @param string      $url URL including get params
      * @param bool|string $body
      * @param bool        $headers
      * @param bool        $identify
      * @param bool|string $requestType
      *
      * @return mixed
+     * @throws PrestaShopException
+     * @throws TransferException
      */
-    public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
+    protected function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
     {
-        try {
-            if (!\Configuration::get(\PayPal::LIVE)) {
-                $baseUri = 'https://api.sandbox.paypal.com';
-            } else {
-                $baseUri = 'https://api.paypal.com';
-            }
-        } catch (\PrestaShopException $e) {
-            return false;
-        }
-
-        $guzzle = new Client(
-            [
-                'base_uri'    => $baseUri,
-                'timeout'     => 60.0,
-                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-                'http_errors' => false,
-            ]
-        );
-
+        $guzzle = static::getGuzzle();
         $requestOptions = [];
         if ($identify) {
             $requestOptions['auth'] = [$this->clientId, $this->secret];
@@ -220,22 +244,14 @@ class PayPalRestApi
             $requestOptions['body'] = (string) $body;
         }
 
-        try {
-            $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
-        } catch (\Exception $e) {
-            $context = \Context::getContext();
-            if (isset($context->employee->id) && $context->employee->id) {
-                $context->controller->errors[] = 'Connection error: '.$e->getMessage();
-            }
-
-            return false;
-        }
+        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
 
         return (string) $response->getBody();
     }
 
     /**
      * @return array|false
+     * @throws PrestaShopException
      */
     public function getWebProfiles()
     {
@@ -247,12 +263,12 @@ class PayPalRestApi
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
-            $result = $this->send(self::PATH_WEBPROFILES, false, $header);
+            $result = $this->send(static::PATH_WEBPROFILES, false, $header);
             if (!$result) {
                 return false;
             }
 
-            $this->profiles = json_decode($result);
+            $this->profiles = json_decode($result, true);
 
             return $this->profiles;
         }
@@ -268,7 +284,7 @@ class PayPalRestApi
 //        $accessToken = $this->getToken();
 //
 //        if ($accessToken) {
-//            $this->send(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
+//            $this->send(static::PATH_WEBPROFILES, false, false, false, 'DELETE');
 //        }
 
         return true;
@@ -279,9 +295,14 @@ class PayPalRestApi
      * @param bool|string $cancelUrl
      * @param int         $profile
      *
-     * @return mixed
+     * @return array
+     *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws PaymentException
      */
-    public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
+    public function createPayment($returnUrl = null, $cancelUrl = null, $profile = self::STANDARD_PROFILE)
     {
         $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
 
@@ -290,39 +311,34 @@ class PayPalRestApi
             'Authorization' => 'Bearer '.$this->getToken(),
         ];
 
-        $result = $this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST');
+        $result = $this->send(static::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST');
         if (!$result) {
-            return false;
+            throw new PaymentException('Unable to initialize payment');
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
-     * @param string|bool $returnUrl
-     * @param string|bool $cancelUrl
+     * @param string|null $returnUrl
+     * @param string|null $cancelUrl
      * @param int         $profile
      *
-     * @return \stdClass
+     * @return array
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      */
-    public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
+    public function createPaymentObject($returnUrl = null, $cancelUrl = null, $profile = self::STANDARD_PROFILE)
     {
         $cart = $this->cart;
 
         if (!$returnUrl) {
-            try {
-                $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
-            } catch (\PrestaShopException $e) {
-                \Logger::addLog("PayPal module error: {$e->getMessage()}");
-            }
+            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
         }
 
         if (!$cancelUrl) {
-            try {
-                $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
-            } catch (\PrestaShopException $e) {
-                \Logger::addLog("PayPal module error: {$e->getMessage()}");
-            }
+            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
         }
 
         $oCurrency = new \Currency($this->cart->id_currency);
@@ -346,15 +362,7 @@ class PayPalRestApi
         // these to the `shipping_discount` (if negative difference) or `handling_fee` (positive)
         // fields when necessary.
         $remaining = round($totalCartWithTax, 2);
-
-        try {
-            $cartItems = $cart->getProducts();
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            $cartItems = [];
-        }
-
+        $cartItems = $cart->getProducts();
         $state = new \State($shippingAddress->id_state);
         $shippingAddress = [
             'recipient_name' => $shippingAddress->firstname.' '.$shippingAddress->lastname,
@@ -366,8 +374,8 @@ class PayPalRestApi
             'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
         ];
 
-        $payer = new \stdClass();
-        $payer->payment_method = 'paypal';
+        $payer = [];
+        $payer['payment_method'] = 'paypal';
 
         $subTotal = 0.00000;
         $subTotalTax = 0.00000;
@@ -382,7 +390,7 @@ class PayPalRestApi
 
             // If the last item has at least one cent difference on this cart line, then change the price of the last item
             if ($lastItemPriceDifference >= 0.01 || $lastItemTaxDifference >= 0.01) {
-                $aItems[] = (object) [
+                $aItems[] = [
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => $quantity - 1,
@@ -393,7 +401,7 @@ class PayPalRestApi
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
                 $subTotal += round($cartItem['price'], 2) * ($quantity - 1);
                 $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
-                $aItems[] = (object) [
+                $aItems[] = [
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => 1,
@@ -405,7 +413,7 @@ class PayPalRestApi
                 $subTotal += round($cartItem['price'], 2) + $lastItemPriceDifference;
                 $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference;
             } else {
-                $aItems[] = (object) [
+                $aItems[] = [
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => $quantity,
@@ -437,71 +445,69 @@ class PayPalRestApi
         }
 
         /* Amount */
-        $amount = (object) [
+        $amount = [
             'total'    => number_format($totalCartWithTax, 2),
             'currency' => $oCurrency->iso_code,
             'details'  => $details,
         ];
 
         /* Transaction */
-        $transaction = (object) [
+        $transaction = [
             'amount'      => $amount,
             'description' => 'Payment description',
             'item_list'   => [
                 'items' => $aItems,
-                'shipping_address' => \Validate::isLoadedObject($shippingAddress) && \PayPal::checkAddress($shippingAddress) ? $shippingAddress : null,
+                'shipping_address' => Validate::isLoadedObject($shippingAddress) && PayPal::checkAddress($shippingAddress) ? $shippingAddress : null,
             ],
         ];
 
         /* Redirect Url */
-        $redirectUrls = (object) [
+        $redirectUrls = [
             'cancel_url' => $cancelUrl,
             'return_url' => $returnUrl,
         ];
 
         /* Payment */
-        $payment = (object) [
+        $payment = [
             'transactions' => [$transaction],
             'payer'        => $payer,
             'intent'       => 'authorize',
         ];
-        try {
-            if (\Configuration::get(\PayPal::LIVE)) {
-                switch ($profile) {
-                    case self::PLUS_PROFILE:
-                        $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE);
-                        break;
-                    case self::EXPRESS_CHECKOUT_PROFILE:
-                        $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
-                        break;
-                    default:
-                        $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                        break;
-                }
-            } else {
-                switch ($profile) {
-                    case self::PLUS_PROFILE:
-                        $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID);
-                        break;
-                    case self::EXPRESS_CHECKOUT_PROFILE:
-                        $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-                        break;
-                    default:
-                        $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
-                        break;
-                }
+        if (Configuration::get(PayPal::LIVE)) {
+            switch ($profile) {
+                case static::PLUS_PROFILE:
+                    $payment['experience_profile_id'] = Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE);
+                    break;
+                case static::EXPRESS_CHECKOUT_PROFILE:
+                    $payment['experience_profile_id'] = Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+                    break;
+                default:
+                    $payment['experience_profile_id'] = Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    break;
             }
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
+        } else {
+            switch ($profile) {
+                case static::PLUS_PROFILE:
+                    $payment['experience_profile_id'] = Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID);
+                    break;
+                case static::EXPRESS_CHECKOUT_PROFILE:
+                    $payment['experience_profile_id'] = Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+                    break;
+                default:
+                    $payment['experience_profile_id'] = Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    break;
+            }
         }
 
-        $payment->redirect_urls = $redirectUrls;
+        $payment['redirect_urls'] = $redirectUrls;
 
         return $payment;
     }
 
     /**
      * @param array $params
+     *
+     * @throws \PrestaShopException
      */
     public function setParams($params)
     {
@@ -513,6 +519,7 @@ class PayPalRestApi
      * @param string $paymentId
      *
      * @return bool|mixed
+     * @throws PrestaShopException
      */
     public function lookUpPayment($paymentId)
     {
@@ -531,7 +538,7 @@ class PayPalRestApi
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
@@ -539,7 +546,8 @@ class PayPalRestApi
      *
      * @param string $webhookUrl
      *
-     * @return \stdClass|false
+     * @return array|false
+     * @throws PrestaShopException
      */
     public function registerWebhook($webhookUrl)
     {
@@ -574,25 +582,29 @@ class PayPalRestApi
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
-        try {
-            if (!\Configuration::get(\PayPal::LIVE) && !empty($_COOKIE['PayPal-Mock-Response'])) {
-                $header[] = ['PayPal-Mock-Response' => $_COOKIE['PayPal-Mock-Response']];
-            }
-        } catch (\PrestaShopException $e) {
+        if (!Configuration::get(PayPal::LIVE) && !empty($_COOKIE['PayPal-Mock-Response'])) {
+            $header[] = ['PayPal-Mock-Response' => $_COOKIE['PayPal-Mock-Response']];
         }
 
-        $result = $this->send(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'), json_encode($data), $header, false, 'POST');
+        $result = $this->send(
+            rtrim(PayPalRestApi::PATH_WEBHOOK, '/'),
+            json_encode($data),
+            $header,
+            false,
+            'POST'
+        );
         if (!$result) {
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
      * Get a list of webhooks
      *
      * @return bool|mixed
+     * @throws PrestaShopException
      */
     public function getWebhooks()
     {
@@ -607,13 +619,14 @@ class PayPalRestApi
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
      * @param string $webhookId
      *
      * @return bool|mixed
+     * @throws PrestaShopException
      */
     public function lookUpWebhook($webhookId)
     {
@@ -632,11 +645,12 @@ class PayPalRestApi
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
      * @return bool
+     * @throws PrestaShopException
      */
     public function refreshToken()
     {
@@ -651,6 +665,7 @@ class PayPalRestApi
      * @param string $authorizationId
      *
      * @return bool|mixed
+     * @throws PrestaShopException
      */
     public function voidAuthorization($authorizationId)
     {
@@ -661,12 +676,18 @@ class PayPalRestApi
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
-        $result = $this->send(PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/void', '{}', $header, false, 'POST');
+        $result = $this->send(
+            PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/void',
+            '{}',
+            $header,
+            false,
+            'POST'
+        );
         if (!$result) {
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
@@ -674,7 +695,8 @@ class PayPalRestApi
      * @param float  $amount
      * @param string $currencyCode
      *
-     * @return bool|mixed
+     * @return false|array
+     * @throws PrestaShopException
      */
     public function capturePayment($authorizationId, $amount, $currencyCode)
     {
@@ -693,19 +715,26 @@ class PayPalRestApi
             'is_final_capture' => true,
         ];
 
-        $result = $this->send(PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/capture', json_encode($data), $header, false, 'POST');
+        $result = $this->send(
+            PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/capture',
+            json_encode($data),
+            $header,
+            false,
+            'POST'
+        );
         if (!$result) {
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
      * @param string $payerId
      * @param string $paymentId
      *
-     * @return bool|mixed
+     * @return false|array
+     * @throws PrestaShopException
      */
     public function executePayment($payerId, $paymentId)
     {
@@ -727,14 +756,15 @@ class PayPalRestApi
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
      * @param string $paymentId
      * @param array  $data
      *
-     * @return bool|mixed
+     * @return false|array
+     * @throws PrestaShopException
      */
     public function executeRefund($paymentId, $data)
     {
@@ -754,35 +784,26 @@ class PayPalRestApi
             return false;
         }
 
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
      * @param int $type
      *
      * @return array
+     * @throws PrestaShopException
      */
     protected function createWebProfile($type)
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
-        try {
-            $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
-            $language = new \Language($idLang);
-            $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
-            $brandName = \Configuration::get('PS_SHOP_NAME');
-            $logoImage = _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO');
-
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            $iso = 'en';
-            $brandName = '';
-            $logoImage = '';
-        }
-
+        $idLang = (int) Configuration::get('PS_LANG_DEFAULT');
+        $language = new Language($idLang);
+        $iso = Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
+        $brandName = Configuration::get('PS_SHOP_NAME');
+        $logoImage = _PS_BASE_URL_._PS_IMG_.Configuration::get('PS_LOGO');
 
         switch ($type) {
-            case self::PLUS_PROFILE:
+            case static::PLUS_PROFILE:
                 return [
                     'name'         => $name,
                     'presentation' => [
@@ -799,7 +820,7 @@ class PayPalRestApi
                         'landing_page_type' => 'billing',
                     ],
                 ];
-            case self::EXPRESS_CHECKOUT_PROFILE:
+            case static::EXPRESS_CHECKOUT_PROFILE:
                 return [
                     'name'         => $name,
                     'presentation' => [

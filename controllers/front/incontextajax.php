@@ -1,32 +1,13 @@
 <?php
-/**
- * Copyright (C) 2017-2018 thirty bees
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.md
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@thirtybees.com so we can send you a copy immediately.
- *
- * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017-2018 thirty bees
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- */
 
-use PayPalModule\PayPalRestApi;
-
-if (!defined('_TB_VERSION_')) {
+if (!defined('_PS_VERSION_')) {
     exit;
 }
 
 /**
- * Class PayPalInContextAjaxModuleFrontController
+ * Class MollieIdealajaxModuleFrontController
  */
-class PayPalInContextAjaxModuleFrontController extends \ModuleFrontController
+class MollieIdealajaxModuleFrontController extends ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
@@ -35,50 +16,37 @@ class PayPalInContextAjaxModuleFrontController extends \ModuleFrontController
      * Initialize content
      *
      * @return void
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
-    public function initContent()
+    public function init()
     {
-        if (\Tools::isSubmit('updateCart')) {
+        if (Tools::isSubmit('updateCart')) {
             $this->updateCart();
 
             return;
-        } elseif (\Tools::isSubmit('get_qty')) {
+        } elseif (Tools::isSubmit('get_qty')) {
             $this->checkQuantity();
 
             return;
         }
 
-        $errors = [];
-        if (Validate::isLoadedObject(Context::getContext()->cart)) {
-            $rest = new PayPalRestApi();
-            $payment = $rest->createPayment(false, false, PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
-
-            if (isset($payment->id)) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'paymentId' => $payment->id,
-                    'hasError'  => false,
-                    'errors'    => [],
-                ]);
-                die();
-            }
-        } else {
-            $errors[] = $this->module->l('Cart ID not found');
-        }
-
         die(json_encode([
-            'hasError' => true,
-            'errors'   => $errors,
+            'success'  => false,
+            'errors'   => [],
         ]));
     }
 
     /**
      * Update the cart before incontext checkout
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function updateCart()
     {
-        $idProduct = (int) \Tools::getValue('idProduct');
-        $idProductAttribute = (int) \Tools::getValue('idProductAttribute');
+        $idProduct = (int) Tools::getValue('idProduct');
+        $idProductAttribute = (int) Tools::getValue('idProductAttribute');
         if (!$idProductAttribute) {
             $idProductAttribute = null;
         }
@@ -92,57 +60,76 @@ class PayPalInContextAjaxModuleFrontController extends \ModuleFrontController
 
         // Empty cart
         foreach ($cart->getProducts(true) as $product) {
-            /** array $product */
+            /** @var array $product */
             $cart->deleteProduct($product['id_product'], $product['id_product_attribute']);
         }
 
-        $cart->secure_key = \Tools::encrypt(\Tools::passwdGen(20, 'RANDOM'));
+        $cart->secure_key = Tools::encrypt(Tools::passwdGen(20, 'RANDOM'));
 
         // Add product to cart
         if ($cart->updateQty(1, $idProduct, $idProductAttribute) && $cart->update()) {
-            header('Content-Type: application/json');
-            echo json_encode([
+            header('Content-Type: application/json;charset=UTF-8');
+            die(json_encode([
                 'success' => true,
-            ]);
-            die();
+            ]));
         }
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        header('Content-Type: application/json;charset=UTF-8');
+        die(json_encode([
             'success' => false,
-        ]);
-        die();
+        ]));
     }
 
+    /**
+     * Check quantity in cart
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
     protected function checkQuantity()
     {
         // Ajax query
-        $quantity = \Tools::getValue('get_qty');
+        $quantity = Tools::getValue('get_qty');
 
-        if (\Configuration::get('PS_CATALOG_MODE') == 1) {
-            die('0');
+        if (Configuration::get('PS_CATALOG_MODE')) {
+            die(json_encode([
+                'success'  => true,
+                'in_stock' => false,
+            ]));
         }
 
         if ($quantity && $quantity > 0) {
-            /* Ajax response */
-            $idProduct = (int) \Tools::getValue('id_product');
-            $idProductAttribute = (int) \Tools::getValue('id_product_attribute');
-            $productQuantity = \Product::getQuantity($idProduct, $idProductAttribute);
-            $product = new \Product($idProduct);
+            $idProduct = (int) Tools::getValue('id_product');
+            $idProductAttribute = (int) Tools::getValue('id_product_attribute');
+            $productQuantity = Product::getQuantity($idProduct, $idProductAttribute);
+            $product = new Product($idProduct);
 
             if (!$product->available_for_order) {
-                die('0');
+                die(json_encode([
+                    'success'  => true,
+                    'in_stock' => false,
+                ]));
             }
 
             if ($productQuantity > 0) {
-                die('1');
+                die(json_encode([
+                    'success'  => true,
+                    'in_stock' => true,
+                ]));
             }
 
             if ($productQuantity <= 0 && $product->isAvailableWhenOutOfStock((int) $product->out_of_stock)) {
-                die('1');
+                die(json_encode([
+                    'success'  => true,
+                    'in_stock' => true,
+                ]));
             }
 
         }
-        die('0');
+
+        die(json_encode([
+            'success'  => true,
+            'in_stock' => false,
+        ]));
     }
 }

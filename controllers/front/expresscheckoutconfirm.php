@@ -44,6 +44,12 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
 
     /**
      * Initialize content
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws ReflectionException
+     * @throws SmartyException
+     * @throws Adapter_Exception
      */
     public function initContent()
     {
@@ -113,7 +119,12 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
     /**
      * Assign cart summary
      *
-     *
+     * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws ReflectionException
+     * @throws SmartyException
+     * @throws Adapter_Exception
      */
     public function assignCartSummary()
     {
@@ -137,13 +148,7 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
             $cart->id_address_delivery = $tbShippingAddress->id;
             $cart->id_address_invoice = $tbShippingAddress->id;
 
-            try {
-                $deliveryOption = $cart->getDeliveryOption();
-            } catch (Exception $e) {
-                Logger::addLog("PayPal module error: {$e->getMessage()}", 4);
-
-                return false;
-            }
+            $deliveryOption = $cart->getDeliveryOption();
             if (is_array($deliveryOption) && !empty($deliveryOption)) {
                 $deliveryOption = array_values($deliveryOption);
                 if (!in_array($cart->id_carrier, $deliveryOption)) {
@@ -158,33 +163,20 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
                 return false;
             }
 
-            try {
-                $cart->save();
-            } catch (PrestaShopException $e) {
-                Logger::addLog("PayPal module error: {$e->getMessage()}", 4);
-
-                return false;
-            }
-
-            try {
-                Tools::redirectLink(
-                    $this->context->link->getModuleLink(
-                        $this->module->name,
-                        'expresscheckoutconfirm',
-                        [
-                            'PayerID'        => Tools::getValue('PayerID'),
-                            'paymentId'      => Tools::getValue('paymentId'),
-                            'addressChanged' => 1,
-                            'authorized'     => (int) Tools::getValue('authorized'),
-                        ],
-                        true
-                    )
-                );
-            } catch (PrestaShopException $e) {
-                Logger::addLog("PayPal module error: {$e->getMessage()}", 4);
-
-                return false;
-            }
+            $cart->save();
+            Tools::redirectLink(
+                $this->context->link->getModuleLink(
+                    $this->module->name,
+                    'expresscheckoutconfirm',
+                    [
+                        'PayerID'        => Tools::getValue('PayerID'),
+                        'paymentId'      => Tools::getValue('paymentId'),
+                        'addressChanged' => 1,
+                        'authorized'     => (int) Tools::getValue('authorized'),
+                    ],
+                    true
+                )
+            );
         }
 
         // Grab the module's file path
@@ -215,6 +207,8 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
      *
      * @param string $payerId
      * @param string $paymentId
+     *
+     * @throws PrestaShopException
      */
     protected function redirectToPayment($payerId, $paymentId)
     {

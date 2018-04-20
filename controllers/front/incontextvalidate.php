@@ -40,11 +40,13 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
 
     /**
      * Initialize content
+     *
+     * @throws PrestaShopException
      */
     public function initContent()
     {
-        $this->payerId = \Tools::getValue('PayerID');
-        $this->paymentId = \Tools::getValue('paymentId');
+        $this->payerId = Tools::getValue('PayerID');
+        $this->paymentId = Tools::getValue('paymentId');
 
         if ($this->payerId && $this->paymentId) {
             $callApiPaypalPlus = new PayPalRestApi();
@@ -62,8 +64,8 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
                 }
 
                 $customer = $this->context->customer;
-            } elseif ($idCustomer = \Customer::customerExists($email, true)) {
-                $customer = new \Customer($idCustomer);
+            } elseif ($idCustomer = Customer::customerExists($email, true)) {
+                $customer = new Customer($idCustomer);
             } else {
                 $customer = $this->setCustomerInformation($payment, $email);
                 $customer->add();
@@ -85,19 +87,19 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
             foreach ($addresses as $address) {
                 if ($address['alias'] == 'PayPal_Address') {
                     //If address has already been created
-                    $address = new \Address($address['id_address']);
+                    $address = new Address($address['id_address']);
                     break;
                 }
             }
 
             /* Create address */
             if (isset($address) && is_array($address) && isset($address['id_address'])) {
-                $address = new \Address($address['id_address']);
+                $address = new Address($address['id_address']);
             }
 
             if ((!isset($address) || !$address || !$address->id) && $customer->id) {
                 //If address does not exists, we create it
-                $address = PayPalModule\PayPalTools::setCustomerAddress($payment, $customer);
+                $address = \PayPalModule\PayPalTools::setCustomerAddress($payment, $customer);
                 $address->add();
             }
 
@@ -145,14 +147,15 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
      * @param string    $email
      *
      * @return Customer
+     * @throws PrestaShopException
      */
     protected function setCustomerInformation($payment, $email)
     {
-        $customer = new \Customer();
+        $customer = new Customer();
         $customer->email = $email;
         $customer->firstname = $payment->payer->payer_info->first_name;
         $customer->lastname = $payment->payer->payer_info->last_name;
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
+        $customer->passwd = Tools::encrypt(Tools::passwdGen());
 
         return $customer;
     }

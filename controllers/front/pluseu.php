@@ -31,28 +31,19 @@ class PayPalPlusEUModuleFrontController extends \ModuleFrontController
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
-
     /** @var bool $display_column_right */
     public $display_column_right = false;
     // @codingStandardsIgnoreEnd
-
     /** @var \PayPal $module */
     public $module;
-
     /** @var bool $ssl */
     public $ssl = true;
 
     /**
-     * PayPalSubmitplusModuleFrontController constructor.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->context = \Context::getContext();
-    }
-
-    /**
      * @return void
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function initContent()
     {
@@ -77,9 +68,9 @@ class PayPalPlusEUModuleFrontController extends \ModuleFrontController
 
         $this->context->smarty->assign([
             'approval_url' => $approvalUrl,
-            'mode' => \Configuration::get(\PayPal::LIVE) ? 'live' : 'sandbox',
-            'language' => $this->module->getLocalePayPalPlus(),
-            'country' => $this->module->getCountryCode(),
+            'mode'         => \Configuration::get(\PayPal::LIVE) ? 'live' : 'sandbox',
+            'language'     => $this->module->getLocalePayPalPlus(),
+            'country'      => $this->module->getCountryCode(),
         ]);
 
         if ($approvalUrl) {

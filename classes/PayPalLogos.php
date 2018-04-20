@@ -17,11 +17,13 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-
 namespace PayPalModule;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\TransferException;
 use Hybridauth\Exception\Exception;
+use PayPal;
+use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -42,9 +44,6 @@ class PayPalLogos
      * @param string $isoCode
      *
      * @return array|bool
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function getLogos($isoCode)
     {
@@ -63,7 +62,6 @@ class PayPalLogos
                 $logos[$tmpIsoCode] = (array) $item;
             }
 
-            // FIXME: chances of hitting infinite recursion here
             if (!isset($logos[$isoCode])) {
                 $result = self::getLocalLogos($logos['default'], 'default');
             } else {
@@ -83,9 +81,6 @@ class PayPalLogos
      * @param bool   $vertical
      *
      * @return bool|mixed|string
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function getCardsLogo($isoCode, $vertical = false)
     {
@@ -105,7 +100,7 @@ class PayPalLogos
         }
 
         if (isset($logos['default'][self::LOCAL.'Local'.$orientation.'SolutionPP'])) {
-            return _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.$logos['default'][self::LOCAL.'Local'.$orientation.'SolutionPP'];
+            return _MODULE_DIR_.PayPal::_PAYPAL_MODULE_DIRNAME_.$logos['default'][self::LOCAL.'Local'.$orientation.'SolutionPP'];
         }
 
         return false;
@@ -116,10 +111,6 @@ class PayPalLogos
      * @param string $isoCode
      *
      * @return array
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public static function getLocalLogos(array $values, $isoCode)
     {
@@ -129,22 +120,22 @@ class PayPalLogos
                 preg_match('#.*/([\w._-]*)$#', $value, $logo);
 
                 if ((count($logo) == 2) && (strstr($key, 'Local') === false)) {
-                    $destination = \PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/logos/'.$isoCode.'_'.$logo[1];
+                    $destination = PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/logos/'.$isoCode.'_'.$logo[1];
                     self::updatePictures($logo[0], $destination);
 
                     // Define the local path after picture have been downloaded
                     $values['Local'.$key] = _MODULE_DIR_.$destination;
 
                     // Load back office cards path
-                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.\Tools::strtoupper($isoCode).'_bo_cards.png')) {
-                        $values['BackOfficeCards'] = _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.\Tools::strtoupper($isoCode).'_bo_cards.png';
+                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png')) {
+                        $values['BackOfficeCards'] = _MODULE_DIR_.PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png';
                     } elseif (file_exists(dirname(__FILE__).'/views/img/bo-cards/default.png')) {
-                        $values['BackOfficeCards'] = _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/default.png';
+                        $values['BackOfficeCards'] = _MODULE_DIR_.PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/default.png';
                     }
 
                 } elseif (isset($values['Local'.$key])) {
                     // Use the local version
-                    $values['Local'.$key] = _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.$values['Local'.$key];
+                    $values['Local'.$key] = _MODULE_DIR_.PayPal::_PAYPAL_MODULE_DIRNAME_.$values['Local'.$key];
                 }
 
             }
@@ -159,25 +150,19 @@ class PayPalLogos
      * @param bool $force
      *
      * @return bool|string
-     *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected static function updatePictures($source, $destination, $force = false)
     {
-        // 604800 => One week timestamp
         if (!file_exists(_PS_MODULE_DIR_.$destination) || ((time() - filemtime(_PS_MODULE_DIR_.$destination)) > 604800) || $force) {
             $guzzle = new Client([
-                'timeout'     => 60.0,
+                'timeout'     => PayPal::CONNECTION_TIMEOUT,
                 'verify'      => _PS_TOOL_DIR_.'cacert.pem',
             ]);
             try {
                 $picture = (string) $guzzle->get($source)->getBody();
-            } catch (Exception $e) {
+            } catch (TransferException $e) {
                 $picture = false;
             }
-
             if ($picture !== false) {
                 if ($handle = @fopen(_PS_MODULE_DIR_.$destination, 'w+')) {
                     $size = fwrite($handle, $picture);

@@ -17,8 +17,19 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-
 namespace PayPalModule;
+
+use Address;
+use Configuration;
+use Context;
+use Country;
+use Customer;
+use Language;
+use PayPal;
+use PrestaShopDatabaseException;
+use PrestaShopException;
+use State;
+use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -31,14 +42,17 @@ if (!defined('_TB_VERSION_')) {
  */
 class PayPalLogin
 {
+    /** @var array $logs */
     protected $logs = [];
+    /** @var bool $enableLog */
     protected $enableLog = false;
-
     /** @var PayPalRestApi $rest */
     protected $rest;
 
     /**
      * PayPalLogin constructor.
+     *
+     * @throws PrestaShopException
      */
     public function __construct()
     {
@@ -47,21 +61,15 @@ class PayPalLogin
 
     /**
      * @return string
+     * @throws PrestaShopException
      */
     public function getIdentityAPIURL()
     {
-        try {
-            if (!\Configuration::get(\PayPal::LIVE)) {
-                return 'api.sandbox.paypal.com';
-            } else {
-                return 'api.paypal.com';
-            }
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
+        if (!Configuration::get(PayPal::LIVE)) {
             return 'api.sandbox.paypal.com';
+        } else {
+            return 'api.paypal.com';
         }
-
     }
 
     /**
@@ -90,19 +98,16 @@ class PayPalLogin
 
     /**
      * @return array|bool|mixed|PayPalLoginUser
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      */
     public function getAuthorizationCode()
     {
         unset($this->logs);
 
         $context = \Context::getContext();
-        try {
-            $isLogged = $context->customer->isLogged();
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            return false;
-        }
+        $isLogged = $context->customer->isLogged();
 
         if ($isLogged) {
             return $this->getRefreshToken();
@@ -133,12 +138,13 @@ class PayPalLogin
             fclose($handle);
         }
 
-        $result = json_decode($result);
+        $result = json_decode($result, true);
+        /** @var array $result */
 
-        if ($result && isset($result->access_token)) {
+        if ($result && isset($result['access_token'])) {
             $login = new PayPalLoginUser();
 
-            $customer = $this->getUserInformation($result->access_token, $login);
+            $customer = $this->getUserInformation($result['access_token'], $login);
 
             if (!$customer) {
                 return false;
@@ -157,11 +163,7 @@ class PayPalLogin
             $login->id_token = (string) $result->id_token;
             $login->access_token = (string) $result->access_token;
 
-            try {
-                $login->save();
-            } catch (\PrestaShopException $e) {
-                \Logger::addLog("PayPal module error: {$e->getMessage()}");
-            }
+            $login->save();
 
             return $login;
         }
@@ -171,11 +173,14 @@ class PayPalLogin
 
     /**
      * @return array|bool|mixed
+     * @throws PrestaShopException
+     * @throws \Adapter_Exception
+     * @throws \PrestaShopDatabaseException
      */
     public function getRefreshToken()
     {
         unset($this->logs);
-        $login = PayPalLoginUser::getByIdCustomer((int) \Context::getContext()->customer->id);
+        $login = PayPalLoginUser::getByIdCustomer((int) Context::getContext()->customer->id);
 
         if (!is_object($login)) {
             return false;
@@ -205,7 +210,7 @@ class PayPalLogin
             fclose($handle);
         }
 
-        $result = json_decode($result);
+        $result = json_decode($result, true);
 
         if ($result) {
             $login->access_token = $result->access_token;
@@ -222,7 +227,9 @@ class PayPalLogin
      * @param $accessToken
      * @param $login
      *
-     * @return bool|\Customer
+     * @return bool|Customer
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function getUserInformation($accessToken, &$login)
     {
@@ -254,17 +261,11 @@ class PayPalLogin
             fclose($handle);
         }
 
-        $result = json_decode($result);
+        $result = json_decode($result, true);
 
         if ($result) {
             $customer = new \Customer();
-            try {
-                $customer = $customer->getByEmail($result->email);
-            } catch (\PrestaShopException $e) {
-                \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-                $customer = false;
-            }
+            $customer = $customer->getByEmail($result->email);
 
             if (!$customer) {
                 $customer = $this->setCustomer($result);
@@ -285,40 +286,27 @@ class PayPalLogin
     /**
      * @param mixed $result
      *
-     * @return \Customer
+     * @return Customer
+     * @throws PrestaShopException
      */
     protected function setCustomer($result)
     {
-        $customer = new \Customer();
+        $customer = new Customer();
         $customer->firstname = $result->given_name;
         $customer->lastname = $result->family_name;
-        try {
-            $customer->id_lang = \Language::getIdByIso(strstr($result->language, '_', true));
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-
-            return $customer;
-        }
+        $customer->id_lang = Language::getIdByIso(strstr($result->language, '_', true));
 
 
         $customer->birthday = $result->birthday;
         $customer->email = $result->email;
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
-        try {
-            $customer->save();
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-        }
+        $customer->passwd = Tools::encrypt(Tools::passwdGen());
+        $customer->save();
 
         $resultAddress = $result->address;
 
-        $address = new \Address();
+        $address = new Address();
         $address->id_customer = $customer->id;
-        try {
-            $address->id_country = \Country::getByIso($resultAddress->country);
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-        }
+        $address->id_country = Country::getByIso($resultAddress->country);
         $address->alias = 'My address';
         $address->lastname = $customer->lastname;
         $address->firstname = $customer->firstname;
@@ -327,20 +315,12 @@ class PayPalLogin
         $address->city = $resultAddress->locality;
         $address->phone = $result->phone_number;
         if (isset($resultAddress->region)) {
-            try {
-                if ($idState = (int) \State::getIdByIso($resultAddress->region)) {
-                    $address->id_state = $idState;
-                }
-            } catch (\PrestaShopException $e) {
-                \Logger::addLog("PayPal module error: {$e->getMessage()}");
+            if ($idState = (int) State::getIdByIso($resultAddress->region)) {
+                $address->id_state = $idState;
             }
         }
 
-        try {
-            $address->save();
-        } catch (\PrestaShopException $e) {
-            \Logger::addLog("PayPal module error: {$e->getMessage()}");
-        }
+        $address->save();
 
         return $customer;
     }

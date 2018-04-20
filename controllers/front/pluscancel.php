@@ -47,6 +47,6 @@ class PayPalPlusCancelModuleFrontController extends \ModuleFrontController
         unset ($cookie->paypal_access_token_time_max);
         $cookie->write();
 
-        \Tools::redirectLink($this->context->link->getPageLink('order', true, null, ['step' => 3]));
+        Tools::redirectLink($this->context->link->getPageLink('order', true, null, ['step' => 3]));
     }
 }

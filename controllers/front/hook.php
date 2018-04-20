@@ -28,21 +28,23 @@ class PayPalHookModuleFrontController extends ModuleFrontController
 {
     /** @var PayPal $module */
     public $module;
+    /** @var bool $ssl */
+    public $ssl = true;
 
     /**
-     * PayPalHookModuleFrontController constructor.
+     * @return void
      */
-    public function __construct()
+    public function displayMaintenancePage()
     {
-        parent::__construct();
-
-        $this->ssl = Tools::usingSecureMode();
+        // Disable maintenance page
     }
 
     /**
      * Initialize content and block unauthorized calls
      *
      * @since 2.0.0
+     *
+     * @throws PrestaShopException
      */
     public function initContent()
     {
@@ -73,6 +75,9 @@ class PayPalHookModuleFrontController extends ModuleFrontController
      *
      * @param \stdClass $content
      *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      * @since 2.0.0
      */
     protected function processWebhook($content)
@@ -102,7 +107,11 @@ class PayPalHookModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @param \stdClass $content Webhook content
+     * @param stdClass $content Webhook content
+     *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function processAuthorizationVoided($content)
     {
@@ -120,7 +129,11 @@ class PayPalHookModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @param \stdClass $content Webhook content
+     * @param stdClass $content Webhook content
+     *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function processCaptureCompleted($content)
     {
@@ -146,7 +159,11 @@ class PayPalHookModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @param \stdClass $content Webhook content
+     * @param stdClass $content Webhook content
+     *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function processCaptureDenied($content)
     {
@@ -163,7 +180,11 @@ class PayPalHookModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @param \stdClass $content Webhook content
+     * @param stdClass $content Webhook content
+     *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function processCaptureRefunded($content)
     {
@@ -184,7 +205,11 @@ class PayPalHookModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @param \stdClass $content Webhook content
+     * @param stdClass $content Webhook content
+     *
+     * @throws Adapter_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function processCaptureReversed($content)
     {
