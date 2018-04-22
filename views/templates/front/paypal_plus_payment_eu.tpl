@@ -16,11 +16,11 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 {capture name=path}
-  <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">
+  <a href="{$link->getPageLink('order', true)|escape:'htmlall'}">
     {l s='Order' mod='paypal'}
   </a>
   <span class="navigation-pipe">
-    {$navigationPipe|escape:'html':'UTF-8'}
+    {$navigationPipe|escape:'html'}
   </span>
   {l s='PayPal checkout' mod='paypal'}
 {/capture}
@@ -38,9 +38,9 @@
       var ppp = PAYPAL.apps.PPP({
         approvalUrl: '{$approval_url}',
         placeholder: 'ppplus',
-        mode: '{$mode|escape:'htmlall':'UTF-8'}',
-        language: '{$language|escape:'htmlall':'UTF-8'}',
-        country: '{$country|escape:'htmlall':'UTF-8'}',
+        mode: '{$mode|escape:'htmlall'}',
+        language: '{$language|escape:'htmlall'}',
+        country: '{$country|escape:'htmlall'}',
       });
     }
 

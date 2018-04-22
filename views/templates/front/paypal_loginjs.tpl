@@ -71,13 +71,13 @@
 
       window.paypal.loginUtils.applyStyles();
       window.paypal.login.render({
-        appid: '{$client_id|escape:'javascript':'UTF-8'}',
+        appid: '{$client_id|escape:'javascript'}',
         authend: {if !$live}'sandbox'{else}''{/if},
         scopes: 'openid profile email address phone https://uri.paypal.com/services/paypalattributes',
         containerid: 'buttonPaypalLogin1',
         theme: {if $login_theme}'blue'{else}'neutral'{/if},
-        returnurl: '{$return_link|escape:'javascript':'UTF-8'}',
-        locale: '{$paypal_locale|escape:'javascript':'UTF-8'}',
+        returnurl: '{$return_link|escape:'javascript'}',
+        locale: '{$paypal_locale|escape:'javascript'}',
       });
     }
 

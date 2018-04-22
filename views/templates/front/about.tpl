@@ -31,6 +31,6 @@
   </ul>
   </p>
   <p>
-    <a href="https://www.paypal.com/{$iso_code|escape:'htmlall':'UTF-8'}/cgi-bin/webscr?cmd=_registration-run&pal=TWJHHUL9AEP9C">{l s='Start using PayPal today!' mod='paypal'}</a>
+    <a href="https://www.paypal.com/{$iso_code|escape:'htmlall'}/cgi-bin/webscr?cmd=_registration-run&pal=TWJHHUL9AEP9C">{l s='Start using PayPal today!' mod='paypal'}</a>
   </p>
 </div>

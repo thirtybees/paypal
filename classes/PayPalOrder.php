@@ -19,7 +19,10 @@
 
 namespace PayPalModule;
 
+use Adapter_Exception;
 use Db;
+use PrestaShopDatabaseException;
+use PrestaShopException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -141,18 +144,26 @@ class PayPalOrder extends \ObjectModel
     /**
      * @param int $idOrder
      *
-     * @return array
-     * @throws \PrestaShopDatabaseException
-     * @throws \PrestaShopException
+     * @return PayPalOrder
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws Adapter_Exception
      */
     public static function getByOrderId($idOrder)
     {
-        return (array) \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+        $row = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
             (new \DbQuery())
                 ->select('*')
                 ->from(bqSQL(self::$definition['table']))
                 ->where('`id_order` = '.(int) $idOrder)
         );
+        $payPalOrder = new static();
+        if (is_array($row)) {
+            $payPalOrder->hydrate($row);
+        }
+
+        return $payPalOrder;
     }
 
     /**

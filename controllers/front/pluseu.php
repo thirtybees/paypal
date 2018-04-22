@@ -49,7 +49,7 @@ class PayPalPlusEUModuleFrontController extends \ModuleFrontController
     {
         parent::initContent();
 
-        $rest = new PayPalRestApi();
+        $rest = PayPalRestApi::getInstance();
         $payment = $rest->createPayment(
             $this->context->link->getModuleLink($this->module->name, 'expresscheckoutconfirm', [], true),
             $this->context->link->getModuleLink($this->module->name, 'pluscancel', [], true),

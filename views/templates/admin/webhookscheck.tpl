@@ -25,6 +25,6 @@
   {else}
     <div class="alert alert-danger">{l s='There is currently no active webhook or the Client ID has changed recently. Please run a new check to get this fixed.' mod='paypal'}</div>
   {/if}
-  <a class="btn btn-default" href="{$module_url|escape:'htmlall':'UTF-8'}&checkWebhooks=1">{l s='Run a webhook check' mod='paypal'} <i class="icon icon-chevron-right"></i></a>
+  <a class="btn btn-default" href="{$module_url|escape:'htmlall'}&checkWebhooks=1">{l s='Run a webhook check' mod='paypal'} <i class="icon icon-chevron-right"></i></a>
 </div>
 

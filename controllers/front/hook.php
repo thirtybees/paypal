@@ -17,6 +17,8 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+use PayPalModule\PayPalRestApi;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -45,6 +47,7 @@ class PayPalHookModuleFrontController extends ModuleFrontController
      * @since 2.0.0
      *
      * @throws PrestaShopException
+     * @throws Adapter_Exception
      */
     public function initContent()
     {
@@ -56,7 +59,7 @@ class PayPalHookModuleFrontController extends ModuleFrontController
             die('1');
         }
 
-        $rest = new \PayPalModule\PayPalRestApi();
+        $rest = PayPalRestApi::getInstance();
 
         $webhook = $rest->lookupWebhook($content['id']);
         if (!isset($webhook->event_type)) {

@@ -3,7 +3,7 @@
 global $_MODULE;
 $_MODULE = array();
 
-$_MODULE['<{paypal}prestashop>paypalnotifier_2844e3ddde44821bf20d02a0f34b2a93'] = 'Price paid on paypal is not the same that on Thirty Bees.';
+$_MODULE['<{paypal}prestashop>paypalnotifier_2844e3ddde44821bf20d02a0f34b2a93'] = 'Price paid on paypal is not the same that on thirty bees.';
 $_MODULE['<{paypal}prestashop>paypalnotifier_572f9af7615560af2cba038cc1948287'] = 'Cart changed, please retry.';
 $_MODULE['<{paypal}prestashop>paypalnotifier_36ec50c0e914dd2fb48a1b27540512ce'] = 'Payment accepted.';
 $_MODULE['<{paypal}prestashop>expresscheckout_51da74120dd5e11817ef21e27d2599bc'] = 'Cannot create customer';
@@ -17,7 +17,7 @@ $_MODULE['<{paypal}prestashop>expresscheckout_ada2b5d5bbf3065de283d61526141780']
 $_MODULE['<{paypal}prestashop>expresscheckout_36ec50c0e914dd2fb48a1b27540512ce'] = 'Payment accepted.';
 $_MODULE['<{paypal}prestashop>expresscheckout_719073527bcc898d5e7cc63fd6d16ce4'] = 'eCheck';
 $_MODULE['<{paypal}prestashop>expresscheckout_c8a31175ee6991be6a0d7a6d32ca4268'] = 'Pending payment confirmation.';
-$_MODULE['<{paypal}prestashop>expresscheckout_2844e3ddde44821bf20d02a0f34b2a93'] = 'Price paid on paypal is not the same that on Thirty Bees.';
+$_MODULE['<{paypal}prestashop>expresscheckout_2844e3ddde44821bf20d02a0f34b2a93'] = 'Price paid on paypal is not the same that on thirty bees.';
 $_MODULE['<{paypal}prestashop>paypal_ad69e733ebae8d264bccaa38d68830e8'] = 'PayPal';
 $_MODULE['<{paypal}prestashop>paypal_6e7012516038a096b9f6bb71ba2cc5a3'] = 'Accepts payments by credit cards (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) with PayPal.';
 $_MODULE['<{paypal}prestashop>paypal_9c635406092f28a84ee320aa7d72303f'] = 'You have to enable the cURL extension on your server in order to use this module';

@@ -49,7 +49,7 @@ class PayPalInContextValidateModuleFrontController extends ModuleFrontController
         $this->paymentId = Tools::getValue('paymentId');
 
         if ($this->payerId && $this->paymentId) {
-            $callApiPaypalPlus = new PayPalRestApi();
+            $callApiPaypalPlus = PayPalRestApi::getInstance();
             $callApiPaypalPlus->getWebProfile();
             $payment = $callApiPaypalPlus->lookUpPayment($this->paymentId);
             $email = $payment->payer->payer_info->email;

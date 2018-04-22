@@ -43,17 +43,17 @@ class PayPalLoginUser extends ObjectModel
         'table'   => 'paypal_login_user',
         'primary' => 'id_paypal_login_user',
         'fields'  => [
-            'id_customer'      => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
-            'token_type'       => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'expires_in'       => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'refresh_token'    => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'id_token'         => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'access_token'     => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'account_type'     => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'user_id'          => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'db_type' => 'VARCHAR(255)'],
-            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'db_type' => 'VARCHAR(255)'],
+            'id_customer'      => ['type' => self::TYPE_INT,    'validate' => 'isUnsignedId', 'required' => true, 'db_type' => 'INT(11) UNSIGNED'],
+            'token_type'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'expires_in'       => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'refresh_token'    => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'id_token'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'access_token'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'account_type'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'user_id'          => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
+            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',                         'db_type' => 'VARCHAR(255)'],
+            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString',                         'db_type' => 'VARCHAR(255)'],
         ],
     ];
     /** @var int $id_customer */
@@ -93,11 +93,11 @@ class PayPalLoginUser extends ObjectModel
     public static function getPaypalLoginUsers($idPaypalLoginUser = false, $idCustomer = false, $refreshToken = false)
     {
         $sql = new \DbQuery();
-        $sql->select(bqSQL(self::$definition['primary']));
-        $sql->from(bqSQL(self::$definition['table']));
+        $sql->select(bqSQL(static::$definition['primary']));
+        $sql->from(bqSQL(static::$definition['table']));
 
         if ($idPaypalLoginUser && Validate::isInt($idPaypalLoginUser)) {
-            $sql->where('`'.bqSQL(self::$definition['primary']).'` = '.(int) $idPaypalLoginUser);
+            $sql->where('`'.bqSQL(static::$definition['primary']).'` = '.(int) $idPaypalLoginUser);
         }
 
         if ($idCustomer && Validate::isInt($idCustomer)) {
@@ -115,7 +115,6 @@ class PayPalLoginUser extends ObjectModel
             foreach ($results as $result) {
                 $logins[$result['id_paypal_login_user']] = new PayPalLoginUser((int) $result['id_paypal_login_user']);
             }
-
         }
 
         return $logins;
@@ -131,10 +130,10 @@ class PayPalLoginUser extends ObjectModel
      */
     public static function getByIdCustomer($idCustomer)
     {
-        $login = self::getPaypalLoginUsers(false, $idCustomer);
+        $login = static::getPaypalLoginUsers(false, $idCustomer);
 
         if ($login && count($login)) {
-            $login = current($login);
+            $login = array_values($login)[0];
         } else {
             $login = false;
         }

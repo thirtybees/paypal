@@ -37,21 +37,21 @@
     {/if}
   {elseif $input.type == 'radio'}
     {foreach $input.values as $value}
-      <div class="radio {if isset($input.class)}{$input.class|escape:'htmlall':'UTF-8'}{/if}">
+      <div class="radio {if isset($input.class)}{$input.class|escape:'htmlall'}{/if}">
         {strip}
           <label>
             <input type="radio"
-                   name="{$input.name|escape:'htmlall':'UTF-8'}"
+                   name="{$input.name|escape:'htmlall'}"
                    id="{$value.id|intval}"
-                   value="{$value.value|escape:'htmlall':'UTF-8'}"
+                   value="{$value.value|escape:'htmlall'}"
                    {if $fields_value[$input.name] == $value.value}checked="checked"{/if}
                    {if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}
             >
-            {$value.label|escape:'htmlall':'UTF-8'}&nbsp;&nbsp;&nbsp;<img src="{$value.image|escape:'htmlall':'UTF-8'}">
+            {$value.label|escape:'htmlall'}&nbsp;&nbsp;&nbsp;<img src="{$value.image|escape:'htmlall'}">
           </label>
         {/strip}
       </div>
-      {if isset($value.p) && $value.p}<p class="help-block">{$value.p|escape:'htmlall':'UTF-8'}</p>{/if}
+      {if isset($value.p) && $value.p}<p class="help-block">{$value.p|escape:'htmlall'}</p>{/if}
     {/foreach}
   {else}
     {$smarty.block.parent}

@@ -18,20 +18,6 @@
 <script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>
 <script type="text/javascript">
   (function () {
-    function addEventListener(el, eventName, handler) {
-      if (typeof el !== 'object' || !el) {
-        return;
-      }
-
-      if (el.addEventListener) {
-        el.addEventListener(eventName, handler);
-      } else {
-        el.attachEvent('on' + eventName, function(){
-          handler.call(el);
-        });
-      }
-    }
-
     function initPayPalJs() {
       if (typeof document.getElementById('payment_paypal_express_checkout') === 'undefined'
         || typeof window.paypal === 'undefined'
@@ -68,7 +54,7 @@
 
       paypal.Button.render({
         env: {if $PAYPAL_LIVE}'production'{else}'sandbox'{/if}, // Optional: specify 'sandbox' environment
-        locale: '{$paypal_locale|escape:'javascript':'UTF-8'}',
+        locale: '{$paypal_locale|escape:'javascript'}',
         payment: function (resolve, reject) {
           {if $incontextType == 'product'}
           // Prepare the cart first
@@ -85,7 +71,7 @@
           }
           $.ajax({
             type: 'GET',
-            url: '{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}',
+            url: '{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript'}',
             data: {
               updateCart: true,
               idProduct: idProduct,
@@ -100,7 +86,7 @@
                 }
           {/if}
                 // Then create a payment
-                paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript':'UTF-8'}', {
+                paypal.request.post('{$link->getModuleLink('paypal', 'incontextajax', [], true)|escape:'javascript'}', {
                   requestForInContext: true,
                 })
                   .then(function (data) {
@@ -125,10 +111,10 @@
           {/if}
         },
         onAuthorize: function (data, actions) {
-          var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript':'UTF-8'}';
+          var EXECUTE_PAYMENT_URL = '{$link->getModuleLink('paypal', 'incontextvalidate', [], true)|escape:'javascript'}';
           paypal.request.post(EXECUTE_PAYMENT_URL, {
             paymentId: data.paymentID, // paymentID should be spelled like this
-            PayerID: data.payerID      // payerID should be spelled like this
+            PayerID: data.payerID,     // payerID should be spelled like this
           })
             .then(function (data) {
               if (data.success) {

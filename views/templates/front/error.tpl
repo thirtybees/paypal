@@ -17,20 +17,20 @@
 *}
 
 {capture name=path}
-  <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">
+  <a href="{$link->getPageLink('order', true)|escape:'htmlall'}">
     {l s='Your shopping cart' mod='paypal'}</a>
-  <span class="navigation-pipe"> {$navigationPipe|escape:'htmlall':'UTF-8'} </span>
+  <span class="navigation-pipe"> {$navigationPipe|escape:'htmlall'} </span>
   {l s='PayPal' mod='paypal'}
 {/capture}
 {include file="$tpl_dir./breadcrumb.tpl"}
-<h2>{$message|escape:'htmlall':'UTF-8'}</h2>
+<h2>{$message|escape:'htmlall'}</h2>
 {if isset($logs) && $logs}
   <div class="alert alert-danger">
     <strong>{l s='Please try to contact the merchant:' mod='paypal'}</strong>
 
     <ol>
       {foreach from=$logs key=key item=log}
-        <li>{$log|escape:'htmlall':'UTF-8'}</li>
+        <li>{$log|escape:'htmlall'}</li>
       {/foreach}
     </ol>
 
@@ -38,13 +38,13 @@
 
     {if isset($order)}
       <p>
-        {l s='Total of the transaction (taxes incl.) :' mod='paypal'} <span class="paypal-bold">{$price|escape:'htmlall':'UTF-8'}</span><br>
+        {l s='Total of the transaction (taxes incl.) :' mod='paypal'} <span class="paypal-bold">{$price|escape:'htmlall'}</span><br>
         {l s='Your order ID is :' mod='paypal'} <span class="paypal-bold">{$order.id_order|intval}</span><br>
       </p>
     {/if}
 
     <p>
-      <a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}"
+      <a href="{$link->getPageLink('index', true)|escape:'htmlall'}"
           class="button_small"
           title="{l s='Back' mod='paypal'}">
         <i class="icon icon-chevron-left"></i> {l s='Back' mod='paypal'}

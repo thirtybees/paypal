@@ -19,6 +19,7 @@
 
 use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalRestApi;
+use PayPalModule\PayPalTools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -29,7 +30,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * Used for In-Context, Website Payments Standards and Website Payments Plus
  */
-class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontController
+class PayPalExpressCheckoutConfirmModuleFrontController extends ModuleFrontController
 {
     // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
@@ -55,8 +56,8 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
     {
         parent::initContent();
 
-        $payerId = \Tools::getValue('PayerID');
-        $paymentId = \Tools::getValue('paymentId');
+        $payerId = Tools::getValue('PayerID');
+        $paymentId = Tools::getValue('paymentId');
 
         $canShip = $this->assignCartSummary();
         if (!$canShip) {
@@ -65,22 +66,18 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
             return;
         }
 
-        $rest = new PayPalRestApi();
+        /** @var PayPalRestApi $rest */
+        $rest = PayPalRestApi::getInstance();
         $previouslyAuthorized = Tools::getValue('authorized');
+        /** @var array $payment */
         $payment = $rest->lookUpPayment($paymentId);
-        if (!empty($payment->transactions[0]->related_resources[0]->authorization->id)) {
+        if (!empty($payment['transactions'][0]['related_resources'][0]['authorization']['id'])) {
             $this->redirectToPayment($payerId, $paymentId);
         }
 
-        $authorized = false;
-        if (isset($payment->links)) {
-            foreach ($payment->links as $link) {
-                if ($link->rel === 'capture') {
-                    $authorized = true;
-                    break;
-                }
-            }
-        }
+        $authorized = isset($payment['links']) && is_array($payment['links']) && in_array('capture', array_map(function ($item) {
+                return $item['rel'];
+            }, $payment['link']));
 
         if (!$authorized && !$previouslyAuthorized) {
             $rest->executePayment($payerId, $paymentId);
@@ -91,14 +88,14 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
                     [
                         'PayerID'        => $payerId,
                         'paymentId'      => $paymentId,
-                        'addressChanged' => (int) \Tools::getValue('addressChanged'),
+                        'addressChanged' => (int) Tools::getValue('addressChanged'),
                         'authorized'     => 1,
                     ],
                     true
                 )
             );
-        } elseif ($previouslyAuthorized && $payment->state === 'authorized') {
-            $rest->voidAuthorization($payment->id);
+        } elseif ($previouslyAuthorized && $payment['state'] === 'authorized') {
+            $rest->voidAuthorization($payment['id']);
 
             // Unable to authorize, try again
             Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'expresscheckout', [], true));
@@ -129,22 +126,23 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends \ModuleFrontCont
     public function assignCartSummary()
     {
         // Rest API object
-        $restApi = new PayPalRestApi();
+        $restApi = PayPalRestApi::getInstance();
         $cart = $this->context->cart;
 
         // Get the currency
-        $currency = new \Currency((int) $cart->id_currency);
+        $currency = new Currency((int) $cart->id_currency);
 
         // Indicates whether we have checked the address before
         $addressChanged = (bool) Tools::getValue('addressChanged');
-        $tbShippingAddress = new \Address($cart->id_address_delivery);
-        $tbBillingAddress = new \Address($cart->id_address_invoice);
+        $tbShippingAddress = new Address($cart->id_address_delivery);
+        $tbBillingAddress = new Address($cart->id_address_invoice);
 
         // Check whether the address has been updated by the user
+        /** @var array $paymentInfo */
         $paymentInfo = $restApi->lookUpPayment(Tools::getValue('paymentId'));
 
-        if (!$addressChanged && \PayPalModule\PayPalTools::checkAddressChanged($paymentInfo, $tbShippingAddress)) {
-            $tbBillingAddress = $tbShippingAddress = \PayPalModule\PayPalTools::checkAndModifyAddress($paymentInfo, $this->context->customer);
+        if (!$addressChanged && PayPalTools::checkAddressChanged($paymentInfo, $tbShippingAddress)) {
+            $tbBillingAddress = $tbShippingAddress = PayPalTools::checkAndModifyAddress($paymentInfo, $this->context->customer);
             $cart->id_address_delivery = $tbShippingAddress->id;
             $cart->id_address_invoice = $tbShippingAddress->id;
 

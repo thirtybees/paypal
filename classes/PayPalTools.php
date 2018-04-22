@@ -116,7 +116,7 @@ class PayPalTools
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
-    public static function setCustomerAddress($payment, $customer, $idAddress = null)
+    public static function setCustomerAddress(array $payment, $customer, $idAddress = null)
     {
         /** @var array $payerInfo */
         $payerInfo = $payment['payer']['payer_info'];
@@ -211,7 +211,7 @@ class PayPalTools
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
-    public static function checkAndModifyAddress($payment, $customer)
+    public static function checkAndModifyAddress(array $payment, $customer)
     {
         $context = Context::getContext();
         $customerAddresses = $customer->getAddresses($context->cookie->id_lang);

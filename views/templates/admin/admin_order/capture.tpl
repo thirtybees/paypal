@@ -20,7 +20,7 @@
   <div class="col-lg-12">
     <div class="panel">
       <div class="panel-heading">
-        <img src="{$base_url|escape:'htmlall':'UTF-8'}modules/{$module_name|escape:'htmlall':'UTF-8'}/logo.gif"
+        <img src="{$base_url|escape:'htmlall'}modules/{$module_name|escape:'htmlall'}/logo.gif"
              alt=""/>
         {l s='PayPal Capture' mod='paypal'}
       </div>
@@ -33,22 +33,22 @@
           </tr>
           {foreach from=$list_captures item=list}
             <tr>
-              <td>{Tools::displayDate($list.date_add, $smarty.const.null,true)|escape:'htmlall':'UTF-8'}</td>
-              <td>{$list.capture_amount|escape:'htmlall':'UTF-8'}</td>
-              <td>{$list.result|escape:'htmlall':'UTF-8'}</td>
+              <td>{Tools::displayDate($list.date_add, $smarty.const.null,true)|escape:'htmlall'}</td>
+              <td>{$list.capture_amount|escape:'htmlall'}</td>
+              <td>{$list.result|escape:'htmlall'}</td>
             </tr>
           {/foreach}
         </table>
       {/if}
-      <form method="post" action="{$smarty.server.REQUEST_URI|escape:'htmlall':'UTF-8'}">
-        <p>{l s='There is still' mod='paypal'} {$rest_to_capture|escape:'htmlall':'UTF-8'} {$id_currency|escape:'htmlall':'UTF-8'} {l s='to capture.' mod='paypal'} {l s='How many do you want to capture :' mod='paypal'}</p>
+      <form method="post" action="{$smarty.server.REQUEST_URI|escape:'htmlall'}">
+        <p>{l s='There is still' mod='paypal'} {$rest_to_capture|escape:'htmlall'} {$id_currency|escape:'htmlall'} {l s='to capture.' mod='paypal'} {l s='How many do you want to capture :' mod='paypal'}</p>
         <input type="text"
                onchange="captureEdit();"
                name="totalCaptureMoney"
                style="width80%;"
                placeholder="{l s='Enter the money you want to capture (ex: 200.00)' mod='paypal'}"
         >
-        <input type="hidden" name="id_order" value="{$params.id_order|escape:'htmlall':'UTF-8'}">
+        <input type="hidden" name="id_order" value="{$params.id_order|escape:'htmlall'}">
         <p><strong>{l s='Information:' mod='paypal'}</strong> {l s='Funds ready to be captured before shipping' mod='paypal'}</p>
         <p class="center">
           <button type="submit"

@@ -16,10 +16,10 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 {capture name=path}
-  <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">
+  <a href="{$link->getPageLink('order', true)|escape:'html'}">
     {l s='Your shopping cart' mod='paypal'}
   </a>
-  <span class="navigation-pipe">{$navigationPipe|escape:'htmlall':'UTF-8'}</span>
+  <span class="navigation-pipe">{$navigationPipe|escape:'html'}</span>
   {l s='PayPal' mod='paypal'}
 {/capture}
 
@@ -27,6 +27,6 @@
 <div class="alert alert-danger">
   <h3>{l s='PayPal error' mod='paypal'}</h3>
   <p>{l s='Unfortunately we cannot ship to the address you selected during the PayPal checkout.'}</p>
-  {l s='Click' mod='paypal'} <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall':'UTF-8'}">{l s='here' mod='paypal'}</a> {l s='to return to PayPal' mod='paypal'}.
-  {l s='Or go back to' mod='paypal'} <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">{l s='the checkout' mod='paypal'}</a>.
+  {l s='Click' mod='paypal'} <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'html'}">{l s='here' mod='paypal'}</a> {l s='to return to PayPal' mod='paypal'}.
+  {l s='Or go back to' mod='paypal'} <a href="{$link->getPageLink('order', true)|escape:'html'}">{l s='the checkout' mod='paypal'}</a>.
 </div>

@@ -19,7 +19,6 @@
 
 namespace PayPalModule\Exception;
 
-use Exception;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Throwable;
@@ -29,11 +28,11 @@ if (!defined('_TB_VERSION_')) {
 }
 
 /**
- * Class PaymentException
+ * RequestException PaymentException
  *
  * @package PayPalModule\Exception
  */
-class PaymentException extends Exception
+class RequestException extends PayPalException
 {
     /** @var Request $request */
     protected $request;

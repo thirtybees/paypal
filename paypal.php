@@ -23,6 +23,8 @@ if (!defined('_TB_VERSION_')) {
 
 require_once __DIR__.'/vendor/autoload.php';
 
+use PayPalModule\Exception\Auth\TokenException;
+use PayPalModule\Exception\Payment\PaymentException;
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalLogin;
@@ -35,13 +37,15 @@ use PayPalModule\PayPalTools;
 /**
  * Class PayPal
  */
-class PayPal extends \PaymentModule
+class PayPal extends PaymentModule
 {
     const LIVE = 'PAYPAL_LIVE';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
     const STORE_COUNTRY = 'PAYPAL_COUNTRY_DEFAULT';
     const CLIENT_ID = 'PAYPAL_CLIENT_ID';
     const SECRET = 'PAYPAL_SECRET';
+    const ACCESS_TOKEN = 'PAYPAL_ACCESS_TOKEN';
+    const ACCESS_TOKEN_EXPIRE = 'PAYPAL_ACCESS_TOKEN_EXPIRE';
     const STANDARD_WEBSITE_PROFILE_ID = 'PAYPAL_WEB_PROFILE_ID';
     const EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID = 'PAYPAL_EC_WEB_PROFILE_ID';
     const PLUS_WEBSITE_PROFILE_ID = 'PAYPAL_WPP_WEB_PROFILE_ID';
@@ -57,10 +61,6 @@ class PayPal extends \PaymentModule
     const EC = 4;
     const WPP = 5;
 
-    const _PAYPAL_LOGO_XML_ = 'data/logos.xml';
-    const _PAYPAL_MODULE_DIRNAME_ = 'paypal';
-
-    const _PAYPAL_TRANSLATIONS_XML_ = 'data/translations.xml';
     const WEBSITE_PAYMENTS_STANDARD_ENABLED = 'PAYPAL_WPS_ENABLED';
     const WEBSITE_PAYMENTS_PLUS_ENABLED = 'PAYPAL_WPP_ENABLED';
     const EXPRESS_CHECKOUT_ENABLED = 'PAYPAL_EC_ENABLED';
@@ -74,52 +74,10 @@ class PayPal extends \PaymentModule
     const CONNECTION_TIMEOUT = 20;
 
     // @codingStandardsIgnoreStart
-    public static $postalCodeRequired = [
-        'AR',
-        'AU',
-        'AT',
-        'BT',
-        'BR',
-        'CA',
-        'C2',
-        'DK',
-        'FK',
-        'FO',
-        'FR',
-        'GM',
-        'DE',
-        'GL',
-        'IT',
-        'JP',
-        'KI',
-        'KG',
-        'MW',
-        'MR',
-        'YT',
-        'MX',
-        'NR',
-        'NL',
-        'NE',
-        'NU',
-        'NF',
-        'NO',
-        'PN',
-        'PL',
-        'RU',
-        'SG',
-        'ES',
-        'SH',
-        'PM',
-        'SR',
-        'SJ',
-        'SE',
-        'CH',
-        'TV',
-        'GB',
-        'US',
-        'VA',
-        'WF',
-    ];
+    /** @var array $checkoutButtonTypes Available express checkout button types */
+    public static $checkoutButtonTypes = ['cart', 'product'];
+    /** @var array $postalCodeRequired */
+    public static $postalCodeRequired = ['AR', 'AU', 'AT', 'BT', 'BR', 'CA', 'C2', 'DK', 'FK', 'FO', 'FR', 'GM', 'DE', 'GL', 'IT', 'JP', 'KI', 'KG', 'MW', 'MR', 'YT', 'MX', 'NR', 'NL', 'NE', 'NU', 'NF', 'NO', 'PN', 'PL', 'RU', 'SG', 'ES', 'SH', 'PM', 'SR', 'SJ', 'SE', 'CH', 'TV', 'GB', 'US', 'VA', 'WF'];
     /** @var array $hooks */
     public $hooks = [
         'payment',
@@ -175,10 +133,7 @@ class PayPal extends \PaymentModule
         $this->currencies = true;
         $this->currencies_mode = 'radio';
 
-        try {
-            parent::__construct();
-        } catch (PrestaShopException $e) {
-        }
+        parent::__construct();
 
         $this->displayName = $this->l('PayPal');
         $this->description = $this->l('Accepts payments by credit cards (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) with PayPal.');
@@ -196,19 +151,17 @@ class PayPal extends \PaymentModule
 
         // Only check from Back Office
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id) {
-            try {
-                $adminModulesLocation = $this->context->link->getAdminLink('AdminModules', true);
-            } catch (PrestaShopException $e) {
-                Context::getContext()->controller->errors[] = $this->l('Unable to figure out how to reach the admin modules page');
-            }
+            $adminModulesLocation = $this->context->link->getAdminLink('AdminModules', true);
             $this->moduleUrl = $adminModulesLocation.'&'.http_build_query([
-                'configure'   => $this->name,
-                'tab_module'  => $this->tab,
-                'module_name' => $this->name,
-            ]);
+                    'configure'   => $this->name,
+                    'tab_module'  => $this->tab,
+                    'module_name' => $this->name,
+                ]);
 
             $this->checkWebhooks();
         }
+
+        PayPalRestApi::setCredentials(Configuration::get(static::CLIENT_ID), Configuration::get(static::SECRET));
     }
 
     /**
@@ -220,20 +173,12 @@ class PayPal extends \PaymentModule
      */
     public static function getPayPalEmailByIdCustomer($idCustomer)
     {
-        try {
-            return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-                (new DbQuery())
-                    ->select('pc.`paypal_email`')
-                    ->from('paypal_customer', 'pc')
-                    ->where('pc.`id_customer` = '.(int) $idCustomer)
-            );
-        } catch (PrestaShopDatabaseException $e) {
-            Logger::addLog("PayPal: Database error {$e->getMessage()}");
-
-            return false;
-        } catch (PrestaShopException $e) {
-            return false;
-        }
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new DbQuery())
+                ->select('pc.`paypal_email`')
+                ->from('paypal_customer', 'pc')
+                ->where('pc.`id_customer` = '.(int) $idCustomer)
+        );
     }
 
     /**
@@ -284,10 +229,10 @@ class PayPal extends \PaymentModule
     public function createOrderStates()
     {
         if (!Configuration::get('PAYPAL_OS_AUTHORIZATION')) {
-            $orderState = new \OrderState();
+            $orderState = new OrderState();
             $orderState->name = [];
 
-            foreach (\Language::getLanguages() as $language) {
+            foreach (Language::getLanguages() as $language) {
                 if (Tools::strtolower($language['iso_code']) == 'fr') {
                     $orderState->name[$language['id_lang']] = 'Autorisation acceptée par PayPal';
                 } else {
@@ -326,13 +271,7 @@ class PayPal extends \PaymentModule
     {
         $this->deleteConfiguration();
 
-        try {
-            return parent::uninstall();
-        } catch (PrestaShopException $e) {
-            $this->context->controller->errors[] = "{$this->name}: {$e->getMessage()}";
-
-            return false;
-        }
+        return parent::uninstall();
     }
 
     /**
@@ -391,6 +330,7 @@ class PayPal extends \PaymentModule
      * Post process
      *
      * @throws PrestaShopException
+     * @throws \Predis\ClientException
      */
     protected function postProcess()
     {
@@ -416,9 +356,10 @@ class PayPal extends \PaymentModule
             }
             Configuration::updateValue(static::CLIENT_ID, Tools::getValue(static::CLIENT_ID));
             Configuration::updateValue(static::SECRET, Tools::getValue(static::SECRET));
+            PayPalRestApi::setCredentials(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
 
             if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
-                $rest = new PayPalRestApi(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
+                $rest = PayPalRestApi::getInstance();
                 $rest->getWebProfiles();
                 $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
                 $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
@@ -469,13 +410,10 @@ class PayPal extends \PaymentModule
      */
     protected function tlsCheck()
     {
-        $guzzle = new \GuzzleHttp\Client(
-            [
-                'timeout'     => 10,
-                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-                'http_errors' => false,
-            ]
-        );
+        $guzzle = new \GuzzleHttp\Client([
+            'timeout' => 10,
+            'verify'  => _PS_TOOL_DIR_.'cacert.pem',
+        ]);
         try {
             $response = $guzzle->get('https://tlstest.paypal.com/');
         } catch (\GuzzleHttp\Exception\RequestException $e) {
@@ -529,8 +467,8 @@ class PayPal extends \PaymentModule
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submit'.$this->name;
         $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query([
-            'configure' => $this->name,
-        ]);
+                'configure' => $this->name,
+            ]);
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = [
             'fields_value' => $this->getMainFormValues(),
@@ -554,29 +492,24 @@ class PayPal extends \PaymentModule
      * Get main form configuration values
      *
      * @return array
+     * @throws PrestaShopException
      */
     protected function getMainFormValues()
     {
-        try {
-            return [
-                static::STORE_COUNTRY               => (int) Configuration::get(static::STORE_COUNTRY),
-                static::LIVE                        => Configuration::get(static::LIVE),
-                static::STANDARD_WEBSITE_PROFILE_ID => Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
+        return [
+            static::STORE_COUNTRY               => (int) Configuration::get(static::STORE_COUNTRY),
+            static::LIVE                        => Configuration::get(static::LIVE),
+            static::STANDARD_WEBSITE_PROFILE_ID => Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
 
-                static::WEBSITE_PAYMENTS_STANDARD_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
-                static::WEBSITE_PAYMENTS_PLUS_ENABLED     => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
-                static::EXPRESS_CHECKOUT_ENABLED          => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
-                static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
-                static::LOGIN_THEME                       => Configuration::get(static::LOGIN_THEME),
+            static::WEBSITE_PAYMENTS_STANDARD_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
+            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
+            static::EXPRESS_CHECKOUT_ENABLED          => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
+            static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
+            static::LOGIN_THEME                       => Configuration::get(static::LOGIN_THEME),
 
-                static::CLIENT_ID => Configuration::get(static::CLIENT_ID),
-                static::SECRET    => Configuration::get(static::SECRET),
-            ];
-        } catch (PrestaShopException $e) {
-            $this->context->controller->errors[] = $this->l('Unable to get settings from database');
-
-            return [];
-        }
+            static::CLIENT_ID => Configuration::get(static::CLIENT_ID),
+            static::SECRET    => Configuration::get(static::SECRET),
+        ];
     }
 
     /**
@@ -1017,55 +950,93 @@ class PayPal extends \PaymentModule
      * @throws PrestaShopException
      * @throws SmartyException
      */
-    public function hookProductActions()
+    public function hookProductActions($params)
     {
-        return $this->hookProductFooter();
+        /** @var Product $product */
+        $product = $params['product'];
+        return $this->hookProductFooter([
+            'buttonType'         => 'product',
+            'idProduct'          => (int) $product->id,
+            'idProductAttribute' => (int) $product->getDefaultIdProductAttribute(),
+        ]);
     }
 
     /**
      * Product Footer hook
      *
+     * @param array|null $params
+     *
      * @return string Hook HTML
+     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
      */
-    public function hookProductFooter()
+    public function hookProductFooter($params = null)
     {
-        if (!Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
+        $type = isset($params['buttonType']) && in_array($params['buttonType'], static::$checkoutButtonTypes) ? $params['buttonType'] : 'product';
+        if (!empty($params['product']) && Validate::isLoadedObject($params['product'])) {
+            $product = $params['product'];
+        } elseif (!empty($params['idProduct'])) {
+            $product = new Product($params['idProduct']);
+        } else {
+            $product = new Product(Tools::getValue('id_product'));
+        }
+        if (!Validate::isLoadedObject($product)) {
             return '';
         }
+        $idDefaultProductAttribute = $product->getDefaultIdProductAttribute();
+        $attributes = $product->getAttributeCombinations($this->context->language->id);
+        $minimalQuantities = [];
+        if (!$idDefaultProductAttribute) {
+            $minimalQuantities[] = $product->minimal_quantity;
+        } else {
+            foreach ($attributes as $attribute) {
+                $minimalQuantities[] = $attribute['minimal_quantity'];
+            }
+        }
 
-        return $this->renderExpressCheckoutForm('product');
+        return $this->renderExpressCheckoutButton($type, $product->id, $idDefaultProductAttribute, $minimalQuantities);
     }
 
     /**
-     * @param string $type
+     * @param string   $type
+     *
+     * @param int            $idProduct
+     * @param int|null       $idProductAttribute
+     * @param int|int[]|null $minimalQuantities
      *
      * @return null|string
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
      */
-    public function renderExpressCheckoutForm($type)
+    public function renderExpressCheckoutButton($type, $idProduct, $idProductAttribute = null, $minimalQuantities = null)
     {
-        $idProduct = (int) Tools::getValue('id_product');
-        $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
-        if ($idProductAttribute) {
-            $minimalQuantity = \Attribute::getAttributeMinimalQty($idProductAttribute);
-        } else {
-            $product = new \Product($idProduct);
-            $minimalQuantity = $product->minimal_quantity;
+        $type = strtolower($type);
+        if (!in_array($type, static::$checkoutButtonTypes)) {
+            Logger::addLog("PayPal module warning: tried to render the checkout button for non-existent type `{$type}`", 2);
+            return '';
+        }
+        $idProductAttribute = (int) ($idProductAttribute ?: Product::getDefaultAttribute($idProduct));
+        if (empty($minimalQuantities)) {
+            $minimalQuantities = $idProductAttribute
+                ? Attribute::getAttributeMinimalQty($idProductAttribute)
+                : (new Product($idProduct))->minimal_quantity;
         }
 
         $this->context->smarty->assign([
-            'PayPal_payment_type'           => $type,
-            'PayPal_current_page'           => $this->getCurrentUrl(),
-            'id_product_attribute_ecs'      => $idProductAttribute,
-            'product_minimal_quantity'      => $minimalQuantity,
-            'express_checkout_payment_link' => $this->context->link->getModuleLink('paypal', 'expresscheckout', [], true),
+            'live'                   => (bool) Configuration::get(static::LIVE),
+            'currentPage'            => $this->getCurrentUrl(),
+            'idProduct'              => (int) $idProduct,
+            'idProductAttribute'     => (int) $idProductAttribute,
+            'idProductPath'          => '',
+            'idProductAttributePath' => '',
+            'callback'               => '',
+            'minimalQuantities'      => json_encode($minimalQuantities),
+            'idButton'               => Tools::passwdGen(8),
         ]);
 
-        return $this->display(__FILE__, 'express_checkout_shortcut_button.tpl');
+        return $this->display(__FILE__, "expresscheckout/{$type}.tpl");
     }
 
     /**
@@ -1119,18 +1090,24 @@ class PayPal extends \PaymentModule
         }
 
         if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
-            $rest = new PayPalRestApi();
-            $payment = $rest->createPayment(
-                $this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', [], true),
-                $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
-                PayPalRestApi::PLUS_PROFILE
-            );
+            $rest = PayPalRestApi::getInstance();
+            try {
+                $payment = $rest->createPayment(
+                    $this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', [], true),
+                    $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
+                    PayPalRestApi::PLUS_PROFILE
+                );
+            } catch (Adapter_Exception $e) {
+            } catch (PaymentException $e) {
+            } catch (PrestaShopDatabaseException $e) {
+            } catch (PrestaShopException $e) {
+            }
 
             $approvalUrl = '';
-            if (isset($payment->id) && $payment->id) {
-                foreach ($payment->links as $link) {
-                    if ($link->rel === 'approval_url') {
-                        $approvalUrl = $link->href;
+            if (!empty($payment['id'])) {
+                foreach ($payment['links'] as $link) {
+                    if ($link['rel'] === 'approval_url') {
+                        $approvalUrl = $link['href'];
                         break;
                     }
                 }
@@ -1240,12 +1217,7 @@ class PayPal extends \PaymentModule
             return null;
         }
 
-        if (isset($this->context->cookie->express_checkout)) {
-            $this->redirectToConfirmation();
-        }
-
         $paymentOptions = [];
-
         if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
             $paymentOptions[] = [
                 'cta_text' => $this->l('PayPal or credit card'),
@@ -1253,7 +1225,6 @@ class PayPal extends \PaymentModule
                 'action'   => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
             ];
         }
-
         if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
             $paymentOptions[] = [
                 'cta_text' => $this->l('PayPal or credit card'),
@@ -1263,20 +1234,6 @@ class PayPal extends \PaymentModule
         }
 
         return $paymentOptions;
-    }
-
-    /**
-     * Redirect to confirmation page
-     */
-    public function redirectToConfirmation()
-    {
-        // Check if user went through the payment preparation detail and completed it
-        $detail = unserialize($this->context->cookie->express_checkout);
-
-        if (!empty($detail['payer_id']) && !empty($detail['token'])) {
-            $values = ['get_confirmation' => true];
-            Tools::redirect(Context::getContext()->link->getModuleLink('paypal', 'expresscheckoutconfirm', $values, true));
-        }
     }
 
     /**
@@ -1352,18 +1309,18 @@ class PayPal extends \PaymentModule
         // Add the PayPal order details to the template
         $paypalOrder = PayPalOrder::getByOrderId($order->id);
         foreach ([
-            'id_transaction',
-            'id_payment',
-            'id_payer',
-            'id_invoice',
-            'currency',
-            'total_paid',
-            'shipping',
-            'capture',
-            'payment_date',
-            'payment_method',
-            'payment_status',
-        ] as $property) {
+                     'id_transaction',
+                     'id_payment',
+                     'id_payer',
+                     'id_invoice',
+                     'currency',
+                     'total_paid',
+                     'shipping',
+                     'capture',
+                     'payment_date',
+                     'payment_method',
+                     'payment_status',
+                 ] as $property) {
             if (isset($paypalOrder[$property])) {
                 $params[$property] = $paypalOrder[$property];
             } else {
@@ -1371,79 +1328,16 @@ class PayPal extends \PaymentModule
             }
         }
 
-        try {
-            $this->context->smarty->assign(
-                [
-                    'id_order'  => $order->id,
-                    'reference' => $reference,
-                    'params'    => $params,
-                    'total'     => Tools::displayPrice($totalToPay, $currency, false),
-                ]
-            );
-        } catch (PrestaShopException $e) {
-            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
+        $this->context->smarty->assign(
+            [
+                'id_order'  => $order->id,
+                'reference' => $reference,
+                'params'    => $params,
+                'total'     => Tools::displayPrice($totalToPay, $currency, false),
+            ]
+        );
 
-            return '';
-        }
-
-        try {
-            return $this->display(__FILE__, 'confirmation.tpl');
-        } catch (Exception $e) {
-            Logger::addLog("{$this->displayName}: {$e->getMessage()}");
-
-            return '';
-        }
-    }
-
-    /**
-     * @return string
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     * @throws SmartyException
-     */
-    public function hookLeftColumn()
-    {
-        return $this->hookRightColumn();
-    }
-
-    /**
-     * @return string
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     * @throws SmartyException
-     */
-    public function hookRightColumn()
-    {
-        $this->context->smarty->assign('logo', PayPalLogos::getCardsLogo($this->getLocale(), true));
-
-        return $this->display(__FILE__, 'column.tpl');
-    }
-
-    /**
-     * @param array $params
-     *
-     * @return bool|null
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     */
-    public function hookBackBeforePayment($params)
-    {
-        if (!$this->active) {
-            return '';
-        }
-
-        /* Only execute if you use PayPal API for payment */
-        if ($this->isPayPalAPIAvailable()) {
-            if ($params['module'] != $this->name || !$this->context->cookie->paypal_token
-                || !$this->context->cookie->paypal_payer_id
-            ) {
-                return false;
-            }
-
-            Tools::redirect($this->context->link->getModuleLink($this->name, 'expresscheckoutconfirm', ['confirm' => '1', 'token' => $this->context->cookie->paypal_token, 'PayerID' => $this->context->cookie->paypal_payer_id], true));
-        }
-
-        return '';
+        return $this->display(__FILE__, 'confirmation.tpl');
     }
 
     /**
@@ -1463,6 +1357,7 @@ class PayPal extends \PaymentModule
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws \Predis\ClientException
      */
     public function hookAdminOrder($params)
     {
@@ -1621,7 +1516,8 @@ class PayPal extends \PaymentModule
     public function hookCancelProduct($params)
     {
         /** @var \Order $order */
-        if (Tools::isSubmit('generateDiscount') || !$this->isPayPalAPIAvailable()
+        if (Tools::isSubmit('generateDiscount')
+            || !$this->isPayPalAPIAvailable()
             || Tools::isSubmit('generateCreditSlip')
         ) {
             return false;
@@ -1639,7 +1535,7 @@ class PayPal extends \PaymentModule
         }
 
         $paypalOrder = PayPalOrder::getByOrderId((int) $order->id);
-        if (!$paypalOrder) {
+        if (!Validate::isLoadedObject($paypalOrder)) {
             return false;
         }
 
@@ -1648,7 +1544,7 @@ class PayPal extends \PaymentModule
         $message = $this->l('Cancel products result:').'<br>';
 
         $amount = (float) ($products[(int) $orderDetail->id]['product_price_wt'] * (int) $cancelQuantity[(int) $orderDetail->id]);
-        $refund = $this->doRefund($paypalOrder['id_payment'], $order, $amount);
+        $refund = $this->doRefund($paypalOrder->id_payment, $order, $amount);
         $this->formatMessage($refund, $message);
         $this->addNewPrivateMessage((int) $order->id, $message);
 
@@ -1661,6 +1557,7 @@ class PayPal extends \PaymentModule
      * @param bool|float $amount Amount
      *
      * @return bool
+     *
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
@@ -1671,10 +1568,10 @@ class PayPal extends \PaymentModule
         }
 
         // TODO: check if succeeded
-        $rest = new PayPalRestApi();
+        $rest = PayPalRestApi::getInstance();
         if ($rest->executeRefund($idPayment, [
-            'amount' => (float) $amount,
-            'currency' => Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code),
+            'amount'   => (float) $amount,
+            'currency' => strtoupper(Currency::getCurrencyInstance($order->id_currency)->iso_code),
         ])) {
             return true;
         }
@@ -1806,7 +1703,8 @@ class PayPal extends \PaymentModule
         $dontTouchAmount = false,
         $secureKey = false,
         Shop $shop = null
-    ) {
+    )
+    {
         if ($this->active) {
             // Set transaction details if pcc is defined in PaymentModule class_exists
             if (isset($this->pcc)) {
@@ -1843,11 +1741,7 @@ class PayPal extends \PaymentModule
      */
     public static function checkAddress($address)
     {
-        try {
-            return !in_array(Country::getIsoById($address->id_country), static::$postalCodeRequired) || $address->postcode;
-        } catch (PrestaShopException $e) {
-            return false;
-        }
+        return !in_array(Country::getIsoById($address->id_country), static::$postalCodeRequired) || $address->postcode;
     }
 
     /**
@@ -1862,21 +1756,19 @@ class PayPal extends \PaymentModule
      */
     protected function checkWebhooks($force = false)
     {
-        try {
-            $lastCheck = (int) Configuration::get(static::WEBHOOK_LAST_CHECK);
-        } catch (PrestaShopException $e) {
-            $lastCheck = 0;
-        }
-        try {
-            $webHookId = Configuration::get(static::WEBHOOK_ID);
-        } catch (PrestaShopException $e) {
-            $webhookId = null;
-        }
+        $lastCheck = (int) Configuration::get(static::WEBHOOK_LAST_CHECK, null, 0, 0);
+        $webHookId = Configuration::get(static::WEBHOOK_ID);
 
         if (time() > $lastCheck + static::WEBHOOK_CHECK_INTERVAL || !$webHookId || $force) {
             // Time to update/check webhooks
-            $rest = new PayPalRestApi();
-            $data = $rest->getWebhooks();
+            $rest = PayPalRestApi::getInstance();
+            try {
+                $data = $rest->getWebhooks();
+            } catch (TokenException $e) {
+                return;
+            } catch (PrestaShopException $e) {
+                return;
+            }
 
             if ($data) {
                 $found = false;
@@ -1886,7 +1778,7 @@ class PayPal extends \PaymentModule
                     foreach ($data->webhooks as $webhook) {
                         if ($webhook->url === $webhookUrl) {
                             $found = true;
-                                Configuration::updateValue(static::WEBHOOK_ID, $webhook->id);
+                            Configuration::updateValue(static::WEBHOOK_ID, $webhook->id);
 
                             break;
                         }
@@ -1894,19 +1786,16 @@ class PayPal extends \PaymentModule
                 }
 
                 if (!$found) {
-                    $rest = new PayPalRestApi();
+                    $rest = PayPalRestApi::getInstance();
                     $registration = $rest->registerWebhook($webhookUrl);
 
                     if (isset($registration->id)) {
-                            Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
+                        Configuration::updateValue(self::WEBHOOK_ID, $registration->id);
                     }
                 }
             }
 
-            Configuration::updateValue(
-                static::WEBHOOK_LAST_CHECK,
-                time()
-            );
+            Configuration::updateValue(static::WEBHOOK_LAST_CHECK, time(), false, 0, 0);
         }
     }
 }

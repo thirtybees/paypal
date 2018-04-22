@@ -25,10 +25,15 @@ use Configuration;
 use Context;
 use Customer;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
 use Language;
+use Logger;
 use PayPal;
-use PayPalModule\Exception\PaymentException;
+use PayPalModule\Exception\Payment\CaptureException;
+use PayPalModule\Exception\Payment\PaymentException;
+use PayPalModule\Exception\Auth\TokenException;
 use PrestaShopDatabaseException;
 use PrestaShopException;
 use Validate;
@@ -66,15 +71,63 @@ class PayPalRestApi
     /** @var Customer $customer */
     protected $customer;
     /** @var string $clientId */
-    protected $clientId;
+    protected static $clientId;
     /** @var string $secret */
-    protected $secret;
+    protected static $secret;
     /** @var null|string $accessToken */
-    protected $accessToken = null;
+    protected static $accessToken;
+    /** @var string $accessTokenExpire */
+    protected static $accessTokenExpire;
     /** @var null|array $profiles */
     protected $profiles = null;
+    /** @var Client $guzzle */
     protected static $guzzle;
+    /** @var static $instance */
+    protected static $instance;
     // @codingStandardsIgnoreEnd
+
+    /**
+     * Set API credentials
+     *
+     * @param string $clientId
+     * @param string $secret
+     */
+    public static function setCredentials($clientId, $secret)
+    {
+        static::$clientId = $clientId;
+        static::$secret = $secret;
+        static::$instance = null;
+    }
+
+    /**
+     * Get instance
+     *
+     * @return static
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
+    public static function getInstance()
+    {
+        if (!static::$instance) {
+            static::$instance = new static();
+        }
+
+        return static::$instance;
+    }
+
+    /**
+     * Get the base URI
+     *
+     * @return string
+     *
+     * @throws PrestaShopException
+     */
+    public static function getBaseUri()
+    {
+        return !Configuration::get(PayPal::LIVE)
+            ? $baseUri = 'https://api.sandbox.paypal.com'
+            : $baseUri = 'https://api.paypal.com';
+    }
 
     /**
      * ApiPaypalPlus constructor.
@@ -85,21 +138,19 @@ class PayPalRestApi
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
-    public function __construct($clientId = null, $secret = null)
+    protected function __construct()
     {
         $this->context = \Context::getContext();
         $this->cart = $this->context->cart;
         $this->customer = $this->context->customer;
-
-        $this->clientId = ($clientId) ? $clientId : Configuration::get(PayPal::CLIENT_ID);
-        $this->secret = ($secret) ? $secret : Configuration::get(PayPal::SECRET);
     }
 
     /**
      * Get Guzzle client
-     * 
+     *
      * @return Client
      * @throws PrestaShopException
+     * @throws TokenException
      */
     protected static function getGuzzle()
     {
@@ -110,12 +161,13 @@ class PayPalRestApi
                 $baseUri = 'https://api.paypal.com';
             }
 
+            $accessToken = static::getAccessToken();
             static::$guzzle = new Client(
                 [
                     'base_uri'    => $baseUri,
                     'timeout'     => PayPal::CONNECTION_TIMEOUT,
                     'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-                    'http_errors' => false,
+                    'headers'     => ['Authorization' => "Bearer $accessToken"],
                 ]
             );
         }
@@ -123,130 +175,129 @@ class PayPalRestApi
         return static::$guzzle;
     }
 
+    /**
+     * @return string|null
+     *
+     * @throws PrestaShopException
+     * @throws TokenException
+     */
+    protected static function getAccessToken()
+    {
+        if (static::$accessToken && time() < strtotime(static::$accessTokenExpire.' +2 minutes')) {
+            return static::$accessToken;
+        }
+        if (Configuration::get(PayPal::ACCESS_TOKEN)
+            && time() < strtotime(Configuration::get(PayPal::ACCESS_TOKEN_EXPIRE).' +2 minutes')
+        ) {
+            static::$accessToken = Configuration::get(PayPal::ACCESS_TOKEN);
+            static::$accessTokenExpire = date('Y-m-d H:i:s', strtotime(Configuration::get(PayPal::ACCESS_TOKEN_EXPIRE)));
+
+            return static::$accessToken;
+        }
+
+        if (!static::$clientId || !static::$secret) {
+            throw new TokenException('Trying to request access token without credentials');
+        }
+
+        $guzzle = new Client([
+            'base_uri'    => static::getBaseUri(),
+            'timeout'     => PayPal::CONNECTION_TIMEOUT,
+            'verify'      => _PS_TOOL_DIR_.'cacert.pem',
+            'auth'        => [static::$clientId, static::$secret],
+        ]);
+
+        try {
+            $result = (string) $guzzle->post(static::PATH_CREATE_TOKEN, [
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+                'body'    => http_build_query(['grant_type' => 'client_credentials']),
+            ])->getBody();
+        } catch (ClientException $e) {
+            throw new TokenException(
+                'Unable to retrieve access token',
+                0,
+                null,
+                $e->getRequest(),
+                $e->getResponse()
+            );
+        } catch (RequestException $e) {
+            throw new TokenException('Unable to retrieve token', 0, $e, $e->getRequest(), $e->getResponse());
+        } catch (TransferException $e) {
+            throw new TokenException('Unable to retrieve token', 0, $e);
+        }
+        if (!$result) {
+            return false;
+        }
+
+        $tokenResult = json_decode($result, true);
+        if (!empty($tokenResult['error']) || !isset($tokenResult['access_token']) || !isset($tokenResult['expires_in'])) {
+            throw new TokenException(isset($tokenResult['error_description']) ? $tokenResult['error_description'] : 'Unable to retrieve token');
+        }
+
+        // TODO: insert scope check here
+        static::$accessToken = $tokenResult['access_token'];
+        static::$accessTokenExpire = date('Y-m-d H:i:s', time() + (int) $tokenResult['expires_in']);
+        Configuration::updateValue(PayPal::ACCESS_TOKEN, static::$accessToken);
+        Configuration::updateValue(PayPal::ACCESS_TOKEN_EXPIRE, static::$accessTokenExpire);
+
+        return static::$accessToken;
+    }
 
     /**
      * @param int $type
      *
      * @return bool|array
+     *
      * @throws PrestaShopException
+     * @throws ClientException
+     * @throws TokenException
      */
     public function getWebProfile($type = self::STANDARD_PROFILE)
     {
-        $accessToken = $this->getToken();
-
-        if ($accessToken) {
-            $data = $this->createWebProfile($type);
-
-            $headers = [
-                'Content-Type'  => 'application/json',
-                'Authorization' => 'Bearer '.$accessToken,
-            ];
-
-            if ($this->profiles) {
-                $profileId = '';
-                foreach ($this->profiles as $profile) {
-                    if ($profile->name == $data['name']) {
-                        $profileId = $profile->id;
-                    }
-                }
-
-                if ($profileId) {
-                    // DELETE first
-                    $this->send(static::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
+        $guzzle = static::getGuzzle();
+        $data = $this->createWebProfile($type);
+        if ($this->profiles) {
+            $profileId = '';
+            foreach ($this->profiles as $profile) {
+                /** @var array $profile */
+                if ($profile['name'] == $data['name']) {
+                    $profileId = $profile['id'];
                 }
             }
 
-            // Then create
-            $result = $this->send(static::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST');
-            if (!$result) {
-                return false;
-            }
-
-            $result = json_decode($result, true);
-
-            if (isset($result->id)) {
-                return $result->id;
+            if ($profileId) {
+                // DELETE first
+                try {
+                    $guzzle->delete(static::PATH_WEBPROFILES.'/'.$profileId);
+                } catch (ClientException $e) {
+                    // Not sure if we should handle incorrect DELETEs, it's kind of fire and forget
+                } catch (TransferException $e) {
+                    Logger::addLog("PayPal module connection error: {$e->getMessage()}", 3);
+                }
             }
         }
 
-        return false;
-    }
-
-    /**
-     * @return bool
-     * @throws PrestaShopException
-     */
-    public function getToken()
-    {
-        if ($this->accessToken) {
-            return $this->accessToken;
+        // Then create
+        try {
+            $result = (string) $guzzle->post(static::PATH_WEBPROFILES, ['json' => $data])->getBody();
+        } catch (ClientException $e) {
+            $requestBody = $e->getRequest()->getBody();
+            $responseBody = $e->getResponse()->getBody();
+            Logger::addLog("PayPal module client error: {$requestBody} -- {$responseBody}");
+            $result = false;
         }
-
-        $result = $this->send(
-            static::PATH_CREATE_TOKEN,
-            http_build_query(['grant_type' => 'client_credentials']),
-            ['Content-Type' => 'application/x-www-form-urlencoded'],
-            true,
-            'POST'
-        );
         if (!$result) {
             return false;
         }
 
-        /*
-         * Init variable
-         */
-        $oPayPalToken = json_decode($result, true);
+        $result = json_decode($result, true);
 
-        if (isset($oPayPalToken->error)) {
-            return false;
-        } else {
-            $timeMax = time() + $oPayPalToken->expires_in;
-            $accessToken = $oPayPalToken->access_token;
-
-            /*
-             * Set Token in Cookie
-             */
-            $this->context->cookie->paypal_access_token_time_max = $timeMax;
-            $this->context->cookie->paypal_access_token_access_token = $accessToken;
-            $this->context->cookie->write();
-
-            if (!$this->accessToken) {
-                $this->accessToken = $accessToken;
-            }
-
-            return $accessToken;
-        }
-    }
-
-    /**
-     * @param string      $url URL including get params
-     * @param bool|string $body
-     * @param bool        $headers
-     * @param bool        $identify
-     * @param bool|string $requestType
-     *
-     * @return mixed
-     * @throws PrestaShopException
-     * @throws TransferException
-     */
-    protected function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
-    {
-        $guzzle = static::getGuzzle();
-        $requestOptions = [];
-        if ($identify) {
-            $requestOptions['auth'] = [$this->clientId, $this->secret];
-        }
-        if ($headers) {
-            $requestOptions['headers'] = $headers;
-        }
-        if ($body) {
-            $requestOptions['body'] = (string) $body;
+        if (isset($result['id'])) {
+            return $result;
         }
 
-        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
-
-        return (string) $response->getBody();
+        return false;
     }
 
     /**
@@ -255,37 +306,39 @@ class PayPalRestApi
      */
     public function getWebProfiles()
     {
-        $accessToken = $this->getToken();
-
-        if ($accessToken) {
-            $header = [
-                'Content-Type'  => 'application/json',
-                'Authorization' => 'Bearer '.$accessToken,
-            ];
-
-            $result = $this->send(static::PATH_WEBPROFILES, false, $header);
-            if (!$result) {
-                return false;
-            }
-
-            $this->profiles = json_decode($result, true);
-
-            return $this->profiles;
+        try {
+            $result = (string) static::getGuzzle()->get(static::PATH_WEBPROFILES)->getBody();
+        } catch (ClientException $e) {
+            return false;
+        } catch (TransferException $e) {
+            return false;
+        }
+        if (!$result) {
+            return false;
         }
 
-        return [];
+        $this->profiles = json_decode($result, true);
+
+        return $this->profiles;
     }
 
     /**
+     * Delete a web profile by ID
+     *
+     * @param string $id Web profile ID
+     *
      * @return bool
+     * @throws PrestaShopException
      */
-    public function deleteProfile()
+    public function deleteProfile($id)
     {
-//        $accessToken = $this->getToken();
-//
-//        if ($accessToken) {
-//            $this->send(static::PATH_WEBPROFILES, false, false, false, 'DELETE');
-//        }
+        try {
+            static::getGuzzle()->delete(static::PATH_WEBPROFILES.'/'.$id);
+        } catch (ClientException $e) {
+            return false;
+        } catch (TransferException $e) {
+            return false;
+        }
 
         return true;
     }
@@ -304,16 +357,21 @@ class PayPalRestApi
      */
     public function createPayment($returnUrl = null, $cancelUrl = null, $profile = self::STANDARD_PROFILE)
     {
-        $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$this->getToken(),
-        ];
-
-        $result = $this->send(static::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST');
-        if (!$result) {
+        try {
+            $object = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
+            $result = (string) static::getGuzzle()->post(static::PATH_CREATE_PAYMENT, [
+                'json' => $object,
+            ])->getBody();
+        } catch (ClientException $e) {
+            $requestBody = (string) $e->getRequest()->getBody();
+            $responseBody = (string) $e->getResponse()->getBody();
+            Logger::addLog("PayPal module error while creating payment: {$requestBody} -- {$responseBody}", 3);
+            throw new PaymentException('Unable to initialize payment', 0, $e, $e->getRequest(), $e->getResponse());
+        } catch (TransferException $e) {
             throw new PaymentException('Unable to initialize payment');
+        }
+        if (!$result) {
+            throw new PaymentException('Unable to initialize payment -- empty response');
         }
 
         return json_decode($result, true);
@@ -527,13 +585,7 @@ class PayPalRestApi
             return false;
         }
 
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-        $result = $this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header);
+        $result = (string) static::getGuzzle()->get(PayPalRestApi::PATH_LOOK_UP.$paymentId)->getBody();
         if (!$result) {
             return false;
         }
@@ -570,29 +622,19 @@ class PayPalRestApi
             ],
         ];
 
-        $accessToken = $this->refreshToken();
-
         $data = [
             'url'         => $webhookUrl,
             'event_types' => $types,
-        ];
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
         ];
 
         if (!Configuration::get(PayPal::LIVE) && !empty($_COOKIE['PayPal-Mock-Response'])) {
             $header[] = ['PayPal-Mock-Response' => $_COOKIE['PayPal-Mock-Response']];
         }
 
-        $result = $this->send(
+        $result = (string) static::getGuzzle()->post(
             rtrim(PayPalRestApi::PATH_WEBHOOK, '/'),
-            json_encode($data),
-            $header,
-            false,
-            'POST'
-        );
+            ['json' => $data]
+        )->getBody();
         if (!$result) {
             return false;
         }
@@ -605,16 +647,11 @@ class PayPalRestApi
      *
      * @return bool|mixed
      * @throws PrestaShopException
+     * @throws TokenException
      */
     public function getWebhooks()
     {
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-        $result = $this->send(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'), false, $header);
+        $result = (string) static::getGuzzle()->get(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'))->getBody();
         if (!$result) {
             return false;
         }
@@ -634,31 +671,12 @@ class PayPalRestApi
             return false;
         }
 
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-        $result = $this->send(PayPalRestApi::PATH_WEBHOOK_EVENT.$webhookId, false, $header);
+        $result = (string) static::getGuzzle()->get(PayPalRestApi::PATH_WEBHOOK_EVENT.$webhookId)->getBody();
         if (!$result) {
             return false;
         }
 
         return json_decode($result, true);
-    }
-
-    /**
-     * @return bool
-     * @throws PrestaShopException
-     */
-    public function refreshToken()
-    {
-        if ($this->context->cookie->paypal_access_token_time_max < time()) {
-            return $this->getToken();
-        } else {
-            return $this->context->cookie->paypal_access_token_access_token;
-        }
     }
 
     /**
@@ -669,19 +687,9 @@ class PayPalRestApi
      */
     public function voidAuthorization($authorizationId)
     {
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-
-        $result = $this->send(
+        $result = static::getGuzzle()->post(
             PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/void',
-            '{}',
-            $header,
-            false,
-            'POST'
+            '{}'
         );
         if (!$result) {
             return false;
@@ -697,16 +705,10 @@ class PayPalRestApi
      *
      * @return false|array
      * @throws PrestaShopException
+     * @throws CaptureException
      */
     public function capturePayment($authorizationId, $amount, $currencyCode)
     {
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-
         $data = [
             'amount' => [
                 'currency' => strtoupper($currencyCode),
@@ -715,13 +717,16 @@ class PayPalRestApi
             'is_final_capture' => true,
         ];
 
-        $result = $this->send(
-            PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/capture',
-            json_encode($data),
-            $header,
-            false,
-            'POST'
-        );
+        try {
+            $result = (string) static::getGuzzle()->post(
+                PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/capture',
+                ['json' => $data]
+            )->getBody();
+        } catch (ClientException $e) {
+            throw new CaptureException('Unable to capture payment', 0, $e, $e->getRequest(), $e->getResponse());
+        } catch (TransferException $e) {
+            throw new CaptureException('Unable to capture payment', 0, $e);
+        }
         if (!$result) {
             return false;
         }
@@ -738,20 +743,14 @@ class PayPalRestApi
      */
     public function executePayment($payerId, $paymentId)
     {
-        if ($payerId == 'NULL' || $paymentId == 'NULL') {
+        if ($payerId === 'NULL' || $paymentId === 'NULL') {
             return false;
         }
 
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-
-        $data = ['payer_id' => $payerId];
-
-        $result = $this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header, false, 'POST');
+        $result = (string) static::getGuzzle()->post(
+            PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/',
+            ['json' => ['payer_id' => $payerId]]
+        )->getBody();
         if (!$result) {
             return false;
         }
@@ -772,14 +771,7 @@ class PayPalRestApi
             return false;
         }
 
-        $accessToken = $this->refreshToken();
-
-        $header = [
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer '.$accessToken,
-        ];
-
-        $result = $this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header);
+        $result = (string) static::getGuzzle()->post(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', ['json' => $data])->getBody();
         if (!$result) {
             return false;
         }

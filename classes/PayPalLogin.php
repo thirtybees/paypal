@@ -56,7 +56,7 @@ class PayPalLogin
      */
     public function __construct()
     {
-        $this->rest = new PayPalRestApi();
+        $this->rest = PayPalRestApi::getInstance();
     }
 
     /**

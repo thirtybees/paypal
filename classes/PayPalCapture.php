@@ -39,6 +39,10 @@ if (!defined('_TB_VERSION_')) {
  */
 class PayPalCapture extends ObjectModel
 {
+    const AUTHORIZATION_PENDING = 1;
+    const CAPTURE_PENDING = 2;
+    const CAPTURED = 3;
+
     // @codingStandardsIgnoreStart
     /**
      * @see ObjectModel::$definition
@@ -172,5 +176,75 @@ class PayPalCapture extends ObjectModel
         } else {
             return false;
         }
+    }
+
+    /**
+     * Get the payment state of a payment
+     *
+     * @param array $payment
+     *
+     * @return int
+     */
+    public static function getPaymentState(array $payment)
+    {
+        if (empty($payment['transactions'][0]['related_resources']) || !is_array($payment['transactions'][0]['related_resources'])) {
+            return static::AUTHORIZATION_PENDING;
+        }
+
+        $history = array_map(function ($resource) {
+            return array_keys($resource)[0];
+        }, $payment['transactions'][0]['related_resources']);
+
+        if (in_array('capture', $history)) {
+            return static::CAPTURED;
+        } elseif (in_array('authorization', $history)) {
+            return static::CAPTURE_PENDING;
+        }
+
+        return static::AUTHORIZATION_PENDING;
+    }
+
+    /**
+     * Get the authorization of a payment
+     *
+     * @param array $payment
+     *
+     * @return null|array
+     */
+    public static function getAuthorization(array $payment)
+    {
+        if (empty($payment['transactions'][0]['related_resources']) || !is_array($payment['transactions'][0]['related_resources'])) {
+            return null;
+        }
+
+        foreach ($payment['transactions'][0]['related_resources'] as $resource) {
+            if (array_keys($resource)[0] === 'authorization') {
+                return array_values($resource)[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the capture of a payment
+     *
+     * @param array $payment
+     *
+     * @return null|array
+     */
+    public static function getCapture(array $payment)
+    {
+        if (empty($payment['transactions'][0]['related_resources']) || !is_array($payment['transactions'][0]['related_resources'])) {
+            return null;
+        }
+
+        foreach ($payment['transactions'][0]['related_resources'] as $resource) {
+            if (array_keys($resource)[0] === 'capture') {
+                return array_values($resource)[0];
+            }
+        }
+
+        return null;
     }
 }

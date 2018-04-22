@@ -2,7 +2,7 @@
 
 global $_MODULE;
 $_MODULE = [];
-$_MODULE['<{paypal}prestashop>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van Thirty Bees.';
+$_MODULE['<{paypal}prestashop>ipn_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van thirty bees.';
 $_MODULE['<{paypal}prestashop>ipn_572f9af7615560af2cba038cc1948287'] = 'Winkelwagen gewijzigd, probeer opnieuw.';
 $_MODULE['<{paypal}prestashop>ipn_ada2b5d5bbf3065de283d61526141780'] = 'Betalingsaanvraag in behandeling.';
 $_MODULE['<{paypal}prestashop>ipn_36ec50c0e914dd2fb48a1b27540512ce'] = 'Betaling aanvaard.';
@@ -52,18 +52,18 @@ $_MODULE['<{paypal}prestashop>payment_ada2b5d5bbf3065de283d61526141780'] = 'Beta
 $_MODULE['<{paypal}prestashop>payment_36ec50c0e914dd2fb48a1b27540512ce'] = 'Betaling aanvaard.';
 $_MODULE['<{paypal}prestashop>payment_719073527bcc898d5e7cc63fd6d16ce4'] = 'eCheck';
 $_MODULE['<{paypal}prestashop>payment_c8a31175ee6991be6a0d7a6d32ca4268'] = 'Betalingsbevestiging in behandeling.';
-$_MODULE['<{paypal}prestashop>payment_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van Thirty Bees.';
+$_MODULE['<{paypal}prestashop>payment_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van thirty bees.';
 $_MODULE['<{paypal}prestashop>payment_98825385aadb1d0dd0fd133ef8acd23d'] = 'Kan geen bestelling aanmaken';
 $_MODULE['<{paypal}prestashop>payment_085b78e060c3ef4cc37bd25abd06ff66'] = 'Winkelwagen gewijzigd sinds de laatste Express Checkout, maak een nieuwe PayPal checkout-betaling';
 $_MODULE['<{paypal}prestashop>payment_572da7ef1411f2a12409e752f3eb2f7a'] = 'Uw winkelwagen is leeg.';
 $_MODULE['<{paypal}prestashop>process_ee9dc1e678d54c517f481583c3fb2db8'] = 'Geen geldige munteenheid';
 $_MODULE['<{paypal}prestashop>process_484f5a79672cebe198ebdde45a1d672f'] = 'Geschenkverpakking';
-$_MODULE['<{paypal}prestashop>notifier_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van Thirty Bees.';
+$_MODULE['<{paypal}prestashop>notifier_8a34d4a5b0c3928059f6f92ead9e8aa6'] = 'De prijs betaald met paypal is niet dezelfde als die van thirty bees.';
 $_MODULE['<{paypal}prestashop>notifier_572f9af7615560af2cba038cc1948287'] = 'Winkelwagen gewijzigd, probeer opnieuw.';
 $_MODULE['<{paypal}prestashop>notifier_36ec50c0e914dd2fb48a1b27540512ce'] = 'Betaling aanvaard.';
 $_MODULE['<{paypal}prestashop>back_office_ae3cebe661e92cdfd12516419fef4f2d'] = 'Download de';
 $_MODULE['<{paypal}prestashop>back_office_e73756d0d2306110f29ccf28cb69c412'] = 'Paypal Integration Guide';
-$_MODULE['<{paypal}prestashop>back_office_6506302a6e11077ecbc04b5932a65c4c'] = 'op Thirty Bees en volg de configuratie stap per stap';
+$_MODULE['<{paypal}prestashop>back_office_6506302a6e11077ecbc04b5932a65c4c'] = 'op thirty bees en volg de configuratie stap per stap';
 $_MODULE['<{paypal}prestashop>back_office_748eadce9cf4f2bde207b63c5441da07'] = 'Gebruik de PayPal Inlog-functies';
 $_MODULE['<{paypal}prestashop>back_office_cded4ac9f77c68c750c243af1f5263c5'] = '(*raadpleeg de';
 $_MODULE['<{paypal}prestashop>back_office_606d8f704cf61d29bffd5195f28af29e'] = 'integration guide';

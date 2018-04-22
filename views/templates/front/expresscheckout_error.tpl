@@ -20,13 +20,13 @@
     <strong>{l s='Error(s) occurred' mod='paypal'}</strong>
     <ol>
       {foreach $errors as $error}
-        <li>{$error|escape:'htmlall':'UTF-8'}</li>
+        <li>{$error|escape:'htmlall'}</li>
       {/foreach}
     </ol>
   </div>
 
   <p>
-    <a href="{$link->getPageLink('index', true)|escape:'htmlall':'UTF-8'}" class="btn btn-sm btn-default" title="{l s='Back' mod='paypal'}">
+    <a href="{$link->getPageLink('index', true)|escape:'htmlall'}" class="btn btn-sm btn-default" title="{l s='Back' mod='paypal'}">
       <i class="icon icon-chevron-left"></i> {l s='Back' mod='paypal'}
     </a>
   </p>

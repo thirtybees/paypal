@@ -1,4 +1,5 @@
-{*
+<?php
+/**
  * Copyright (C) 2017-2018 thirty bees
  *
  * NOTICE OF LICENSE
@@ -14,10 +15,21 @@
  * @author    thirty bees <contact@thirtybees.com>
  * @copyright 2017-2018 thirty bees
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-*}
-{if !$is_logged}
-  <div id="container_express_checkout" class="pull-right clearfix">
-    <img id="payment_paypal_express_checkout" src=""/>
-  </div>
-  <div class="clearfix"></div>
-{/if}
+ */
+
+namespace PayPalModule\Exception\Payment;
+
+use PayPalModule\Exception\RequestException;
+
+if (!defined('_TB_VERSION_')) {
+    exit;
+}
+
+/**
+ * Class PaymentException
+ *
+ * @package PayPalModule\Exception
+ */
+class PaymentException extends RequestException
+{
+}

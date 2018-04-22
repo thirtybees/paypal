@@ -16,7 +16,7 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 <p>
-  <img src="{$logos.LocalPayPalLogoMedium|escape:'htmlall':'UTF-8'}" alt="{l s='PayPal' mod='paypal'}" class="paypal_logo"/>
+  <img src="{$logos.LocalPayPalLogoMedium|escape:'htmlall'}" alt="{l s='PayPal' mod='paypal'}" class="paypal_logo"/>
   <br/>{l s='You have chosen to pay with PayPal.' mod='paypal'}
   <br/><br/>
   {l s='Here is a short summary of your order:' mod='paypal'}
@@ -47,15 +47,15 @@
     {foreach from=$cart->getProducts() item=product}
       <tr>
         <td>
-          <img src="{$link->getImageLink('small', $product.id_image, $cart_image_size)|escape:'htmlall':'UTF-8'}" alt="">
+          <img src="{$link->getImageLink('small', $product.id_image, $cart_image_size)|escape:'htmlall'}" alt="">
         </td>
         <td>
-          {$product.name|escape:'htmlall':'UTF-8'}<br/>
+          {$product.name|escape:'htmlall'}<br/>
           {if isset($product.attributes) && $product.attributes}
-            <small>{$product.attributes|escape:'html':'UTF-8'}</small>{/if}
+            <small>{$product.attributes|escape:'html'}</small>{/if}
         </td>
         <td>
-          {$product.quantity|escape:'htmlall':'UTF-8'}
+          {$product.quantity|escape:'htmlall'}
         </td>
       </tr>
     {/foreach}
@@ -66,13 +66,13 @@
   <div class="alert alert-warning">
     {l s='The shipping address has changed during the PayPal checkout.' mod='paypal'}&nbsp;
     {l s='Therefore the order total has been recalculated based on your new shipping address.' mod='paypal'}<br />
-    {l s='Click' mod='paypal'} <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall':'UTF-8'}">{l s='here' mod='paypal'}</a> {l s='to return to PayPal' mod='paypal'}.
-    {l s='Or go back to' mod='paypal'} <a href="{$link->getPageLink('order', true)|escape:'htmlall':'UTF-8'}">{l s='the checkout' mod='paypal'}</a>.
+    {l s='Click' mod='paypal'} <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall'}">{l s='here' mod='paypal'}</a> {l s='to return to PayPal' mod='paypal'}.
+    {l s='Or go back to' mod='paypal'} <a href="{$link->getPageLink('order', true)|escape:'htmlall'}">{l s='the checkout' mod='paypal'}</a>.
   </div>
 {/if}
 <p class="paypal_total_amount">
   - {l s='The total amount of your order is' mod='paypal'}
-  <span id="amount" class="price"><strong>{$total|escape:'htmlall':'UTF-8'}</strong></span> {if $use_taxes == 1}{l s='(tax incl.)' mod='paypal'}{/if}
+  <span id="amount" class="price"><strong>{$total|escape:'htmlall'}</strong></span> {if $use_taxes == 1}{l s='(tax incl.)' mod='paypal'}{/if}
 </p>
 
-<link rel="stylesheet" href="{$module_dir|escape:'htmlall':'UTF-8'}views/css/paypal-cart-summary.css">
+<link rel="stylesheet" href="{$module_dir|escape:'htmlall'}views/css/paypal-cart-summary.css">
