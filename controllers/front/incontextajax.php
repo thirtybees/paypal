@@ -21,14 +21,14 @@ class MollieIdealajaxModuleFrontController extends ModuleFrontController
      */
     public function init()
     {
-        if (Tools::isSubmit('updateCart')) {
+        if (Tools::isSubmit('createCart')) {
             $this->updateCart();
 
-            return;
+            exit;
         } elseif (Tools::isSubmit('get_qty')) {
             $this->checkQuantity();
 
-            return;
+            exit;
         }
 
         die(json_encode([
@@ -43,10 +43,11 @@ class MollieIdealajaxModuleFrontController extends ModuleFrontController
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      */
-    protected function updateCart()
+    protected function createCart()
     {
         $idProduct = (int) Tools::getValue('idProduct');
         $idProductAttribute = (int) Tools::getValue('idProductAttribute');
+        $quantity = (int) Tools::getValue('quantity');
         if (!$idProductAttribute) {
             $idProductAttribute = null;
         }

@@ -28,11 +28,11 @@
       }
 
       var ppp = PAYPAL.apps.PPP({
-        "approvalUrl": "{/literal}{$approval_url}{literal}",
-        "placeholder": "ppplus",
-        "mode": "{/literal}{$mode|escape:'htmlall'}{literal}",
-        "language": "{/literal}{$language|escape:'htmlall'}{literal}",
-        "country": "{/literal}{$country|escape:'htmlall'}{literal}",
+        approvalUrl: "{/literal}{$approval_url}{literal}",
+        placeholder: "ppplus",
+        mode: "{/literal}{$mode|escape:'htmlall'}{literal}",
+        language: "{/literal}{$language|escape:'htmlall'}{literal}",
+        country: "{/literal}{$country|escape:'htmlall'}{literal}",
       });
     }
 
