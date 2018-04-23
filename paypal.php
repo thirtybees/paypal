@@ -402,7 +402,10 @@ class PayPal extends PaymentModule
             Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
 
             // Express Checkout
-            Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_CARDS, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_CARDS));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_CREDIT, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_CREDIT));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_SEPA, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_SEPA));
 
             // PayPal Login
             Configuration::updateValue(static::LOGIN_ENABLED, (int) Tools::getValue(static::LOGIN_ENABLED));
@@ -511,6 +514,9 @@ class PayPal extends PaymentModule
             static::WEBSITE_PAYMENTS_STANDARD_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
             static::WEBSITE_PAYMENTS_PLUS_ENABLED     => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
             static::EXPRESS_CHECKOUT_ENABLED          => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
+            static::EXPRESS_CHECKOUT_CARDS            => Configuration::get(static::EXPRESS_CHECKOUT_CARDS),
+            static::EXPRESS_CHECKOUT_CREDIT           => Configuration::get(static::EXPRESS_CHECKOUT_CREDIT),
+            static::EXPRESS_CHECKOUT_SEPA             => Configuration::get(static::EXPRESS_CHECKOUT_SEPA),
             static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
             static::LOGIN_THEME                       => Configuration::get(static::LOGIN_THEME),
 
