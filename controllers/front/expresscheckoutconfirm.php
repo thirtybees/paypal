@@ -17,7 +17,6 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalRestApi;
 use PayPalModule\PayPalTools;
 
@@ -182,7 +181,6 @@ class PayPalExpressCheckoutConfirmModuleFrontController extends ModuleFrontContr
         $moduleFilepath = $reflection->getFileName();
         $this->context->smarty->assign([
             'total'            => \Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
-            'logos'            => PayPalLogos::getLogos($this->module->getLocale()),
             'use_mobile'       => (bool) $this->context->getMobileDevice(),
             'address_shipping' => $tbShippingAddress,
             'address_billing'  => $tbBillingAddress,

@@ -29,7 +29,6 @@ use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalLogin;
 use PayPalModule\PayPalLoginUser;
-use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 use PayPalModule\PayPalTools;
@@ -1233,7 +1232,6 @@ class PayPal extends PaymentModule
     {
         $this->context->smarty->assign(
             [
-                'logos'            => PayPalLogos::getLogos($this->getLocale()),
                 static::LIVE       => Configuration::get(static::LIVE),
                 'use_mobile'       => true,
                 'PayPal_lang_code' => $this->getLocale(),
@@ -1407,11 +1405,8 @@ class PayPal extends PaymentModule
             return '';
         }
 
-        $paypalLogos = PayPalLogos::getLogos($this->getLocale());
-
         $this->context->smarty->assign([
             'PayPal_payment_type'                   => 'cart',
-            'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
             'PayPal_current_page'                   => $this->getCurrentUrl(),
             'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
             'PayPal_tracking_code'                  => '',
