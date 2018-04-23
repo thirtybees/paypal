@@ -49,7 +49,7 @@
                    {if $fields_value[$input.name] == $value.value}checked="checked"{/if}
                    {if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}
             >
-            <span style="display:inline-block;min-width: 50px">{$value.label|escape:'htmlall'}</span><img src="{$value.image|escape:'htmlall'}">
+            <span style="display:inline-block;min-width: 50px">{$value.label|escape:'htmlall'}</span><img class="radio-image" src="{$value.image|escape:'htmlall'}">
           </label>
         {/strip}
       </div>
@@ -57,7 +57,7 @@
     {/foreach}
   {elseif $input.type == 'switch'}
     <span class="switch prestashop-switch fixed-width-lg">
-      {foreach [['value'=>0],['value'=>1]] as $value}
+      {foreach [['value'=>1],['value'=>0]] as $value}
         <input type="radio"
                name="{$input.name}"
                 {if $value.value == 1} id="{$input.name}_on"{else} id="{$input.name}_off"{/if}
@@ -71,7 +71,7 @@
     </span>
   {elseif $input.type == 'imageswitch'}
     <span class="switch prestashop-switch fixed-width-lg">
-      {foreach [['value'=>0],['value'=>1]] as $value}
+      {foreach [['value'=>1],['value'=>0]] as $value}
         <input type="radio"
                name="{$input.name}"
                 {if $value.value == 1} id="{$input.name}_on"{else} id="{$input.name}_off"{/if}
@@ -88,6 +88,7 @@
            height="{$input.image.height|intval}"
            width="{$input.image.width|intval}"
            style="width: auto; height: 40px"
+           class="switch-image"
       ></label>
   {else}
     {$smarty.block.parent}

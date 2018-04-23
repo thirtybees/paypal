@@ -322,6 +322,9 @@ class PayPal extends PaymentModule
             'id_webhook' => Configuration::get(static::WEBHOOK_ID),
         ]);
 
+        $this->context->controller->addCSS($this->_path.'views/css/back.css', 'all');
+        $this->context->controller->addJS($this->_path.'views/js/back.js');
+
         $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
         $output .= $this->display(__FILE__, 'views/templates/admin/tlscheck.tpl');
         $output .= $this->display(__FILE__, 'views/templates/admin/webhookscheck.tpl');
@@ -698,9 +701,14 @@ class PayPal extends PaymentModule
                 ],
                 'input'  => [
                     [
-                        'type'  => 'switch',
+                        'type'  => 'imageswitch',
                         'label' => $this->l('Enable Express Checkout'),
                         'name'  => static::EXPRESS_CHECKOUT_ENABLED,
+                        'image' => [
+                            'src'    => Media::getMediaPath(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-express.png"),
+                            'width'  => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-express.png")[0],
+                            'height' => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-express.png")[1],
+                        ],
                     ],
                     [
                         'type' => 'hr',
