@@ -368,30 +368,35 @@ class PayPal extends PaymentModule
             if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
                 $rest = PayPalRestApi::getInstance();
                 $rest->getWebProfiles();
-                $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
-                $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
-                $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
-
-                if (Tools::getValue(static::LIVE)) {
-                    if ($standardProfile) {
-                        Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                /** @var array $standardProfile */
+                try {
+                    $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
+                    /** @var array $plusProfile */
+                    $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
+                    /** @var array $expressCheckoutProfile */
+                    $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
+                    if (Tools::getValue(static::LIVE)) {
+                        if ($standardProfile) {
+                            Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile['id']);
+                        }
+                        if ($plusProfile) {
+                            Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile['id']);
+                        }
+                        if ($expressCheckoutProfile) {
+                            Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile['id']);
+                        }
+                    } else {
+                        if ($standardProfile) {
+                            Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile['id']);
+                        }
+                        if ($plusProfile) {
+                            Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile['id']);
+                        }
+                        if ($expressCheckoutProfile) {
+                            Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile['id']);
+                        }
                     }
-                    if ($plusProfile) {
-                        Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
-                    }
-                    if ($expressCheckoutProfile) {
-                        Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
-                    }
-                } else {
-                    if ($standardProfile) {
-                        Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
-                    }
-                    if ($plusProfile) {
-                        Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
-                    }
-                    if ($expressCheckoutProfile) {
-                        Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
-                    }
+                } catch (TokenException $e) {
                 }
             }
 
@@ -680,7 +685,7 @@ class PayPal extends PaymentModule
                 'input'  => [
                     [
                         'type'   => 'switch',
-                        'label'  => $this->l('Enable Website Payments Plus'),
+                        'label'  => $this->l('Enable Website Payments Plus (Germany only)'),
                         'name'   => static::WEBSITE_PAYMENTS_PLUS_ENABLED,
                     ],
                 ],
