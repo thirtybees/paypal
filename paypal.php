@@ -67,6 +67,19 @@ class PayPal extends PaymentModule
     const EXPRESS_CHECKOUT_CREDIT = 'PAYPAL_EC_CREDIT';
     const EXPRESS_CHECKOUT_CARDS = 'PAYPAL_EC_CARDS';
     const EXPRESS_CHECKOUT_SEPA = 'PAYPAL_EC_SEPA';
+    const EXPRESS_CHECKOUT_SHAPE = 'PAYPAL_EC_SHAPE';
+    const EXPRESS_CHECKOUT_COLOR = 'PAYPAL_EC_COLOR';
+
+    const EXPRESS_CHECKOUT_SHAPE_RECT = 'rect';
+    const EXPRESS_CHECKOUT_SHAPE_PILL = 'pill';
+
+    const EXPRESS_CHECKOUT_COLOR_GOLD = 'gold';
+    const EXPRESS_CHECKOUT_COLOR_BLUE = 'blue';
+    const EXPRESS_CHECKOUT_COLOR_SILVER = 'silver';
+    const EXPRESS_CHECKOUT_COLOR_BLACK = 'black';
+
+    const PAYPAL_LOGIN_COLOR_NEUTRAL = 'neutral';
+    const PAYPAL_LOGIN_COLOR_BLUE = 'blue';
 
     const LOGIN_ENABLED = 'PAYPAL_LOGIN_ENABLED';
     const LOGIN_THEME = 'PAYPAL_LOGIN_TPL';
@@ -337,7 +350,6 @@ class PayPal extends PaymentModule
      * Post process
      *
      * @throws PrestaShopException
-     * @throws \Predis\ClientException
      */
     protected function postProcess()
     {
@@ -411,6 +423,8 @@ class PayPal extends PaymentModule
             Configuration::updateValue(static::EXPRESS_CHECKOUT_CARDS, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_CARDS));
             Configuration::updateValue(static::EXPRESS_CHECKOUT_CREDIT, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_CREDIT));
             Configuration::updateValue(static::EXPRESS_CHECKOUT_SEPA, (bool) Tools::getValue(static::EXPRESS_CHECKOUT_SEPA));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_SHAPE, Tools::getValue(static::EXPRESS_CHECKOUT_SHAPE));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_COLOR, Tools::getValue(static::EXPRESS_CHECKOUT_COLOR));
 
             // PayPal Login
             Configuration::updateValue(static::LOGIN_ENABLED, (int) Tools::getValue(static::LOGIN_ENABLED));
@@ -473,7 +487,7 @@ class PayPal extends PaymentModule
      */
     protected function renderMainForm()
     {
-        $helper = new \HelperForm();
+        $helper = new HelperForm();
 
         $helper->show_toolbar = false;
         $helper->module = $this;
@@ -481,7 +495,7 @@ class PayPal extends PaymentModule
         $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submit'.$this->name;
-        $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query([
+        $helper->currentIndex = AdminController::$currentIndex.'&'.http_build_query([
                 'configure' => $this->name,
             ]);
         $helper->token = Tools::getAdminTokenLite('AdminModules');
@@ -522,6 +536,8 @@ class PayPal extends PaymentModule
             static::EXPRESS_CHECKOUT_CARDS            => Configuration::get(static::EXPRESS_CHECKOUT_CARDS),
             static::EXPRESS_CHECKOUT_CREDIT           => Configuration::get(static::EXPRESS_CHECKOUT_CREDIT),
             static::EXPRESS_CHECKOUT_SEPA             => Configuration::get(static::EXPRESS_CHECKOUT_SEPA),
+            static::EXPRESS_CHECKOUT_SHAPE            => Configuration::get(static::EXPRESS_CHECKOUT_SHAPE),
+            static::EXPRESS_CHECKOUT_COLOR            => Configuration::get(static::EXPRESS_CHECKOUT_COLOR),
             static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
             static::LOGIN_THEME                       => Configuration::get(static::LOGIN_THEME),
 
@@ -539,12 +555,12 @@ class PayPal extends PaymentModule
      */
     protected function getGeneralForm()
     {
-        $countries = \Country::getCountries($this->context->language->id);
+        $countries = Country::getCountries($this->context->language->id);
         return [
             'form' => [
                 'legend' => [
                     'title' => $this->l('General'),
-                    'icon'  => 'icon-puzzle-piece',
+                    'icon'  => 'icon-cogs',
                 ],
                 'input'  => [
                     [
@@ -653,7 +669,7 @@ class PayPal extends PaymentModule
             'form' => [
                 'legend' => [
                     'title' => $this->l('Website Payments Standard'),
-                    'icon'  => 'icon-credit-card',
+                    'icon'  => 'icon-cc-paypal',
                 ],
                 'input'  => [
                     [
@@ -680,7 +696,7 @@ class PayPal extends PaymentModule
             'form' => [
                 'legend' => [
                     'title' => $this->l('Website Payments Plus (Germany only)'),
-                    'icon'  => 'icon-credit-card',
+                    'icon'  => 'icon-cc-paypal',
                 ],
                 'input'  => [
                     [
@@ -707,7 +723,7 @@ class PayPal extends PaymentModule
             'form' => [
                 'legend' => [
                     'title' => $this->l('Express Checkout'),
-                    'icon'  => 'icon-credit-card',
+                    'icon'  => 'icon-cc-paypal',
                 ],
                 'input'  => [
                     [
@@ -733,6 +749,7 @@ class PayPal extends PaymentModule
                             'width'  => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-cards.png")[0],
                             'height' => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-cards.png")[1],
                         ],
+                        'desc'  => $this->l('NOTE: not every customer will see these icons'),
                     ],
                     [
                         'type' => 'hr',
@@ -747,6 +764,7 @@ class PayPal extends PaymentModule
                             'width'  => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-credit.png")[0],
                             'height' => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-credit.png")[1],
                         ],
+                        'desc'  => $this->l('NOTE: this option is only shown to US customers'),
                     ],
                     [
                         'type' => 'hr',
@@ -760,6 +778,72 @@ class PayPal extends PaymentModule
                             'src'    => Media::getMediaPath(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-sepa.png"),
                             'width'  => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-sepa.png")[0],
                             'height' => getimagesize(_PS_MODULE_DIR_."{$this->name}/views/img/button-paypal-sepa.png")[1],
+                        ],
+                        'desc' => $this->l('NOTE: this payment method is only available to German customers'),
+                    ],
+                    [
+                        'type' => 'hr',
+                        'name' => '',
+                    ],
+                    [
+                        'type'     => 'radio',
+                        'label'    => $this->l('Shape'),
+                        'desc'     => $this->l('Choose the button shape'),
+                        'name'     => static::EXPRESS_CHECKOUT_SHAPE,
+                        'is_bool'  => true,
+                        'distance' => 80,
+                        'margin'   => 15,
+                        'values'   => [
+                            [
+                                'id'    => 'rect',
+                                'value' => static::EXPRESS_CHECKOUT_SHAPE_RECT,
+                                'label' => $this->l('Rectangle'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypalgold.png'),
+                            ],
+                            [
+                                'id'    => 'pill',
+                                'value' => static::EXPRESS_CHECKOUT_SHAPE_PILL,
+                                'label' => $this->l('Pill'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypalpill.png'),
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'hr',
+                        'name' => '',
+                    ],
+                    [
+                        'type'     => 'radio',
+                        'label'    => $this->l('Color'),
+                        'desc'     => $this->l('Choose the button color'),
+                        'name'     => static::EXPRESS_CHECKOUT_COLOR,
+                        'is_bool'  => true,
+                        'margin'   => 15,
+                        'values'   => [
+                            [
+                                'id'    => 'gold',
+                                'value' => static::EXPRESS_CHECKOUT_COLOR_GOLD,
+                                'label' => $this->l('Gold'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypalgold.png'),
+                            ],
+                            [
+                                'id'    => 'blue',
+                                'value' => static::EXPRESS_CHECKOUT_COLOR_BLUE,
+                                'label' => $this->l('Blue'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypalblue.png'),
+                            ],
+                            [
+                                'id'    => 'silver',
+                                'value' => static::EXPRESS_CHECKOUT_COLOR_SILVER,
+                                'label' => $this->l('Silver'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypalsilver.png'),
+                            ],
+                            [
+                                'id'    => 'black',
+                                'value' => static::EXPRESS_CHECKOUT_COLOR_BLACK,
+                                'label' => $this->l('Black'),
+                                'image' => Media::getMediaPath($this->_path.'views/img/paypalblack.png'),
+                            ],
                         ],
                     ],
                 ],
@@ -796,16 +880,17 @@ class PayPal extends PaymentModule
                         'desc'    => $this->l('Choose the button style'),
                         'name'    => static::LOGIN_THEME,
                         'is_bool' => true,
+                        'margin'  => 6,
                         'values'  => [
                             [
                                 'id'    => 'neutral',
-                                'value' => 0,
+                                'value' => static::PAYPAL_LOGIN_COLOR_NEUTRAL,
                                 'label' => $this->l('Neutral'),
                                 'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_grey.png'),
                             ],
                             [
                                 'id'    => 'blue',
-                                'value' => 1,
+                                'value' => static::PAYPAL_LOGIN_COLOR_BLUE,
                                 'label' => $this->l('Blue'),
                                 'image' => Media::getMediaPath($this->_path.'views/img/paypal_login_blue.png'),
                             ],
@@ -1023,8 +1108,8 @@ class PayPal extends PaymentModule
             'label'              => $label,
             'layout'             => empty($allowed) ? 'horizontal' : 'vertical',
             'size'               => 'responsive',
-            'shape'              => 'rect',
-            'color'              => 'gold',
+            'shape'              => Configuration::get(static::EXPRESS_CHECKOUT_SHAPE),
+            'color'              => Configuration::get(static::EXPRESS_CHECKOUT_COLOR),
             'fundingAllowed'     => $allowed,
             'fundingDisallowed'  => $disallowed,
         ]));
@@ -1114,8 +1199,8 @@ class PayPal extends PaymentModule
             'label'              => $label,
             'layout'             => empty($allowed) ? 'horizontal' : 'vertical',
             'size'               => 'large',
-            'shape'              => 'rect',
-            'color'              => 'gold',
+            'shape'              => Configuration::get(static::EXPRESS_CHECKOUT_SHAPE),
+            'color'              => Configuration::get(static::EXPRESS_CHECKOUT_COLOR),
             'fundingAllowed'     => $allowed,
             'fundingDisallowed'  => $disallowed,
         ]);
@@ -1181,6 +1266,26 @@ class PayPal extends PaymentModule
         }
         if (!isset($params['locale'])) {
             $params['locale'] = static::getLocale();
+        }
+        if (!isset($params['shape'])) {
+            $params['shape'] = Configuration::get(static::EXPRESS_CHECKOUT_SHAPE);
+        }
+        if (!in_array($params['shape'], [
+            static::EXPRESS_CHECKOUT_SHAPE_RECT,
+            static::EXPRESS_CHECKOUT_SHAPE_PILL,
+        ])) {
+            $params['shape'] = static::EXPRESS_CHECKOUT_SHAPE_RECT;
+        }
+        if (!isset($params['color'])) {
+            $params['color'] = Configuration::get(static::EXPRESS_CHECKOUT_COLOR);
+        }
+        if (!in_array($params['color'], [
+            static::EXPRESS_CHECKOUT_COLOR_GOLD,
+            static::EXPRESS_CHECKOUT_COLOR_BLUE,
+            static::EXPRESS_CHECKOUT_COLOR_SILVER,
+            static::EXPRESS_CHECKOUT_COLOR_BLACK,
+        ])) {
+            $params['color'] = static::EXPRESS_CHECKOUT_COLOR_GOLD;
         }
 
         $this->context->smarty->assign([

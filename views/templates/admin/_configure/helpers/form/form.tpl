@@ -48,8 +48,9 @@
                    value="{$value.value|escape:'htmlall'}"
                    {if $fields_value[$input.name] == $value.value}checked="checked"{/if}
                    {if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}
+                   style="{if isset($input.margin)}margin-top: {$input.margin|intval}px;{/if}box-sizing: border-box;"
             >
-            <span style="display:inline-block;min-width: 50px">{$value.label|escape:'htmlall'}</span><img class="radio-image" src="{$value.image|escape:'htmlall'}">
+            <span style="display:inline-block;min-width: {if !isset($input.distance)}50{else}{$input.distance|intval}{/if}px">{$value.label|escape:'htmlall'}</span><img class="radio-image" src="{$value.image|escape:'htmlall'}">
           </label>
         {/strip}
       </div>

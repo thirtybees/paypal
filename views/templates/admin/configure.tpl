@@ -16,7 +16,7 @@
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *}
 <div class="panel">
-  <h3><i class="icon icon-puzzle-piece"></i> {l s='PayPal' mod='paypal'}</h3>
+  <h3><i class="icon icon-paypal"></i> {l s='PayPal' mod='paypal'}</h3>
   <strong>{l s='Accept payments with PayPal' mod='paypal'}</strong>
   <p>
     {l s='Thank you for using this module!' mod='paypal'}
