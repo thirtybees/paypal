@@ -18,7 +18,7 @@
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *}
-<script type="text/javascript">
+<script type="text/javascript" data-cookieconsent="necessary">
 	(function () {
 		function initPayPalLoginJs() {
 			if (typeof $ === 'undefined' || typeof window.paypal === 'undefined' || typeof window.paypal.loginUtils === 'undefined' || typeof window.paypal.login === 'undefined') {

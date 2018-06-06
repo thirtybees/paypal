@@ -22,7 +22,7 @@
 <div id="ppplus"></div>
 
 {literal}
-<script type="application/javascript">
+<script type="application/javascript" data-cookieconsent="necessary">
   (function () {
     function initPayPalPlus() {
       if (typeof PAYPAL === 'undefined' || typeof PAYPAL.apps === 'undefined' || typeof PAYPAL.apps.PPP === 'undefined') {

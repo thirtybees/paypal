@@ -41,7 +41,7 @@
 			<input id="cancel" class="button btn btn-large" type="submit" name="confirmCancel" value="{l s='Cancel your order' mod='paypal'}"/>
 			<input id="confirm" class="button btn btn-large" type="submit" name="confirmPayment" value="{l s='Confirm your payment' mod='paypal'}"/>
 		</form>
-		<script type="text/javascript">
+		<script type="text/javascript" data-cookieconsent="necessary">
 
 			$(document).ready(function () {
 

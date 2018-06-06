@@ -26,8 +26,8 @@
 {/capture}
 <div id="ppplus"></div>
 
-<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript"></script>
-<script type="application/javascript">
+<script async defer src="https://www.paypalobjects.com/webstatic/ppplus/ppplus.min.js" type="text/javascript" data-cookieconsent="necessary"></script>
+<script type="application/javascript" data-cookieconsent="necessary">
 	(function () {
 		function initPayPalPlus() {
 			if (typeof PAYPAL === 'undefined' || typeof PAYPAL.apps === 'undefined' || typeof PAYPAL.apps.PPP === 'undefined') {
