@@ -1,42 +1,28 @@
 <?php
 /**
- * Copyright (C) 2017-2018 thirty bees
+ * 2017 Thirty Bees
+ * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.md
+ * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
  * http://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- * @author    thirty bees <contact@thirtybees.com>
- * @copyright 2017-2018 thirty bees
+ * @author    Thirty Bees <modules@thirtybees.com>
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2017 Thirty Bees
+ * @copyright 2007-2016 PrestaShop SA
  * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
 namespace PayPalModule;
 
-use Adapter_Exception;
-use Cart;
-use Configuration;
-use Context;
-use Customer;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\TransferException;
-use Language;
-use Logger;
-use PayPal;
-use PayPalModule\Exception\Payment\CaptureException;
-use PayPalModule\Exception\Payment\PaymentException;
-use PayPalModule\Exception\Auth\TokenException;
-use PrestaShopDatabaseException;
-use PrestaShopException;
-use Validate;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -55,193 +41,42 @@ class PayPalRestApi
     const PATH_WEBPROFILES = '/v1/payment-experience/web-profiles';
     const PATH_EXECUTE_PAYMENT = '/v1/payments/payment/';
     const PATH_EXECUTE_REFUND = '/v1/payments/sale/';
-    const PATH_AUTHORIZATION = '/v1/payments/authorization/';
-    const PATH_WEBHOOK_EVENT = '/v1/notifications/webhooks-events/';
-    const PATH_WEBHOOK = '/v1/notifications/webhooks/';
 
     const STANDARD_PROFILE = 1;
     const PLUS_PROFILE = 2;
     const EXPRESS_CHECKOUT_PROFILE = 3;
 
     // @codingStandardsIgnoreStart
-    /** @var Context $context */
+    /** @var \Context $context */
     protected $context;
-    /** @var Cart $cart */
+    /** @var \Cart $cart */
     protected $cart;
-    /** @var Customer $customer */
+    /** @var \Customer $customer */
     protected $customer;
     /** @var string $clientId */
-    protected static $clientId;
+    protected $clientId;
     /** @var string $secret */
-    protected static $secret;
+    protected $secret;
     /** @var null|string $accessToken */
-    protected static $accessToken;
-    /** @var string $accessTokenExpire */
-    protected static $accessTokenExpire;
-    /** @var null|array $profiles */
+    protected $accessToken = null;
+    /** @var null|\stdClass $profiles */
     protected $profiles = null;
-    /** @var Client $guzzle */
-    protected static $guzzle;
-    /** @var static $instance */
-    protected static $instance;
     // @codingStandardsIgnoreEnd
-
-    /**
-     * Set API credentials
-     *
-     * @param string $clientId
-     * @param string $secret
-     */
-    public static function setCredentials($clientId, $secret)
-    {
-        static::$clientId = $clientId;
-        static::$secret = $secret;
-        static::$instance = null;
-    }
-
-    /**
-     * Get instance
-     *
-     * @return static
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     */
-    public static function getInstance()
-    {
-        if (!static::$instance) {
-            static::$instance = new static();
-        }
-
-        return static::$instance;
-    }
-
-    /**
-     * Get the base URI
-     *
-     * @return string
-     *
-     * @throws PrestaShopException
-     */
-    public static function getBaseUri()
-    {
-        return !Configuration::get(PayPal::LIVE)
-            ? $baseUri = 'https://api.sandbox.paypal.com'
-            : $baseUri = 'https://api.paypal.com';
-    }
 
     /**
      * ApiPaypalPlus constructor.
      *
      * @param string|null $clientId
      * @param string|null $secret
-     *
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
      */
-    protected function __construct()
+    public function __construct($clientId = null, $secret = null)
     {
         $this->context = \Context::getContext();
         $this->cart = $this->context->cart;
         $this->customer = $this->context->customer;
-    }
 
-    /**
-     * Get Guzzle client
-     *
-     * @return Client
-     * @throws PrestaShopException
-     * @throws TokenException
-     */
-    protected static function getGuzzle()
-    {
-        if (!static::$guzzle) {
-            if (!Configuration::get(PayPal::LIVE)) {
-                $baseUri = 'https://api.sandbox.paypal.com';
-            } else {
-                $baseUri = 'https://api.paypal.com';
-            }
-
-            $accessToken = static::getAccessToken();
-            static::$guzzle = new Client(
-                [
-                    'base_uri'    => $baseUri,
-                    'timeout'     => PayPal::CONNECTION_TIMEOUT,
-                    'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-                    'headers'     => ['Authorization' => "Bearer $accessToken"],
-                ]
-            );
-        }
-
-        return static::$guzzle;
-    }
-
-    /**
-     * @return string|null
-     *
-     * @throws PrestaShopException
-     * @throws TokenException
-     */
-    protected static function getAccessToken()
-    {
-        if (static::$accessToken && time() < strtotime(static::$accessTokenExpire.' +2 minutes')) {
-            return static::$accessToken;
-        }
-        if (Configuration::get(PayPal::ACCESS_TOKEN)
-            && time() < strtotime(Configuration::get(PayPal::ACCESS_TOKEN_EXPIRE).' +2 minutes')
-        ) {
-            static::$accessToken = Configuration::get(PayPal::ACCESS_TOKEN);
-            static::$accessTokenExpire = date('Y-m-d H:i:s', strtotime(Configuration::get(PayPal::ACCESS_TOKEN_EXPIRE)));
-
-            return static::$accessToken;
-        }
-
-        if (!static::$clientId || !static::$secret) {
-            throw new TokenException('Trying to request access token without credentials');
-        }
-
-        $guzzle = new Client([
-            'base_uri'    => static::getBaseUri(),
-            'timeout'     => PayPal::CONNECTION_TIMEOUT,
-            'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-            'auth'        => [static::$clientId, static::$secret],
-        ]);
-
-        try {
-            $result = (string) $guzzle->post(static::PATH_CREATE_TOKEN, [
-                'headers' => [
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                ],
-                'body'    => http_build_query(['grant_type' => 'client_credentials']),
-            ])->getBody();
-        } catch (ClientException $e) {
-            throw new TokenException(
-                'Unable to retrieve access token',
-                0,
-                null,
-                $e->getRequest(),
-                $e->getResponse()
-            );
-        } catch (RequestException $e) {
-            throw new TokenException('Unable to retrieve token', 0, $e, $e->getRequest(), $e->getResponse());
-        } catch (TransferException $e) {
-            throw new TokenException('Unable to retrieve token', 0, $e);
-        }
-        if (!$result) {
-            return false;
-        }
-
-        $tokenResult = json_decode($result, true);
-        if (!empty($tokenResult['error']) || !isset($tokenResult['access_token']) || !isset($tokenResult['expires_in'])) {
-            throw new TokenException(isset($tokenResult['error_description']) ? $tokenResult['error_description'] : 'Unable to retrieve token');
-        }
-
-        // TODO: insert scope check here
-        static::$accessToken = $tokenResult['access_token'];
-        static::$accessTokenExpire = date('Y-m-d H:i:s', time() + (int) $tokenResult['expires_in']);
-        Configuration::updateValue(PayPal::ACCESS_TOKEN, static::$accessToken);
-        Configuration::updateValue(PayPal::ACCESS_TOKEN_EXPIRE, static::$accessTokenExpire);
-
-        return static::$accessToken;
+        $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
+        $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
     }
 
     /**
@@ -249,96 +84,174 @@ class PayPalRestApi
      *
      * @return bool|array
      *
-     * @throws PrestaShopException
-     * @throws ClientException
-     * @throws TokenException
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getWebProfile($type = self::STANDARD_PROFILE)
     {
-        $guzzle = static::getGuzzle();
-        $data = $this->createWebProfile($type);
-        if ($this->profiles) {
-            $profileId = '';
-            foreach ($this->profiles as $profile) {
-                /** @var array $profile */
-                if ($profile['name'] == $data['name']) {
-                    $profileId = $profile['id'];
+        $accessToken = $this->getToken();
+
+        if ($accessToken) {
+            $data = $this->createWebProfile($type);
+
+            $headers = [
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer '.$accessToken,
+            ];
+
+            if ($this->profiles) {
+                $profileId = '';
+                foreach ($this->profiles as $profile) {
+                    if ($profile->name == $data['name']) {
+                        $profileId = $profile->id;
+                    }
+                }
+
+                if ($profileId) {
+                    // DELETE first
+                    $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
                 }
             }
 
-            if ($profileId) {
-                // DELETE first
-                try {
-                    $guzzle->delete(static::PATH_WEBPROFILES.'/'.$profileId);
-                } catch (ClientException $e) {
-                    // Not sure if we should handle incorrect DELETEs, it's kind of fire and forget
-                } catch (TransferException $e) {
-                    Logger::addLog("PayPal module connection error: {$e->getMessage()}", 3);
-                }
+            // Then create
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
+
+            if (isset($result->id)) {
+                return $result->id;
             }
-        }
-
-        // Then create
-        try {
-            $result = (string) $guzzle->post(static::PATH_WEBPROFILES, ['json' => $data])->getBody();
-        } catch (ClientException $e) {
-            $requestBody = $e->getRequest()->getBody();
-            $responseBody = $e->getResponse()->getBody();
-            Logger::addLog("PayPal module client error: {$requestBody} -- {$responseBody}");
-            $result = false;
-        }
-        if (!$result) {
-            return false;
-        }
-
-        $result = json_decode($result, true);
-
-        if (isset($result['id'])) {
-            return $result;
         }
 
         return false;
     }
 
     /**
-     * @return array|false
-     * @throws PrestaShopException
+     * @return bool
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getWebProfiles()
+    public function getToken()
     {
-        try {
-            $result = (string) static::getGuzzle()->get(static::PATH_WEBPROFILES)->getBody();
-        } catch (ClientException $e) {
-            return false;
-        } catch (TransferException $e) {
-            return false;
-        }
-        if (!$result) {
-            return false;
+        if ($this->accessToken) {
+            return $this->accessToken;
         }
 
-        $this->profiles = json_decode($result, true);
+        $result = $this->send(
+            self::PATH_CREATE_TOKEN,
+            http_build_query(['grant_type' => 'client_credentials']),
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+            true,
+            'POST'
+        );
 
-        return $this->profiles;
+        /*
+         * Init variable
+         */
+        $oPayPalToken = json_decode($result);
+
+        if (isset($oPayPalToken->error)) {
+            return false;
+        } else {
+            $timeMax = time() + $oPayPalToken->expires_in;
+            $accessToken = $oPayPalToken->access_token;
+
+            /*
+             * Set Token in Cookie
+             */
+            $this->context->cookie->paypal_access_token_time_max = $timeMax;
+            $this->context->cookie->paypal_access_token_access_token = $accessToken;
+            $this->context->cookie->write();
+
+            if (!$this->accessToken) {
+                $this->accessToken = $accessToken;
+            }
+
+            return $accessToken;
+        }
     }
 
     /**
-     * Delete a web profile by ID
+     * @param string      $url         URL including get params
+     * @param bool|string $body
+     * @param bool        $headers
+     * @param bool        $identify
+     * @param bool|string $requestType
      *
-     * @param string $id Web profile ID
-     *
-     * @return bool
-     * @throws PrestaShopException
+     * @return mixed
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function deleteProfile($id)
+    public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
     {
-        try {
-            static::getGuzzle()->delete(static::PATH_WEBPROFILES.'/'.$id);
-        } catch (ClientException $e) {
-            return false;
-        } catch (TransferException $e) {
-            return false;
+        if (!\Configuration::get(\PayPal::LIVE)) {
+            $baseUri = 'https://api.sandbox.paypal.com';
+        } else {
+            $baseUri = 'https://api.paypal.com';
         }
+
+        $guzzle = new Client(
+            [
+                'base_uri'    => $baseUri,
+                'timeout'     => 60.0,
+                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
+                'http_errors' => false,
+            ]
+        );
+        $headers['PayPal-Partner-Attribution-Id'] ='thirtybees_SP';
+        $requestOptions = [];
+        if ($identify) {
+            $requestOptions['auth'] = [$this->clientId, $this->secret];
+        }
+        if ($headers) {
+            $requestOptions['headers'] = $headers;
+        }
+        if ($body) {
+            $requestOptions['body'] = (string) $body;
+        }
+
+        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
+
+        return (string) $response->getBody();
+    }
+
+    /**
+     * @return array
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     */
+    public function getWebProfiles()
+    {
+        $accessToken = $this->getToken();
+
+        if ($accessToken) {
+            $header = [
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer '.$accessToken,
+            ];
+
+            $this->profiles = json_decode($this->send(self::PATH_WEBPROFILES, false, $header));
+
+            return $this->profiles;
+        }
+
+        return [];
+    }
+
+    /**
+     * @return bool
+     */
+    public function deleteProfile()
+    {
+//        $accessToken = $this->getToken();
+//
+//        if ($accessToken) {
+//            $this->send(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
+//        }
 
         return true;
     }
@@ -348,51 +261,40 @@ class PayPalRestApi
      * @param bool|string $cancelUrl
      * @param int         $profile
      *
-     * @return array
-     *
-     * @throws Adapter_Exception
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     * @throws PaymentException
+     * @return mixed
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPayment($returnUrl = null, $cancelUrl = null, $profile = self::STANDARD_PROFILE)
+    public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
-        try {
-            $object = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
-            $result = (string) static::getGuzzle()->post(static::PATH_CREATE_PAYMENT, [
-                'json' => $object,
-            ])->getBody();
-        } catch (ClientException $e) {
-            $requestBody = (string) $e->getRequest()->getBody();
-            $responseBody = (string) $e->getResponse()->getBody();
-            Logger::addLog("PayPal module error while creating payment: {$requestBody} -- {$responseBody}", 3);
-            throw new PaymentException('Unable to initialize payment', 0, $e, $e->getRequest(), $e->getResponse());
-        } catch (TransferException $e) {
-            throw new PaymentException('Unable to initialize payment');
-        }
-        if (!$result) {
-            throw new PaymentException('Unable to initialize payment -- empty response');
-        }
+        $data = $this->createPaymentObject($returnUrl, $cancelUrl, $profile);
 
-        return json_decode($result, true);
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$this->getToken(),
+        ];
+        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
+        return $result;
     }
 
     /**
-     * @param string|null $returnUrl
-     * @param string|null $cancelUrl
+     * @param string|bool $returnUrl
+     * @param string|bool $cancelUrl
      * @param int         $profile
      *
-     * @return array
-     * @throws \Adapter_Exception
-     * @throws \PrestaShopDatabaseException
-     * @throws \PrestaShopException
+     * @return \stdClass
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createPaymentObject($returnUrl = null, $cancelUrl = null, $profile = self::STANDARD_PROFILE)
+    public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
         $cart = $this->cart;
+        $customer = $this->customer;
 
         if (!$returnUrl) {
-            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutconfirm', ['id_cart' => (int) $cart->id], true);
+            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
         }
 
         if (!$cancelUrl) {
@@ -400,9 +302,9 @@ class PayPalRestApi
         }
 
         $oCurrency = new \Currency($this->cart->id_currency);
-        $shippingAddress = new \Address((int) $this->cart->id_address_delivery);
+        $address = new \Address((int) $this->cart->id_address_invoice);
 
-        $country = new \Country((int) $shippingAddress->id_country);
+        $country = new \Country((int) $address->id_country);
         $isoCode = $country->iso_code;
 
         $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
@@ -420,20 +322,22 @@ class PayPalRestApi
         // these to the `shipping_discount` (if negative difference) or `handling_fee` (positive)
         // fields when necessary.
         $remaining = round($totalCartWithTax, 2);
+
         $cartItems = $cart->getProducts();
-        $state = new \State($shippingAddress->id_state);
+
+        $state = new \State($address->id_state);
         $shippingAddress = [
-            'recipient_name' => $shippingAddress->firstname.' '.$shippingAddress->lastname,
-            'line1'          => $shippingAddress->address1,
-            'line2'          => $shippingAddress->address2,
-            'city'           => $shippingAddress->city,
+            'recipient_name' => $customer->firstname.' '.$customer->lastname,
+            'line1'          => $address->address1,
+            'line2'          => $address->address2,
+            'city'           => $address->city,
             'country_code'   => $isoCode,
-            'postal_code'    => $shippingAddress->postcode,
+            'postal_code'    => $address->postcode,
             'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
         ];
 
-        $payer = [];
-        $payer['payment_method'] = 'paypal';
+        $payer = new \stdClass();
+        $payer->payment_method = 'paypal';
 
         $subTotal = 0.00000;
         $subTotalTax = 0.00000;
@@ -448,35 +352,35 @@ class PayPalRestApi
 
             // If the last item has at least one cent difference on this cart line, then change the price of the last item
             if ($lastItemPriceDifference >= 0.01 || $lastItemTaxDifference >= 0.01) {
-                $aItems[] = [
+                $aItems[] = (object) [
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => $quantity - 1,
-                    'price'    => number_format($cartItem['price'], 2),
-                    'tax'      => number_format($cartItem['price_wt'] - $cartItem['price'], 2),
+                    'price'    => round($cartItem['price'], 2),
+                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2),
                 ];
                 $remaining -= round($cartItem['price'], 2) * ($quantity - 1);
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
                 $subTotal += round($cartItem['price'], 2) * ($quantity - 1);
                 $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) * ($quantity - 1);
-                $aItems[] = [
+                $aItems[] = (object) [
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => 1,
-                    'price'    => number_format($cartItem['price'], 2) + $lastItemPriceDifference,
-                    'tax'      => number_format($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference,
+                    'price'    => round($cartItem['price'], 2) + $lastItemPriceDifference,
+                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference,
                 ];
                 $remaining -= round($cartItem['price'], 2) + $lastItemPriceDifference;
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference;
                 $subTotal += round($cartItem['price'], 2) + $lastItemPriceDifference;
                 $subTotalTax += round($cartItem['price_wt'] - $cartItem['price'], 2) + $lastItemTaxDifference;
             } else {
-                $aItems[] = [
+                $aItems[] = (object) [
                     'name'     => $cartItem['name'],
                     'currency' => strtoupper($oCurrency->iso_code),
                     'quantity' => $quantity,
-                    'price'    => number_format($cartItem['price'], 2),
-                    'tax'      => number_format($cartItem['price_wt'] - $cartItem['price'], 2),
+                    'price'    => round($cartItem['price'], 2),
+                    'tax'      => round($cartItem['price_wt'] - $cartItem['price'], 2),
                 ];
                 $remaining -= round($cartItem['price'], 2) * $quantity;
                 $remaining -= round($cartItem['price_wt'] - $cartItem['price'], 2) * $quantity;
@@ -486,9 +390,9 @@ class PayPalRestApi
         }
 
         $details = [
-            'shipping'     => number_format($totalShippingCostWithoutTax, 2),
-            'tax'          => number_format($subTotalTax, 2),
-            'subtotal'     => number_format($subTotal, 2),
+            'shipping'     => round($totalShippingCostWithoutTax, 2),
+            'tax'          => round($subTotalTax, 2),
+            'subtotal'     => round($subTotal, 2),
         ];
 
         $remaining -= round($totalShippingCostWithoutTax, 2);
@@ -497,75 +401,77 @@ class PayPalRestApi
         // if despite the gift wrapping costs, the remaining number is negative, we have applied some discounts
         // that couldn't be handled in a PayPal way. Therefore, we fill the `shipping_discount` field.
         if (round($remaining - $giftWithoutTax, 2) < 0) {
-            $details['shipping_discount'] = number_format(abs($remaining - $giftWithoutTax), 2);
+            $details[‘shipping_discount’] = number_format(abs($remaining - $giftWithoutTax), 2);
         } else {
-            $details['handling_fee'] = number_format($remaining - $giftWithoutTax, 2);
+            $details['handling_fee'] = round($remaining - $giftWithoutTax, 2);
         }
 
         /* Amount */
-        $amount = [
-            'total'    => number_format($totalCartWithTax, 2),
+        $amount = (object) [
+            'total'    => "".round($totalCartWithTax, 2)."",
             'currency' => $oCurrency->iso_code,
-            'details'  => $details,
+           // 'details'  => $details,
         ];
 
         /* Transaction */
-        $transaction = [
+        $transaction = (object) [
             'amount'      => $amount,
-            'description' => 'Payment description',
-            'item_list'   => [
-                'items' => $aItems,
-                'shipping_address' => Validate::isLoadedObject($shippingAddress) && PayPal::checkAddress($shippingAddress) ? $shippingAddress : null,
-            ],
+           // 'description' => 'Payment description',
+           // 'item_list'   => [
+            //    'items' => $aItems,
+            //    'shipping_address' => \Validate::isLoadedObject($address) ? $shippingAddress : null,
+           // ],
         ];
 
         /* Redirect Url */
-        $redirectUrls = [
+        $redirectUrls = (object) [
             'cancel_url' => $cancelUrl,
             'return_url' => $returnUrl,
         ];
 
         /* Payment */
-        $payment = [
+        $payment = (object) [
             'transactions' => [$transaction],
             'payer'        => $payer,
-            'intent'       => 'authorize',
+            'intent'       => 'sale',
         ];
-        if (Configuration::get(PayPal::LIVE)) {
+        if (\Configuration::get(\PayPal::LIVE)) {
             switch ($profile) {
-                case static::PLUS_PROFILE:
-                    $payment['experience_profile_id'] = Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE);
+                case self::PLUS_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
                     break;
-                case static::EXPRESS_CHECKOUT_PROFILE:
-                    $payment['experience_profile_id'] = Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+                case self::EXPRESS_CHECKOUT_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
                     break;
                 default:
-                    $payment['experience_profile_id'] = Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
                     break;
             }
         } else {
             switch ($profile) {
-                case static::PLUS_PROFILE:
-                    $payment['experience_profile_id'] = Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID);
+                case self::PLUS_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
                     break;
-                case static::EXPRESS_CHECKOUT_PROFILE:
-                    $payment['experience_profile_id'] = Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+                case self::EXPRESS_CHECKOUT_PROFILE:
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
                     break;
                 default:
-                    $payment['experience_profile_id'] = Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
                     break;
             }
         }
 
-        $payment['redirect_urls'] = $redirectUrls;
-
+        $payment->redirect_urls = $redirectUrls;
+// d($payment);
         return $payment;
     }
 
     /**
      * @param array $params
      *
-     * @throws \PrestaShopException
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function setParams($params)
     {
@@ -577,7 +483,10 @@ class PayPalRestApi
      * @param string $paymentId
      *
      * @return bool|mixed
-     * @throws PrestaShopException
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function lookUpPayment($paymentId)
     {
@@ -585,185 +494,69 @@ class PayPalRestApi
             return false;
         }
 
-        $result = (string) static::getGuzzle()->get(PayPalRestApi::PATH_LOOK_UP.$paymentId)->getBody();
-        if (!$result) {
-            return false;
-        }
+        $accessToken = $this->refreshToken();
 
-        return json_decode($result, true);
-    }
-
-    /**
-     * Register a webhook
-     *
-     * @param string $webhookUrl
-     *
-     * @return array|false
-     * @throws PrestaShopException
-     */
-    public function registerWebhook($webhookUrl)
-    {
-        // The types we need
-        $types = [
-            [
-                'name' => 'PAYMENT.AUTHORIZATION.CREATED',
-            ], [
-                'name' => 'PAYMENT.AUTHORIZATION.VOIDED',
-            ], [
-                'name' => 'PAYMENT.CAPTURE.COMPLETED',
-            ], [
-                'name' => 'PAYMENT.CAPTURE.DENIED',
-            ], [
-                'name' => 'PAYMENT.CAPTURE.PENDING',
-            ], [
-                'name' => 'PAYMENT.CAPTURE.REFUNDED',
-            ], [
-                'name' => 'PAYMENT.CAPTURE.REVERSED',
-            ],
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
         ];
 
-        $data = [
-            'url'         => $webhookUrl,
-            'event_types' => $types,
-        ];
-
-        if (!Configuration::get(PayPal::LIVE) && !empty($_COOKIE['PayPal-Mock-Response'])) {
-            $header[] = ['PayPal-Mock-Response' => $_COOKIE['PayPal-Mock-Response']];
-        }
-
-        $result = (string) static::getGuzzle()->post(
-            rtrim(PayPalRestApi::PATH_WEBHOOK, '/'),
-            ['json' => $data]
-        )->getBody();
-        if (!$result) {
-            return false;
-        }
-
-        return json_decode($result, true);
+        return json_decode($this->send(PayPalRestApi::PATH_LOOK_UP.$paymentId, false, $header));
     }
 
     /**
-     * Get a list of webhooks
+     * @return bool
      *
-     * @return bool|mixed
-     * @throws PrestaShopException
-     * @throws TokenException
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getWebhooks()
+    public function refreshToken()
     {
-        $result = (string) static::getGuzzle()->get(rtrim(PayPalRestApi::PATH_WEBHOOK, '/'))->getBody();
-        if (!$result) {
-            return false;
+        if ($this->context->cookie->paypal_access_token_time_max < time()) {
+            return $this->getToken();
+        } else {
+            return $this->context->cookie->paypal_access_token_access_token;
         }
-
-        return json_decode($result, true);
-    }
-
-    /**
-     * @param string $webhookId
-     *
-     * @return bool|mixed
-     * @throws PrestaShopException
-     */
-    public function lookUpWebhook($webhookId)
-    {
-        if (!$webhookId) {
-            return false;
-        }
-
-        $result = (string) static::getGuzzle()->get(PayPalRestApi::PATH_WEBHOOK_EVENT.$webhookId)->getBody();
-        if (!$result) {
-            return false;
-        }
-
-        return json_decode($result, true);
-    }
-
-    /**
-     * @param string $authorizationId
-     *
-     * @return bool|mixed
-     * @throws PrestaShopException
-     */
-    public function voidAuthorization($authorizationId)
-    {
-        $result = static::getGuzzle()->post(
-            PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/void',
-            '{}'
-        );
-        if (!$result) {
-            return false;
-        }
-
-        return json_decode($result, true);
-    }
-
-    /**
-     * @param string $authorizationId
-     * @param float  $amount
-     * @param string $currencyCode
-     *
-     * @return false|array
-     * @throws PrestaShopException
-     * @throws CaptureException
-     */
-    public function capturePayment($authorizationId, $amount, $currencyCode)
-    {
-        $data = [
-            'amount' => [
-                'currency' => strtoupper($currencyCode),
-                'total'    => number_format($amount, 2),
-            ],
-            'is_final_capture' => true,
-        ];
-
-        try {
-            $result = (string) static::getGuzzle()->post(
-                PayPalRestApi::PATH_AUTHORIZATION.$authorizationId.'/capture',
-                ['json' => $data]
-            )->getBody();
-        } catch (ClientException $e) {
-            throw new CaptureException('Unable to capture payment', 0, $e, $e->getRequest(), $e->getResponse());
-        } catch (TransferException $e) {
-            throw new CaptureException('Unable to capture payment', 0, $e);
-        }
-        if (!$result) {
-            return false;
-        }
-
-        return json_decode($result, true);
     }
 
     /**
      * @param string $payerId
      * @param string $paymentId
      *
-     * @return false|array
-     * @throws PrestaShopException
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function executePayment($payerId, $paymentId)
     {
-        if ($payerId === 'NULL' || $paymentId === 'NULL') {
+        if ($payerId == 'NULL' || $paymentId == 'NULL') {
             return false;
         }
 
-        $result = (string) static::getGuzzle()->post(
-            PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/',
-            ['json' => ['payer_id' => $payerId]]
-        )->getBody();
-        if (!$result) {
-            return false;
-        }
+        $accessToken = $this->refreshToken();
 
-        return json_decode($result, true);
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+
+        $data = ['payer_id' => $payerId];
+
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header, false, 'POST'));
     }
 
     /**
-     * @param string $paymentId
-     * @param array  $data
+     * @param string    $paymentId
+     * @param \stdClass $data
      *
-     * @return false|array
-     * @throws PrestaShopException
+     * @return bool|mixed
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function executeRefund($paymentId, $data)
     {
@@ -771,58 +564,61 @@ class PayPalRestApi
             return false;
         }
 
-        $result = (string) static::getGuzzle()->post(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', ['json' => $data])->getBody();
-        if (!$result) {
-            return false;
-        }
+        $accessToken = $this->refreshToken();
 
-        return json_decode($result, true);
+        $header = [
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer '.$accessToken,
+        ];
+
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
     }
 
     /**
      * @param int $type
      *
      * @return array
-     * @throws PrestaShopException
+     *
+     * @author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected function createWebProfile($type)
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
-        $idLang = (int) Configuration::get('PS_LANG_DEFAULT');
-        $language = new Language($idLang);
-        $iso = Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
-        $brandName = Configuration::get('PS_SHOP_NAME');
-        $logoImage = _PS_BASE_URL_._PS_IMG_.Configuration::get('PS_LOGO');
+        $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
+        $language = new \Language($idLang);
+        $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
 
         switch ($type) {
-            case static::PLUS_PROFILE:
+            case self::PLUS_PROFILE:
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => $brandName,
-                        'logo_image'  => $logoImage,
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
                         'no_shipping'      => 2,
-                        'address_override' => 0,
+                        'address_override' => 1,
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
                     ],
                 ];
-            case static::EXPRESS_CHECKOUT_PROFILE:
+            case self::EXPRESS_CHECKOUT_PROFILE:
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => $brandName,
-                        'logo_image'  => $logoImage,
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
-                        'no_shipping'      => 2,
+                        'no_shipping'      => 1,
                         'address_override' => 0,
                     ],
                     'flow_config'  => [
@@ -833,14 +629,14 @@ class PayPalRestApi
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => $brandName,
-                        'logo_image'  => $logoImage,
+                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
                         'no_shipping'      => 2,
-                        'address_override' => 0,
+                        'address_override' => 1,
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
