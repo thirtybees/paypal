@@ -1258,7 +1258,7 @@ class PayPal extends \PaymentModule
      */
     public function hookPaymentReturn($params)
     {
-        if (!$this->active || !isset($params['objOrder']) || !$params['objOrder'] instanceof Order) {﻿﻿
+        if (!$this->active || !isset($params['objOrder']) || !$params['objOrder'] instanceof Order) {
             return '';
         }
 
