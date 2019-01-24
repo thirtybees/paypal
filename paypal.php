@@ -1263,7 +1263,7 @@ class PayPal extends \PaymentModule
         }
 
         /** @var Order $order */
-        $order = $params['orderOrder'];
+        $order = $params['objOrder'];
 
         $currency = new Currency($order->id_currency);
 
