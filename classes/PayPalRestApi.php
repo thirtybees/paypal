@@ -200,7 +200,7 @@ class PayPalRestApi
                 'http_errors' => false,
             ]
         );
-
+        $headers['PayPal-Partner-Attribution-Id'] ='thirtybees_SP';
         $requestOptions = [];
         if ($identify) {
             $requestOptions['auth'] = [$this->clientId, $this->secret];
@@ -401,26 +401,26 @@ class PayPalRestApi
         // if despite the gift wrapping costs, the remaining number is negative, we have applied some discounts
         // that couldn't be handled in a PayPal way. Therefore, we fill the `shipping_discount` field.
         if (round($remaining - $giftWithoutTax, 2) < 0) {
-            $details['shipping_discount'] = abs(round($remaining - $giftWithoutTax, 2));
+            $details[‘shipping_discount’] = number_format(abs($remaining - $giftWithoutTax), 2);
         } else {
             $details['handling_fee'] = round($remaining - $giftWithoutTax, 2);
         }
 
         /* Amount */
         $amount = (object) [
-            'total'    => round($totalCartWithTax, 2),
+            'total'    => "".round($totalCartWithTax, 2)."",
             'currency' => $oCurrency->iso_code,
-            'details'  => $details,
+           // 'details'  => $details,
         ];
 
         /* Transaction */
         $transaction = (object) [
             'amount'      => $amount,
-            'description' => 'Payment description',
-            'item_list'   => [
-                'items' => $aItems,
-                'shipping_address' => \Validate::isLoadedObject($address) ? $shippingAddress : null,
-            ],
+           // 'description' => 'Payment description',
+           // 'item_list'   => [
+            //    'items' => $aItems,
+            //    'shipping_address' => \Validate::isLoadedObject($address) ? $shippingAddress : null,
+           // ],
         ];
 
         /* Redirect Url */
@@ -462,7 +462,7 @@ class PayPalRestApi
         }
 
         $payment->redirect_urls = $redirectUrls;
-
+// d($payment);
         return $payment;
     }
 
