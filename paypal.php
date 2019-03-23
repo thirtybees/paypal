@@ -39,6 +39,7 @@ use PayPalModule\PayPalTools;
 class PayPal extends PaymentModule
 {
     const LIVE = 'PAYPAL_LIVE';
+    const DEBUG_MODE = 'PAYPAL_DEBUG';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
     const STORE_COUNTRY = 'PAYPAL_COUNTRY_DEFAULT';
     const CLIENT_ID = 'PAYPAL_CLIENT_ID';
