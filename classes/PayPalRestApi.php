@@ -401,7 +401,7 @@ class PayPalRestApi
         // if despite the gift wrapping costs, the remaining number is negative, we have applied some discounts
         // that couldn't be handled in a PayPal way. Therefore, we fill the `shipping_discount` field.
         if (round($remaining - $giftWithoutTax, 2) < 0) {
-            $details[‘shipping_discount’] = number_format(abs($remaining - $giftWithoutTax), 2);
+            $details['shipping_discount'] = number_format(abs($remaining - $giftWithoutTax), 2);
         } else {
             $details['handling_fee'] = round($remaining - $giftWithoutTax, 2);
         }
