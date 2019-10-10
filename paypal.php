@@ -289,7 +289,6 @@ class PayPal extends \PaymentModule
         \Configuration::deleteByName(static::LIVE);
 
         \Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
-        \Configuration::deleteByName(static::DEBUG_MODE);
         \Configuration::deleteByName(static::STORE_COUNTRY);
 
         \Configuration::deleteByName(static::LOGIN_ENABLED);
