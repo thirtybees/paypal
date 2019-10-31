@@ -390,16 +390,7 @@ class PayPal extends \PaymentModule
      */
     protected function tlsCheck()
     {
-        $guzzle = new \GuzzleHttp\Client(
-            [
-                'timeout'     => 10.0,
-                'verify'      => _PS_TOOL_DIR_.'cacert.pem',
-                'http_errors' => false,
-            ]
-        );
-        $response = $guzzle->get('https://tlstest.paypal.com/');
-
-        if ((string) $response->getBody() === 'PayPal_Connection_OK') {
+        if (ConfigurationTest::testTlsv12()) {
             $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_OK);
         } else {
             $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_ERROR);
