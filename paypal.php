@@ -1580,11 +1580,12 @@ class PayPal extends PaymentModule
 
         $products = $order->getProducts();
         $cancelQuantity = Tools::getValue('cancelQuantity');
-        $message = $this->l('Cancel products result:').'<br>';
 
         $amount = (float) ($products[(int) $orderDetail->id]['product_price_wt'] * (int) $cancelQuantity[(int) $orderDetail->id]);
-        $refund = $this->doRefund($paypalOrder['id_payment'], $order, $amount);
-        $this->formatMessage($refund, $message);
+        $success = $this->doRefund($paypalOrder['id_payment'], $order, $amount);
+
+        $message = $this->l('Cancel products result:').'<br>';
+        $message .= $success ? $this->l('success') : $this->l('failed');
         $this->addNewPrivateMessage((int) $order->id, $message);
 
         return null;
@@ -1593,17 +1594,13 @@ class PayPal extends PaymentModule
     /**
      * @param string $idPayment
      * @param Order $order
-     * @param bool|float $amount Amount
+     * @param float $amount Amount
      *
      * @return bool
      * @throws PrestaShopException
      */
-    protected function doRefund($idPayment, $order, $amount = false)
+    protected function doRefund($idPayment, $order, $amount)
     {
-        if (!$amount) {
-            return $this->doFullRefund($idPayment);
-        }
-
         $details = new stdClass();
         $details->amount = (float) $amount;
         $details->currency = strtoupper(Currency::getCurrencyInstance($order->id_currency)->iso_code);
@@ -1615,46 +1612,6 @@ class PayPal extends PaymentModule
         }
 
         return false;
-    }
-
-    /**
-     * Do a full refund
-     *
-     * @param string $idPayment
-     *
-     * @return bool Indicates whether the full refund was successful
-     */
-    protected function doFullRefund($idPayment)
-    {
-        return false;
-
-//        $rest = new PayPalRestApi();
-//        $payment = $rest->lookUpPayment($idPayment);
-//
-//        if (isset($payment->transactions[0]->related_resources[0]->sale->id)) {
-//            $saleId = $payment->transactions[0]->related_resources[0]->sale->id;
-//
-//            // TODO: validate
-//            if ($rest->executeRefund($saleId, new \stdClass())) {
-//                return true;
-//            }
-//        }
-//
-//        return false;
-    }
-
-    /**
-     * Format message
-     *
-     * @param array  $response
-     * @param string $message
-     */
-    public function formatMessage($response, &$message)
-    {
-        foreach ($response as $key => $value) {
-            $message .= $key.': '.$value.'<br>';
-        }
-
     }
 
     /**
