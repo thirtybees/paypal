@@ -1569,7 +1569,7 @@ class PayPal extends PaymentModule
         }
 
         $orderDetail = new OrderDetail((int) $params['id_order_detail']);
-        if (!$orderDetail || !Validate::isLoadedObject($orderDetail)) {
+        if (!Validate::isLoadedObject($orderDetail)) {
             return false;
         }
 
