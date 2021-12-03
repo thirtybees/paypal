@@ -939,7 +939,8 @@ class PayPal extends \PaymentModule
         $idProduct = (int) \Tools::getValue('id_product');
         $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
         if ($idProductAttribute) {
-            $minimalQuantity = \Attribute::getAttributeMinimalQty($idProductAttribute);
+            $combination = new \Combination($idProductAttribute);
+            $minimalQuantity = $combination->minimal_quantity;
         } else {
             $product = new \Product($idProduct);
             $minimalQuantity = $product->minimal_quantity;
