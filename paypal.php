@@ -1833,17 +1833,20 @@ class PayPal extends PaymentModule
 
     /**
      * @param string $message
-     * @param bool $log
+     * @param array|false $inputLogs
      *
      * @return string
      * @throws PrestaShopException
      * @throws SmartyException
      */
-    public function displayPayPalAPIError($message, $log = false)
+    public function displayPayPalAPIError($message, $inputLogs = false)
     {
         $send = true;
+
         // Sanitize log
-        if (is_array($log)) {
+        $log = [];
+        if (is_array($inputLogs)) {
+            $log = $inputLogs;
             foreach ($log as $key => $string) {
                 if ($string == 'ACK -> Success') {
                     $send = false;
@@ -1878,7 +1881,9 @@ class PayPal extends PaymentModule
                 $idLang,
                 'error_reporting',
                 Mail::l('Error reporting from your PayPal module', (int) $this->context->language->id),
-                ['{logs}' => implode('<br />', $log)],
+                [
+                    '{logs}' => implode('<br />', $log)
+                ],
                 Configuration::get('PS_SHOP_EMAIL'),
                 null,
                 null,
