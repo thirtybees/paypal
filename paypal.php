@@ -41,7 +41,7 @@ use PayPalModule\PayPalTools;
 /**
  * Class PayPal
  */
-class PayPal extends \PaymentModule
+class PayPal extends PaymentModule
 {
     const LIVE = 'PAYPAL_LIVE';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
@@ -98,7 +98,7 @@ class PayPal extends \PaymentModule
      * @var int $is_eu_compatible
      */
     public $is_eu_compatible = 1;
-    /** @var \Context $context */
+    /** @var Context $context */
     public $context;
     /** @var string $iso_code */
     public $iso_code;
@@ -167,7 +167,7 @@ class PayPal extends \PaymentModule
      */
     public static function getPayPalEmailByIdCustomer($idCustomer)
     {
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
             (new DbQuery())
                 ->select('pc.`paypal_email`')
                 ->from('paypal_customer', 'pc')
@@ -229,9 +229,9 @@ class PayPal extends \PaymentModule
      */
     public function updateConfiguration()
     {
-        \Configuration::updateValue(static::LIVE, false);
+        Configuration::updateValue(static::LIVE, false);
 
-        \Configuration::updateValue(static::IMMEDIATE_CAPTURE, true);
+        Configuration::updateValue(static::IMMEDIATE_CAPTURE, true);
     }
 
     /**
@@ -245,11 +245,11 @@ class PayPal extends \PaymentModule
      */
     public function createOrderState()
     {
-        if (!\Configuration::get('PAYPAL_OS_AUTHORIZATION')) {
-            $orderState = new \OrderState();
+        if (!Configuration::get('PAYPAL_OS_AUTHORIZATION')) {
+            $orderState = new OrderState();
             $orderState->name = [];
 
-            foreach (\Language::getLanguages() as $language) {
+            foreach (Language::getLanguages() as $language) {
                 if (strtolower($language['iso_code']) == 'fr') {
                     $orderState->name[$language['id_lang']] = 'Autorisation acceptée par PayPal';
                 } else {
@@ -266,11 +266,11 @@ class PayPal extends \PaymentModule
             $orderState->invoice = true;
 
             if ($orderState->add()) {
-                $source = dirname(__FILE__).'/../../img/os/'.\Configuration::get('PS_OS_PAYPAL').'.gif';
+                $source = dirname(__FILE__).'/../../img/os/'. Configuration::get('PS_OS_PAYPAL').'.gif';
                 $destination = dirname(__FILE__).'/../../img/os/'.(int) $orderState->id.'.gif';
                 copy($source, $destination);
             }
-            \Configuration::updateValue('PAYPAL_OS_AUTHORIZATION', (int) $orderState->id);
+            Configuration::updateValue('PAYPAL_OS_AUTHORIZATION', (int) $orderState->id);
         }
     }
 
@@ -297,15 +297,15 @@ class PayPal extends \PaymentModule
      */
     public function deleteConfiguration()
     {
-        \Configuration::deleteByName(static::LIVE);
+        Configuration::deleteByName(static::LIVE);
 
-        \Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
-        \Configuration::deleteByName(static::STORE_COUNTRY);
+        Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
+        Configuration::deleteByName(static::STORE_COUNTRY);
 
-        \Configuration::deleteByName(static::LOGIN_ENABLED);
-        \Configuration::deleteByName(static::CLIENT_ID);
-        \Configuration::deleteByName(static::SECRET);
-        \Configuration::deleteByName(static::LOGIN_THEME);
+        Configuration::deleteByName(static::LOGIN_ENABLED);
+        Configuration::deleteByName(static::CLIENT_ID);
+        Configuration::deleteByName(static::SECRET);
+        Configuration::deleteByName(static::LOGIN_THEME);
     }
 
     /**
@@ -342,58 +342,58 @@ class PayPal extends \PaymentModule
      */
     protected function postProcess()
     {
-        if (\Tools::isSubmit('submit'.$this->name)) {
+        if (Tools::isSubmit('submit'.$this->name)) {
             // General
-            \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
-            \Configuration::updateValue(static::LIVE, (int) \Tools::getValue(static::LIVE));
-            \Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) \Tools::getValue(static::IMMEDIATE_CAPTURE));
+            Configuration::updateValue(static::STORE_COUNTRY, (int) Tools::getValue(static::STORE_COUNTRY));
+            Configuration::updateValue(static::LIVE, (int) Tools::getValue(static::LIVE));
+            Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) Tools::getValue(static::IMMEDIATE_CAPTURE));
 
             // REST API
-            \Configuration::updateValue(static::CLIENT_ID, \Tools::getValue(static::CLIENT_ID));
-            \Configuration::updateValue(static::SECRET, \Tools::getValue(static::SECRET));
+            Configuration::updateValue(static::CLIENT_ID, Tools::getValue(static::CLIENT_ID));
+            Configuration::updateValue(static::SECRET, Tools::getValue(static::SECRET));
 
-            if (\Tools::getValue(static::CLIENT_ID) && \Tools::getValue(static::SECRET)) {
-                $rest = new PayPalRestApi(\Tools::getValue(static::CLIENT_ID), \Tools::getValue(static::SECRET));
+            if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
+                $rest = new PayPalRestApi(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
                 $rest->getWebProfiles();
                 $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
                 $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
                 $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
 
-                if (\Tools::getValue(static::LIVE)) {
+                if (Tools::getValue(static::LIVE)) {
                     if ($standardProfile) {
-                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                        Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
                     }
                     if ($plusProfile) {
-                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                        Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
                     }
                     if ($expressCheckoutProfile) {
-                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                        Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
                     }
                 } else {
                     if ($standardProfile) {
-                        \Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                        Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
                     }
                     if ($plusProfile) {
-                        \Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                        Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
                     }
                     if ($expressCheckoutProfile) {
-                        \Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                        Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
                     }
                 }
             }
 
             // Website Payments Standard
-            \Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
+            Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
 
             // Website Payments Plus
-            \Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, \Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
+            Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
 
             // Express Checkout
-            \Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, \Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
 
             // PayPal Login
-            \Configuration::updateValue(static::LOGIN_ENABLED, (int) \Tools::getValue(static::LOGIN_ENABLED));
-            \Configuration::updateValue(static::LOGIN_THEME, (int) \Tools::getValue(static::LOGIN_THEME));
+            Configuration::updateValue(static::LOGIN_ENABLED, (int) Tools::getValue(static::LOGIN_ENABLED));
+            Configuration::updateValue(static::LOGIN_THEME, (int) Tools::getValue(static::LOGIN_THEME));
         }
     }
 
@@ -425,20 +425,20 @@ class PayPal extends \PaymentModule
      */
     protected function renderMainForm()
     {
-        $helper = new \HelperForm();
+        $helper = new HelperForm();
 
         $helper->show_toolbar = false;
         $helper->module = $this;
         $helper->default_form_language = $this->context->language->id;
-        $helper->allow_employee_form_lang = \Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
+        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
 
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submit'.$this->name;
-        $helper->currentIndex = \AdminController::$currentIndex.'&'.http_build_query([
+        $helper->currentIndex = AdminController::$currentIndex.'&'.http_build_query([
             'configure' => $this->name,
         ]);
 
-        $helper->token = \Tools::getAdminTokenLite('AdminModules');
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
 
         $helper->tpl_vars = [
             'fields_value' => $this->getMainFormValues(),
@@ -467,18 +467,18 @@ class PayPal extends \PaymentModule
     protected function getMainFormValues()
     {
         return [
-            static::STORE_COUNTRY               => (int) \Configuration::get(static::STORE_COUNTRY),
-            static::LIVE                        => \Configuration::get(static::LIVE),
-            static::STANDARD_WEBSITE_PROFILE_ID => \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
+            static::STORE_COUNTRY               => (int) Configuration::get(static::STORE_COUNTRY),
+            static::LIVE                        => Configuration::get(static::LIVE),
+            static::STANDARD_WEBSITE_PROFILE_ID => Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
 
-            static::WEBSITE_PAYMENTS_STANDARD_ENABLED => \Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
-            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => \Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
-            static::EXPRESS_CHECKOUT_ENABLED          => \Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
-            static::LOGIN_ENABLED                     => \Configuration::get(static::LOGIN_ENABLED),
-            static::LOGIN_THEME                       => \Configuration::get(static::LOGIN_THEME),
+            static::WEBSITE_PAYMENTS_STANDARD_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
+            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
+            static::EXPRESS_CHECKOUT_ENABLED          => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
+            static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
+            static::LOGIN_THEME                       => Configuration::get(static::LOGIN_THEME),
 
-            static::CLIENT_ID => \Configuration::get(static::CLIENT_ID),
-            static::SECRET    => \Configuration::get(static::SECRET),
+            static::CLIENT_ID => Configuration::get(static::CLIENT_ID),
+            static::SECRET    => Configuration::get(static::SECRET),
         ];
     }
 
@@ -504,7 +504,7 @@ class PayPal extends \PaymentModule
                         'name'     => static::STORE_COUNTRY,
                         'required' => true,
                         'options'  => [
-                            'query' => \Country::getCountries($this->context->language->id),
+                            'query' => Country::getCountries($this->context->language->id),
                             'id'    => 'id_country',
                             'name'  => 'name',
                         ],
@@ -544,14 +544,14 @@ class PayPal extends \PaymentModule
      */
     protected function getRestApiForm()
     {
-        if (\Configuration::get(static::LIVE)) {
-            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
-            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+        if (Configuration::get(static::LIVE)) {
+            $standardProfile = (string) Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+            $plusProfile = (string) Configuration::get(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
+            $expressCheckoutProfile = (string) Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
         } else {
-            $standardProfile = (string) \Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID);
-            $plusProfile = (string) \Configuration::get(static::PLUS_WEBSITE_PROFILE_ID);
-            $expressCheckoutProfile = (string) \Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+            $standardProfile = (string) Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID);
+            $plusProfile = (string) Configuration::get(static::PLUS_WEBSITE_PROFILE_ID);
+            $expressCheckoutProfile = (string) Configuration::get(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
         }
 
         if (!$this->context->smarty->getTemplateVars('standardProfile')) {
@@ -849,7 +849,7 @@ class PayPal extends \PaymentModule
             );
 
             $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/js/external/api.js"></script>';
-            $process .= '<script async defer type="text/javascript" src="'.\Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
+            $process .= '<script async defer type="text/javascript" src="'. Media::getJSPath($this->_path.'views/js/login.js').'"></script>';
             $process .= $this->display(__FILE__, 'views/templates/front/paypal_loginjs.tpl');
         }
 
@@ -864,7 +864,7 @@ class PayPal extends \PaymentModule
      */
     public function getLocale()
     {
-        return static::getLocaleByIso(\Language::getIsoById($this->context->language->id));
+        return static::getLocaleByIso(Language::getIsoById($this->context->language->id));
     }
 
     /**
@@ -945,7 +945,7 @@ class PayPal extends \PaymentModule
      */
     public function hookProductFooter()
     {
-        if (!\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
+        if (!Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
             return '';
         }
 
@@ -962,13 +962,13 @@ class PayPal extends \PaymentModule
      */
     public function renderExpressCheckoutForm($type)
     {
-        $idProduct = (int) \Tools::getValue('id_product');
-        $idProductAttribute = (int) \Product::getDefaultAttribute($idProduct);
+        $idProduct = (int) Tools::getValue('id_product');
+        $idProductAttribute = (int) Product::getDefaultAttribute($idProduct);
         if ($idProductAttribute) {
-            $combination = new \Combination($idProductAttribute);
+            $combination = new Combination($idProductAttribute);
             $minimalQuantity = $combination->minimal_quantity;
         } else {
-            $product = new \Product($idProduct);
+            $product = new Product($idProduct);
             $minimalQuantity = $product->minimal_quantity;
         }
 
@@ -993,7 +993,7 @@ class PayPal extends \PaymentModule
      */
     protected function getCurrentUrl()
     {
-        $protocolLink = \Tools::usingSecureMode() ? 'https://' : 'http://';
+        $protocolLink = Tools::usingSecureMode() ? 'https://' : 'http://';
         $request = $_SERVER['REQUEST_URI'];
         $pos = strpos($request, '?');
 
@@ -1003,7 +1003,7 @@ class PayPal extends \PaymentModule
 
         $params = urlencode($_SERVER['QUERY_STRING']);
 
-        return $protocolLink.\Tools::getShopDomainSsl().$request.'?'.$params;
+        return $protocolLink. Tools::getShopDomainSsl().$request.'?'.$params;
     }
 
     /**
@@ -1028,7 +1028,7 @@ class PayPal extends \PaymentModule
         $this->context->smarty->assign(
             [
                 'logos'            => PayPalLogos::getLogos($this->getLocale()),
-                static::LIVE       => \Configuration::get(static::LIVE),
+                static::LIVE       => Configuration::get(static::LIVE),
                 'use_mobile'       => true,
                 'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
                 'params'           => $params,
@@ -1062,7 +1062,7 @@ class PayPal extends \PaymentModule
                 $this->context->smarty->assign(
                     [
                         'approval_url' => $approvalUrl,
-                        'mode'         => \Configuration::get(static::LIVE) ? 'live' : 'sandbox',
+                        'mode'         => Configuration::get(static::LIVE) ? 'live' : 'sandbox',
                         'language'     => $this->getLocalePayPalPlus(),
                         'country'      => $this->getCountryCode(),
                     ]
@@ -1140,9 +1140,9 @@ class PayPal extends \PaymentModule
      */
     public function getCountryCode()
     {
-        $cart = new \Cart((int) $this->context->cookie->id_cart);
-        $address = new \Address((int) $cart->id_address_invoice);
-        $country = new \Country((int) $address->id_country);
+        $cart = new Cart((int) $this->context->cookie->id_cart);
+        $address = new Address((int) $cart->id_address_invoice);
+        $country = new Country((int) $address->id_country);
 
         return $country->iso_code;
     }
@@ -1165,7 +1165,7 @@ class PayPal extends \PaymentModule
 
         $paymentOptions = [];
 
-        if (\Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+        if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
             $paymentOptions[] = [
                 'cta_text' => $this->l('PayPal or credit card'),
                 'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
@@ -1173,7 +1173,7 @@ class PayPal extends \PaymentModule
             ];
         }
 
-        if (\Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+        if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
             $paymentOptions[] = [
                 'cta_text' => $this->l('PayPal or credit card'),
                 'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
@@ -1195,7 +1195,7 @@ class PayPal extends \PaymentModule
 
         if (!empty($detail['payer_id']) && !empty($detail['token'])) {
             $values = ['get_confirmation' => true];
-            \Tools::redirect(\Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
+            Tools::redirect(Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
         }
     }
 
@@ -1207,7 +1207,7 @@ class PayPal extends \PaymentModule
     public function hookShoppingCartExtra()
     {
         if (!$this->active
-            || !\Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)
+            || !Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)
         ) {
             return null;
         }
@@ -1220,7 +1220,7 @@ class PayPal extends \PaymentModule
                 'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
                 'PayPal_current_page'                   => $this->getCurrentUrl(),
                 'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
-                'PayPal_tracking_code'                  => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
+                'PayPal_tracking_code'                  => $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD')),
                 'include_form'                          => true,
                 'template_dir'                          => dirname(__FILE__).'/views/templates/hook/',
                 'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
@@ -1242,7 +1242,7 @@ class PayPal extends \PaymentModule
 
         //Get Seamless checkout
         $loginUser = false;
-        if (\Configuration::get(static::LOGIN_ENABLED)) {
+        if (Configuration::get(static::LOGIN_ENABLED)) {
             $loginUser = PayPalLoginUser::getByIdCustomer((int) $this->context->customer->id);
 
             if ($loginUser && $loginUser->expires_in <= time()) {
@@ -1366,7 +1366,7 @@ class PayPal extends \PaymentModule
                 return false;
             }
 
-            \Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', [], true).'?confirm=1&token='.$this->context->cookie->paypal_token.'&payerID='.$this->context->cookie->paypal_payer_id);
+            Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', [], true).'?confirm=1&token='.$this->context->cookie->paypal_token.'&payerID='.$this->context->cookie->paypal_payer_id);
         }
 
         return null;
@@ -1378,7 +1378,7 @@ class PayPal extends \PaymentModule
      */
     public function isPayPalAPIAvailable()
     {
-        if (\Configuration::get(static::CLIENT_ID) && \Configuration::get(static::SECRET)) {
+        if (Configuration::get(static::CLIENT_ID) && Configuration::get(static::SECRET)) {
             return true;
         }
 
@@ -1396,22 +1396,22 @@ class PayPal extends \PaymentModule
      */
     public function hookAdminOrder($params)
     {
-        if (\Tools::isSubmit('submitPayPalCapture')) {
-            if ($captureAmount = \Tools::getValue('totalCaptureMoney')) {
+        if (Tools::isSubmit('submitPayPalCapture')) {
+            if ($captureAmount = Tools::getValue('totalCaptureMoney')) {
                 if ($captureAmount = PayPalCapture::parsePrice($captureAmount)) {
-                    if (\Validate::isFloat($captureAmount)) {
-                        $captureAmount = \Tools::ps_round($captureAmount, '6');
-                        $ord = new \Order((int) $params['id_order']);
+                    if (Validate::isFloat($captureAmount)) {
+                        $captureAmount = Tools::ps_round($captureAmount, '6');
+                        $ord = new Order((int) $params['id_order']);
                         $cpt = new PayPalCapture();
 
-                        if (($captureAmount > \Tools::ps_round(0, '6')) && (\Tools::ps_round($cpt->getRestToPaid($ord), '6') >= $captureAmount)) {
+                        if (($captureAmount > Tools::ps_round(0, '6')) && (Tools::ps_round($cpt->getRestToPaid($ord), '6') >= $captureAmount)) {
                             $complete = false;
 
-                            if ($captureAmount > \Tools::ps_round((float) $ord->total_paid, '6')) {
-                                $captureAmount = \Tools::ps_round((float) $ord->total_paid, '6');
+                            if ($captureAmount > Tools::ps_round((float) $ord->total_paid, '6')) {
+                                $captureAmount = Tools::ps_round((float) $ord->total_paid, '6');
                                 $complete = true;
                             }
-                            if ($captureAmount == \Tools::ps_round($cpt->getRestToPaid($ord), '6')) {
+                            if ($captureAmount == Tools::ps_round($cpt->getRestToPaid($ord), '6')) {
                                 $complete = true;
                             }
 
@@ -1445,21 +1445,21 @@ class PayPal extends \PaymentModule
         }
 
         if (count($adminTemplates) > 0) {
-            $order = new \Order((int) $params['id_order']);
-            $currency = new \Currency($order->id_currency);
+            $order = new Order((int) $params['id_order']);
+            $currency = new Currency($order->id_currency);
             $cpt = new PayPalCapture();
             $cpt->id_order = (int) $order->id;
             $orderState = $order->current_state;
 
             $this->context->smarty->assign(
                 [
-                    'authorization'   => (int) \Configuration::get('PAYPAL_OS_AUTHORIZATION'),
+                    'authorization'   => (int) Configuration::get('PAYPAL_OS_AUTHORIZATION'),
                     'base_url'        => _PS_BASE_URL_.__PS_BASE_URI__,
                     'module_name'     => $this->name,
                     'order_state'     => $orderState,
                     'params'          => $params,
                     'id_currency'     => $currency->getSign(),
-                    'rest_to_capture' => \Tools::ps_round($cpt->getRestToPaid($order), '6'),
+                    'rest_to_capture' => Tools::ps_round($cpt->getRestToPaid($order), '6'),
                     'list_captures'   => $cpt->getListCaptured(),
                     'ps_version'      => _PS_VERSION_,
                 ]
@@ -1488,12 +1488,12 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $sql = new \DbQuery();
+        $sql = new DbQuery();
         $sql->select('po.`payment_method`, po.`payment_status`');
         $sql->from('paypal_order', 'po');
         $sql->where('po.`id_order` = '.(int) $idOrder);
 
-        $order = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+        $order = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
 
         return $order && $order['payment_status']
             == 'Pending_validation';
@@ -1512,13 +1512,13 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $sql = new \DbQuery();
+        $sql = new DbQuery();
         $sql->select('po.`payment_method`, po.`payment_status`');
         $sql->from('paypal_order', 'po');
         $sql->where('po.`id_order` = '.(int) $idOrder);
         $sql->where('po.`capture` = 1');
 
-        $result = \Db::getInstance()->getRow($sql);
+        $result = Db::getInstance()->getRow($sql);
 
         return $result && $result['payment_status'] == 'Pending_capture';
     }
@@ -1536,12 +1536,12 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $sql = new \DbQuery();
+        $sql = new DbQuery();
         $sql->select('po.`payment_status`, po.`capture`');
         $sql->from('paypal_order', 'po');
         $sql->where('po.`id_order` = '.(int) $idOrder);
 
-        $paypalOrder = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
+        $paypalOrder = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
 
         return $paypalOrder && ($paypalOrder['payment_status'] == 'Completed' || $paypalOrder['payment_status'] == 'approved') && $paypalOrder['capture'] == 0;
     }
@@ -1555,21 +1555,21 @@ class PayPal extends \PaymentModule
      */
     public function hookCancelProduct($params)
     {
-        /** @var \Order $order */
-        if (\Tools::isSubmit('generateDiscount') || !$this->isPayPalAPIAvailable()
-            || \Tools::isSubmit('generateCreditSlip')
+        /** @var Order $order */
+        if (Tools::isSubmit('generateDiscount') || !$this->isPayPalAPIAvailable()
+            || Tools::isSubmit('generateCreditSlip')
         ) {
             return false;
         } elseif ($params['order']->module != $this->name || !($order = $params['order'])
-            || !\Validate::isLoadedObject($order)
+            || !Validate::isLoadedObject($order)
         ) {
             return false;
         } elseif (!$order->hasBeenPaid()) {
             return false;
         }
 
-        $orderDetail = new \OrderDetail((int) $params['id_order_detail']);
-        if (!$orderDetail || !\Validate::isLoadedObject($orderDetail)) {
+        $orderDetail = new OrderDetail((int) $params['id_order_detail']);
+        if (!$orderDetail || !Validate::isLoadedObject($orderDetail)) {
             return false;
         }
 
@@ -1579,7 +1579,7 @@ class PayPal extends \PaymentModule
         }
 
         $products = $order->getProducts();
-        $cancelQuantity = \Tools::getValue('cancelQuantity');
+        $cancelQuantity = Tools::getValue('cancelQuantity');
         $message = $this->l('Cancel products result:').'<br>';
 
         $amount = (float) ($products[(int) $orderDetail->id]['product_price_wt'] * (int) $cancelQuantity[(int) $orderDetail->id]);
@@ -1592,7 +1592,7 @@ class PayPal extends \PaymentModule
 
     /**
      * @param string $idPayment
-     * @param \Order $order
+     * @param Order $order
      * @param bool|float $amount Amount
      *
      * @return bool
@@ -1604,9 +1604,9 @@ class PayPal extends \PaymentModule
             return $this->doFullRefund($idPayment);
         }
 
-        $details = new \stdClass();
+        $details = new stdClass();
         $details->amount = (float) $amount;
-        $details->currency = strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
+        $details->currency = strtoupper(Currency::getCurrencyInstance($order->id_currency)->iso_code);
 
         // TODO: check if succeeded
         $rest = new PayPalRestApi();
@@ -1673,10 +1673,10 @@ class PayPal extends \PaymentModule
             return false;
         }
 
-        $newMessage = new \Message();
+        $newMessage = new Message();
         $message = strip_tags($message, '<br>');
 
-        if (!\Validate::isCleanHtml($message)) {
+        if (!Validate::isCleanHtml($message)) {
             $message = $this->l('Payment message is not valid, please check your module.');
         }
 
@@ -1700,8 +1700,8 @@ class PayPal extends \PaymentModule
      */
     public function hookBackOfficeHeader()
     {
-        if ((strcmp(\Tools::getValue('configure'), $this->name) === 0) ||
-            (strcmp(\Tools::getValue('module_name'), $this->name) === 0)
+        if ((strcmp(Tools::getValue('configure'), $this->name) === 0) ||
+            (strcmp(Tools::getValue('module_name'), $this->name) === 0)
         ) {
             $this->context->controller->addJquery();
             $this->context->controller->addJQueryPlugin('fancybox');
@@ -1731,7 +1731,7 @@ class PayPal extends \PaymentModule
      */
     public function renderExpressCheckoutButton($type)
     {
-        if ((!\Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT') && !$this->context->getMobileDevice())) {
+        if ((!Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT') && !$this->context->getMobileDevice())) {
             return null;
         }
 
@@ -1748,7 +1748,7 @@ class PayPal extends \PaymentModule
                 'PayPal_payment_type'                   => $type,
                 'PayPal_current_page'                   => $this->getCurrentUrl(),
                 'PayPal_lang_code'                      => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
-                'PayPal_tracking_code'                  => $this->getTrackingCode((int) \Configuration::get('PAYPAL_PAYMENT_METHOD')),
+                'PayPal_tracking_code'                  => $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD')),
                 'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
                 'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
             ]
@@ -1807,7 +1807,7 @@ class PayPal extends \PaymentModule
      */
     public function getPayPalURL()
     {
-        return 'www'.(!\Configuration::get(static::LIVE) ? '.sandbox' : '').'.paypal.com';
+        return 'www'.(!Configuration::get(static::LIVE) ? '.sandbox' : '').'.paypal.com';
     }
 
     /**
@@ -1818,7 +1818,7 @@ class PayPal extends \PaymentModule
      */
     public function getAPIURL()
     {
-        return 'api-3t'.(!\Configuration::get(static::LIVE) ? '.sandbox' : '').'.paypal.com';
+        return 'api-3t'.(!Configuration::get(static::LIVE) ? '.sandbox' : '').'.paypal.com';
     }
 
     /**
@@ -1868,18 +1868,18 @@ class PayPal extends \PaymentModule
 
         if ($send) {
             $idLang = (int) $this->context->language->id;
-            $isoLang = \Language::getIsoById($idLang);
+            $isoLang = Language::getIsoById($idLang);
 
             if (!is_dir(dirname(__FILE__).'/mails/'.strtolower($isoLang))) {
-                $idLang = \Language::getIdByIso('en');
+                $idLang = Language::getIdByIso('en');
             }
 
-            \Mail::Send(
+            Mail::Send(
                 $idLang,
                 'error_reporting',
-                \Mail::l('Error reporting from your PayPal module', (int) $this->context->language->id),
+                Mail::l('Error reporting from your PayPal module', (int) $this->context->language->id),
                 ['{logs}' => implode('<br />', $log)],
-                \Configuration::get('PS_SHOP_EMAIL'),
+                Configuration::get('PS_SHOP_EMAIL'),
                 null,
                 null,
                 null,
@@ -1904,7 +1904,7 @@ class PayPal extends \PaymentModule
      * @param null $currencySpecial
      * @param bool $dontTouchAmount
      * @param bool $secureKey
-     * @param \Shop|null $shop
+     * @param Shop|null $shop
      *
      * @return bool
      * @throws PrestaShopException
@@ -1919,7 +1919,7 @@ class PayPal extends \PaymentModule
         $currencySpecial = null,
         $dontTouchAmount = false,
         $secureKey = false,
-        \Shop $shop = null
+        Shop $shop = null
     ) {
         if ($this->active) {
             // Set transaction details if pcc is defined in PaymentModule class_exists
@@ -1959,7 +1959,7 @@ class PayPal extends \PaymentModule
     {
         $wrappingFeesTaxInc = $this->context->cart->getGiftWrappingPrice();
 
-        return (float) \Tools::convertPrice($wrappingFeesTaxInc, $this->context->currency);
+        return (float) Tools::convertPrice($wrappingFeesTaxInc, $this->context->currency);
     }
 
     /**
@@ -1970,15 +1970,15 @@ class PayPal extends \PaymentModule
      */
     public function assignCartSummary()
     {
-        $currency = new \Currency((int) $this->context->cart->id_currency);
+        $currency = new Currency((int) $this->context->cart->id_currency);
 
         $this->context->smarty->assign(
             [
-                'total'            => \Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
+                'total'            => Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
                 'logos'            => PayPalLogos::getLogos($this->getLocale()),
                 'use_mobile'       => (bool) $this->context->getMobileDevice(),
-                'address_shipping' => new \Address($this->context->cart->id_address_delivery),
-                'address_billing'  => new \Address($this->context->cart->id_address_invoice),
+                'address_shipping' => new Address($this->context->cart->id_address_delivery),
+                'address_billing'  => new Address($this->context->cart->id_address_invoice),
                 'cart'             => $this->context->cart,
                 'patternRules'     => ['avoid' => []],
                 'cart_image_size'  => 'cart_default',
@@ -2012,11 +2012,11 @@ class PayPal extends \PaymentModule
     /**
      * Check cart currency
      *
-     * @param \Cart $cart
+     * @param Cart $cart
      *
      * @return bool Indicates whether this module can accept the currency
      */
-    protected function checkCurrency(\Cart $cart)
+    protected function checkCurrency(Cart $cart)
     {
         $currencyModule = $this->getCurrency((int) $cart->id_currency);
 
