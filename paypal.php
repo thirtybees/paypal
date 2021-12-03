@@ -118,6 +118,7 @@ class PayPal extends \PaymentModule
 
     /**
      * PayPal constructor.
+     * @throws PrestaShopException
      */
     public function __construct()
     {
@@ -161,7 +162,8 @@ class PayPal extends \PaymentModule
     /**
      * @param int $idCustomer
      *
-     * @return mixed
+     * @return string|false
+     * @throws PrestaShopException
      */
     public static function getPayPalEmailByIdCustomer($idCustomer)
     {
@@ -177,6 +179,8 @@ class PayPal extends \PaymentModule
      * Install the module
      *
      * @return bool Indicates whether the module was installed successfully
+     * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      */
     public function install()
     {
@@ -219,6 +223,9 @@ class PayPal extends \PaymentModule
 
     /**
      * Set configuration table
+     *
+     * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      */
     public function updateConfiguration()
     {
@@ -230,6 +237,8 @@ class PayPal extends \PaymentModule
     /**
      * Create a new order state
      *
+     * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -269,6 +278,7 @@ class PayPal extends \PaymentModule
      * Uninstall the module
      *
      * @return bool Indicates whether the module was uninstalled successfully
+     * @throws PrestaShopException
      */
     public function uninstall()
     {
@@ -280,6 +290,7 @@ class PayPal extends \PaymentModule
     /**
      * Delete PayPal configuration
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -301,6 +312,9 @@ class PayPal extends \PaymentModule
      * Get module configuration page
      *
      * @return string HTML
+     * @throws PrestaShopException
+     * @throws SmartyException
+     * @throws HTMLPurifier_Exception
      */
     public function getContent()
     {
@@ -322,6 +336,9 @@ class PayPal extends \PaymentModule
 
     /**
      * Post process
+     *
+     * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      */
     protected function postProcess()
     {
@@ -383,9 +400,12 @@ class PayPal extends \PaymentModule
     /**
      * Update configuration value in ALL contexts
      *
-     * @param string $key    Configuration key
-     * @param mixed  $values Configuration values, can be string or array with id_lang as key
-     * @param bool   $html   Contains HTML
+     * @param string $key Configuration key
+     * @param mixed $values Configuration values, can be string or array with id_lang as key
+     * @param bool $html Contains HTML
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function updateAllValue($key, $values, $html = false)
     {
@@ -399,6 +419,9 @@ class PayPal extends \PaymentModule
      * Render the main form
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     protected function renderMainForm()
     {
@@ -439,6 +462,7 @@ class PayPal extends \PaymentModule
      * Get main form configuration values
      *
      * @return array
+     * @throws PrestaShopException
      */
     protected function getMainFormValues()
     {
@@ -462,6 +486,8 @@ class PayPal extends \PaymentModule
      * Get the general form structure
      *
      * @return array
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function getGeneralForm()
     {
@@ -513,6 +539,8 @@ class PayPal extends \PaymentModule
      * Get the REST API form structure
      *
      * @return array
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     protected function getRestApiForm()
     {
@@ -759,6 +787,9 @@ class PayPal extends \PaymentModule
      * Get the main configuration page
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function getMainConfigurationPage()
     {
@@ -777,6 +808,8 @@ class PayPal extends \PaymentModule
      * Hooks methods
      *
      * @return string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookHeader()
     {
@@ -827,6 +860,7 @@ class PayPal extends \PaymentModule
      * Get PayPal locale
      *
      * @return string
+     * @throws PrestaShopException
      */
     public function getLocale()
     {
@@ -892,6 +926,9 @@ class PayPal extends \PaymentModule
      * Hook to product actions
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookProductActions()
     {
@@ -902,6 +939,9 @@ class PayPal extends \PaymentModule
      * Product Footer hook
      *
      * @return string Hook HTML
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookProductFooter()
     {
@@ -916,6 +956,9 @@ class PayPal extends \PaymentModule
      * @param string $type
      *
      * @return null|string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function renderExpressCheckoutForm($type)
     {
@@ -946,6 +989,7 @@ class PayPal extends \PaymentModule
      * Get current URL
      *
      * @return string
+     * @throws PrestaShopException
      */
     protected function getCurrentUrl()
     {
@@ -968,6 +1012,9 @@ class PayPal extends \PaymentModule
      * @param array $params
      *
      * @return null|string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookPayment($params)
     {
@@ -1033,6 +1080,8 @@ class PayPal extends \PaymentModule
      * Get PayPal Plus locale
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function getLocalePayPalPlus()
     {
@@ -1086,6 +1135,8 @@ class PayPal extends \PaymentModule
 
     /**
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function getCountryCode()
     {
@@ -1100,6 +1151,7 @@ class PayPal extends \PaymentModule
      * Hook for Advanced EU checkout
      *
      * @return array|null
+     * @throws PrestaShopException
      */
     public function hookDisplayPaymentEU()
     {
@@ -1134,6 +1186,7 @@ class PayPal extends \PaymentModule
 
     /**
      * Redirect to confirmation page
+     * @throws PrestaShopException
      */
     public function redirectToConfirmation()
     {
@@ -1148,6 +1201,8 @@ class PayPal extends \PaymentModule
 
     /**
      * @return null|string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookShoppingCartExtra()
     {
@@ -1179,6 +1234,7 @@ class PayPal extends \PaymentModule
      * @param int $method
      *
      * @return string
+     * @throws PrestaShopException
      */
     public function getTrackingCode($method)
     {
@@ -1228,7 +1284,10 @@ class PayPal extends \PaymentModule
     }
 
     /**
+     * @param $params
      * @return string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookPaymentReturn($params)
     {
@@ -1267,6 +1326,8 @@ class PayPal extends \PaymentModule
 
     /**
      * @return string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookLeftColumn()
     {
@@ -1275,6 +1336,8 @@ class PayPal extends \PaymentModule
 
     /**
      * @return string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookRightColumn()
     {
@@ -1287,6 +1350,7 @@ class PayPal extends \PaymentModule
      * @param array $params
      *
      * @return bool|null
+     * @throws PrestaShopException
      */
     public function hookBackBeforePayment($params)
     {
@@ -1310,6 +1374,7 @@ class PayPal extends \PaymentModule
 
     /**
      * @return bool Indicates whether the PayPal API is available
+     * @throws PrestaShopException
      */
     public function isPayPalAPIAvailable()
     {
@@ -1324,6 +1389,10 @@ class PayPal extends \PaymentModule
      * @param array $params
      *
      * @return string
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookAdminOrder($params)
     {
@@ -1410,6 +1479,8 @@ class PayPal extends \PaymentModule
      * @param int $idOrder
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function needsValidation($idOrder)
     {
@@ -1432,6 +1503,8 @@ class PayPal extends \PaymentModule
      * @param $idOrder
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function needsCapture($idOrder)
     {
@@ -1454,6 +1527,8 @@ class PayPal extends \PaymentModule
      * @param int $idOrder
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function canRefund($idOrder)
     {
@@ -1475,6 +1550,8 @@ class PayPal extends \PaymentModule
      * @param array $params
      *
      * @return bool|null
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function hookCancelProduct($params)
     {
@@ -1514,11 +1591,12 @@ class PayPal extends \PaymentModule
     }
 
     /**
-     * @param string     $idPayment
-     * @param \Order     $order
+     * @param string $idPayment
+     * @param \Order $order
      * @param bool|float $amount Amount
      *
      * @return bool
+     * @throws PrestaShopException
      */
     protected function doRefund($idPayment, $order, $amount = false)
     {
@@ -1582,10 +1660,12 @@ class PayPal extends \PaymentModule
     /**
      * Add new private message
      *
-     * @param int    $idOrder
+     * @param int $idOrder
      * @param string $message
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function addNewPrivateMessage($idOrder, $message)
     {
@@ -1646,6 +1726,8 @@ class PayPal extends \PaymentModule
      * @param string $type
      *
      * @return null|string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function renderExpressCheckoutButton($type)
     {
@@ -1711,6 +1793,8 @@ class PayPal extends \PaymentModule
 
     /**
      * @return string PayPal Website Payments Standard or Express Checkout URL
+     *
+     * @throws PrestaShopException
      */
     public function getPaypalStandardUrl()
     {
@@ -1719,6 +1803,7 @@ class PayPal extends \PaymentModule
 
     /**
      * @return string PayPal base URL
+     * @throws PrestaShopException
      */
     public function getPayPalURL()
     {
@@ -1729,6 +1814,7 @@ class PayPal extends \PaymentModule
      * Get PayPal API URL
      *
      * @return string
+     * @throws PrestaShopException
      */
     public function getAPIURL()
     {
@@ -1747,9 +1833,11 @@ class PayPal extends \PaymentModule
 
     /**
      * @param string $message
-     * @param bool   $log
+     * @param bool $log
      *
      * @return string
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function displayPayPalAPIError($message, $log = false)
     {
@@ -1807,18 +1895,19 @@ class PayPal extends \PaymentModule
     /**
      * Validate the order
      *
-     * @param int        $idCart
-     * @param int        $idOrderState
-     * @param float      $amountPaid
-     * @param string     $paymentMethod
-     * @param null       $message
-     * @param array      $transaction
-     * @param null       $currencySpecial
-     * @param bool       $dontTouchAmount
-     * @param bool       $secureKey
+     * @param int $idCart
+     * @param int $idOrderState
+     * @param float $amountPaid
+     * @param string $paymentMethod
+     * @param null $message
+     * @param array $transaction
+     * @param null $currencySpecial
+     * @param bool $dontTouchAmount
+     * @param bool $secureKey
      * @param \Shop|null $shop
      *
      * @return bool
+     * @throws PrestaShopException
      */
     public function validateOrder(
         $idCart,
@@ -1863,6 +1952,8 @@ class PayPal extends \PaymentModule
      * Get gift wrapping price
      *
      * @return float
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function getGiftWrappingPrice()
     {
@@ -1873,6 +1964,9 @@ class PayPal extends \PaymentModule
 
     /**
      * Assign cart summary
+     *
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function assignCartSummary()
     {
@@ -1912,8 +2006,7 @@ class PayPal extends \PaymentModule
     protected function doCapture($idOrder, $captureAmount = false, $isComplete = false)
     {
         // FIXME: not implemented
-
-        return null;
+        return false;
     }
 
     /**
