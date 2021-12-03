@@ -316,7 +316,6 @@ class PayPal extends \PaymentModule
         );
 
         $output .= $this->display(__FILE__, 'views/templates/admin/configure.tpl');
-        $output .= $this->display(__FILE__, 'views/templates/admin/tlscheck.tpl');
 
         return $output.$this->renderMainForm();
     }
@@ -326,10 +325,6 @@ class PayPal extends \PaymentModule
      */
     protected function postProcess()
     {
-        if (Tools::isSubmit('checktls') && (bool) Tools::getValue('checktls')) {
-            $this->tlsCheck();
-        }
-
         if (\Tools::isSubmit('submit'.$this->name)) {
             // General
             \Configuration::updateValue(static::STORE_COUNTRY, (int) \Tools::getValue(static::STORE_COUNTRY));
@@ -382,18 +377,6 @@ class PayPal extends \PaymentModule
             // PayPal Login
             \Configuration::updateValue(static::LOGIN_ENABLED, (int) \Tools::getValue(static::LOGIN_ENABLED));
             \Configuration::updateValue(static::LOGIN_THEME, (int) \Tools::getValue(static::LOGIN_THEME));
-        }
-    }
-
-    /**
-     * Check if server supports TLSv1.2
-     */
-    protected function tlsCheck()
-    {
-        if (ConfigurationTest::testTlsv12()) {
-            $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_OK);
-        } else {
-            $this->updateAllValue(static::TLS_OK, static::ENUM_TLS_ERROR);
         }
     }
 
