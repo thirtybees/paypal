@@ -241,7 +241,7 @@ class PayPal extends \PaymentModule
             $orderState->name = [];
 
             foreach (\Language::getLanguages() as $language) {
-                if (\Tools::strtolower($language['iso_code']) == 'fr') {
+                if (strtolower($language['iso_code']) == 'fr') {
                     $orderState->name[$language['id_lang']] = 'Autorisation acceptée par PayPal';
                 } else {
                     $orderState->name[$language['id_lang']] = 'Authorization accepted from PayPal';
@@ -954,7 +954,7 @@ class PayPal extends \PaymentModule
         $pos = strpos($request, '?');
 
         if (($pos !== false) && ($pos >= 0)) {
-            $request = \Tools::substr($request, 0, $pos);
+            $request = substr($request, 0, $pos);
         }
 
         $params = urlencode($_SERVER['QUERY_STRING']);
@@ -1036,7 +1036,7 @@ class PayPal extends \PaymentModule
      */
     public function getLocalePayPalPlus()
     {
-        switch (\Tools::strtolower($this->getCountryCode())) {
+        switch (strtolower($this->getCountryCode())) {
             case 'fr':
                 return 'fr_FR';
             case 'hk':
@@ -1528,7 +1528,7 @@ class PayPal extends \PaymentModule
 
         $details = new \stdClass();
         $details->amount = (float) $amount;
-        $details->currency = \Tools::strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
+        $details->currency = strtoupper(\Currency::getCurrencyInstance($order->id_currency)->iso_code);
 
         // TODO: check if succeeded
         $rest = new PayPalRestApi();
@@ -1759,7 +1759,7 @@ class PayPal extends \PaymentModule
             foreach ($log as $key => $string) {
                 if ($string == 'ACK -> Success') {
                     $send = false;
-                } elseif (\Tools::substr($string, 0, 6) == 'METHOD') {
+                } elseif (substr($string, 0, 6) == 'METHOD') {
                     $values = explode('&', $string);
                     foreach ($values as $key2 => $value) {
                         $values2 = explode('=', $value);
@@ -1782,7 +1782,7 @@ class PayPal extends \PaymentModule
             $idLang = (int) $this->context->language->id;
             $isoLang = \Language::getIsoById($idLang);
 
-            if (!is_dir(dirname(__FILE__).'/mails/'.\Tools::strtolower($isoLang))) {
+            if (!is_dir(dirname(__FILE__).'/mails/'.strtolower($isoLang))) {
                 $idLang = \Language::getIdByIso('en');
             }
 
