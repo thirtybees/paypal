@@ -1667,9 +1667,9 @@ class PayPal extends PaymentModule
             $this->context->smarty->assign(
                 [
                     'PayPal_module_dir' => _MODULE_DIR_.$this->name,
-                    'PayPal_WPS'        => (int) static::WPS,
-                    'PayPal_ECS'        => (int) static::EC,
-                    'PayPal_PPP'        => (int) static::WPP,
+                    'PayPal_WPS'        => static::WPS,
+                    'PayPal_ECS'        => static::EC,
+                    'PayPal_PPP'        => static::WPP,
                 ]
             );
 
