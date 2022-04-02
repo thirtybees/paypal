@@ -51,7 +51,6 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
 
         if ($this->payerId && $this->paymentId) {
             $callApiPaypalPlus = new PayPalRestApi();
-            $callApiPaypalPlus->getWebProfile();
             $payment = $callApiPaypalPlus->lookUpPayment($this->paymentId);
             $email = $payment->payer->payer_info->email;
             /* Create Customer if not exist with address etc */

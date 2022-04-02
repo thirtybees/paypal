@@ -79,6 +79,26 @@ class PayPalRestApi
         $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
     }
 
+    private function getWebProfileId($type)
+    {
+        switch ($type) {
+            case self::PLUS_PROFILE:
+                return (\Configuration::get(\PayPal::LIVE))
+                    ? \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE)
+                    : \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID);
+            case self::EXPRESS_CHECKOUT_PROFILE:
+                return (\Configuration::get(\PayPal::LIVE))
+                    ? \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE)
+                    : \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+            case self::STANDARD_PROFILE:
+                return (\Configuration::get(\PayPal::LIVE))
+                    ? \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE)
+                    : \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+            default:
+                return null;
+        }
+    }
+
     /**
      * @param int $type
      *
@@ -88,38 +108,53 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getWebProfile($type = self::STANDARD_PROFILE)
+    public function createWebProfile($type)
     {
         $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $data = $this->createWebProfile($type);
+            $headers = [
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer '.$accessToken,
+            ];
+
+            // DELETE if profile exists
+            $this->deleteWebProfile($type);
+
+            // Then CREATE
+            $definition = $this->getWebProfileDefinition($type);
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($definition), $headers, false, 'POST'));
+
+            if (isset($result->id)) {
+                return $result->id;
+            }
+        }
+
+        return false;
+    }
+
+    public function deleteWebProfile($type)
+    {
+        $accessToken = $this->getToken();
+
+        if ($accessToken) {
+            $data = $this->getWebProfileDefinition($type);
 
             $headers = [
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
-            if ($this->profiles) {
-                $profileId = '';
-                foreach ($this->profiles as $profile) {
-                    if ($profile->name == $data['name']) {
-                        $profileId = $profile->id;
-                    }
-                }
-
-                if ($profileId) {
-                    // DELETE first
+            // CHECK if profile exists
+            $profileId = $this->getWebProfileId($type);
+            if ($profileId !== null) {
+                $profile = json_decode($this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers));
+                // then DELETE
+                if (isset($profile->id) && $profile->id == $profileId) {
                     $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
                 }
             }
-
-            // Then create
-            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
-
-            if (isset($result->id)) {
-                return $result->id;
-            }
+            return true; // It just matters that the profile does not exist now
         }
 
         return false;
@@ -435,32 +470,7 @@ class PayPalRestApi
             'payer'        => $payer,
             'intent'       => 'sale',
         ];
-        if (\Configuration::get(\PayPal::LIVE)) {
-            switch ($profile) {
-                case self::PLUS_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE);
-                    break;
-                case self::EXPRESS_CHECKOUT_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
-                    break;
-                default:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                    break;
-            }
-        } else {
-            switch ($profile) {
-                case self::PLUS_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID);
-                    break;
-                case self::EXPRESS_CHECKOUT_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-                    break;
-                default:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
-                    break;
-            }
-        }
-
+        $payment->experience_profile_id = $this->getWebProfileId($profile);
         $payment->redirect_urls = $redirectUrls;
 // d($payment);
         return $payment;
@@ -583,7 +593,7 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function createWebProfile($type)
+    protected function getWebProfileDefinition($type)
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
         $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');

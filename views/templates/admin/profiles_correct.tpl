@@ -19,7 +19,7 @@
 <br />
 {l s='All profiles have been loaded correctly:' mod='paypal'}
 <ul>
-	<li>Website Payments Standard: {$standardProfile|escape:'htmlall':'UTF-8'}</li>
-	<li>Website Payments Plus: {$plusProfile|escape:'htmlall':'UTF-8'}</li>
-	<li>Express Checkout: {$expressCheckoutProfile|escape:'htmlall':'UTF-8'}</li>
+	{if !empty($standardProfile)}<li>Website Payments Standard: {$standardProfile|escape:'htmlall':'UTF-8'}</li>{/if}
+	{if !empty($plusProfile)}<li>Website Payments Plus: {$plusProfile|escape:'htmlall':'UTF-8'}</li>{/if}
+	{if !empty($expressCheckoutProfile)}<li>Express Checkout: {$expressCheckoutProfile|escape:'htmlall':'UTF-8'}</li>{/if}
 </ul>
