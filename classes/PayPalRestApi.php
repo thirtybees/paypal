@@ -438,10 +438,10 @@ class PayPalRestApi
         if (\Configuration::get(\PayPal::LIVE)) {
             switch ($profile) {
                 case self::PLUS_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE);
                     break;
                 case self::EXPRESS_CHECKOUT_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
                     break;
                 default:
                     $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE);
@@ -450,10 +450,10 @@ class PayPalRestApi
         } else {
             switch ($profile) {
                 case self::PLUS_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID);
                     break;
                 case self::EXPRESS_CHECKOUT_PROFILE:
-                    $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                    $payment->experience_profile_id = \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
                     break;
                 default:
                     $payment->experience_profile_id = \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
@@ -596,7 +596,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'logo_image'  => _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -606,6 +606,7 @@ class PayPalRestApi
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
+                        'user_action' => 'commit',
                     ],
                 ];
             case self::EXPRESS_CHECKOUT_PROFILE:
@@ -613,7 +614,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'logo_image'  => _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -623,6 +624,7 @@ class PayPalRestApi
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
+                        'user_action' => 'commit',
                     ],
                 ];
             default:
@@ -630,7 +632,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'logo_image'  => _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO'),
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -640,6 +642,7 @@ class PayPalRestApi
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
+                        'user_action' => 'commit',
                     ],
                 ];
         }
