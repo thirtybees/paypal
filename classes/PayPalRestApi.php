@@ -641,7 +641,7 @@ class PayPalRestApi
                         'address_override' => 1,
                     ],
                     'flow_config'  => [
-                        'landing_page_type' => 'billing',
+                        'landing_page_type' => (\Configuration::get(\PayPal::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE) == 'login') ? 'login' : 'billing',
                         'user_action' => 'commit',
                     ],
                 ];
