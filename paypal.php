@@ -371,33 +371,59 @@ class PayPal extends PaymentModule
             Configuration::updateValue(static::LOGIN_ENABLED, (int) Tools::getValue(static::LOGIN_ENABLED));
             Configuration::updateValue(static::LOGIN_THEME, (int) Tools::getValue(static::LOGIN_THEME));
 
+            // Create/update needed payment profiles via REST API
             if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
                 $rest = new PayPalRestApi(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
-                $rest->getWebProfiles();
-                $standardProfile = $rest->getWebProfile(PayPalRestApi::STANDARD_PROFILE);
-                $plusProfile = $rest->getWebProfile(PayPalRestApi::PLUS_PROFILE);
-                $expressCheckoutProfile = $rest->getWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
 
-                if (Tools::getValue(static::LIVE)) {
+                if (Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
+                    $standardProfile = $rest->createWebProfile(PayPalRestApi::STANDARD_PROFILE);
                     if ($standardProfile) {
-                        Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                        if (Tools::getValue(static::LIVE)) {
+                            Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
+                        }
+                        else {
+                            Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                        }
                     }
+                }
+                else {
+                    $rest->deleteWebProfile(PayPalRestApi::STANDARD_PROFILE);
+                    Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                    Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID);
+                }
+
+                if (Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
+                    $plusProfile = $rest->createWebProfile(PayPalRestApi::PLUS_PROFILE);
                     if ($plusProfile) {
-                        Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                        if (Tools::getValue(static::LIVE)) {
+                            Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
+                        }
+                        else {
+                            Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                        }
                     }
+                }
+                else {
+                    $rest->deleteWebProfile(PayPalRestApi::PLUS_PROFILE);
+                    Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
+                    Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID);
+                }
+
+                if (Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED)) {
+                    $expressCheckoutProfile = $rest->createWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
                     if ($expressCheckoutProfile) {
-                        Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                        if (Tools::getValue(static::LIVE)) {
+                            Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
+                        }
+                        else {
+                            Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                        }
                     }
-                } else {
-                    if ($standardProfile) {
-                        Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
-                    }
-                    if ($plusProfile) {
-                        Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
-                    }
-                    if ($expressCheckoutProfile) {
-                        Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
-                    }
+                }
+                else {
+                    $rest->deleteWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
+                    Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+                    Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
                 }
             }
         }
@@ -565,14 +591,19 @@ class PayPal extends PaymentModule
         if (!$this->context->smarty->getTemplateVars('standardProfile')) {
             $this->context->smarty->assign(
                 [
-                    'standardProfile'        => $standardProfile,
-                    'plusProfile'            => $plusProfile,
-                    'expressCheckoutProfile' => $expressCheckoutProfile,
+                    'standardProfile'              => $standardProfile,
+                    'standardProfileNeeded'        => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
+                    'plusProfile'                  => $plusProfile,
+                    'plusProfileNeeded'            => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
+                    'expressCheckoutProfile'       => $expressCheckoutProfile,
+                    'expressCheckoutProfileNeeded' => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
                 ]
             );
         }
 
-        if ($standardProfile && $plusProfile && $expressCheckoutProfile) {
+        if (($standardProfile || !Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) &&
+            ($plusProfile || !Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) &&
+            ($expressCheckoutProfile || !Configuration::get(static::EXPRESS_CHECKOUT_ENABLED))) {
             $profileType = 'confirmation';
             $profileText = $this->display(__FILE__, 'views/templates/admin/profiles_correct.tpl');
         } else {
