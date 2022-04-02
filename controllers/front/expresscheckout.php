@@ -94,6 +94,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
         if (isset($payment->message)) {
             $this->errors[] = $payment->message;
+            // TODO: implement logging
+            $this->errors[] = print_r($payment->details, TRUE);
         }
     }
 
