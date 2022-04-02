@@ -89,6 +89,11 @@ class PayPal extends PaymentModule
     const TLS_LAST_CHECK = 'PAYPAL_TLS_LAST_CHECK';
     const ENUM_TLS_OK = 1;
     const ENUM_TLS_ERROR = -1;
+
+    const WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE = 'PAYPAL_WPS_LANDING_PAGE_TYPE';
+    const WEBSITE_PAYMENTS_PLUS_LANDING_PAGE_TYPE = 'PAYPAL_WPP_LANDING_PAGE_TYPE';
+    const EXPRESS_CHECKOUT_LANDING_PAGE_TYPE = 'PAYPAL_EC_LANDING_PAGE_TYPE';
+
     // @codingStandardsIgnoreStart
     /** @var array $errors */
     public $errors = [];
@@ -352,6 +357,20 @@ class PayPal extends PaymentModule
             Configuration::updateValue(static::CLIENT_ID, Tools::getValue(static::CLIENT_ID));
             Configuration::updateValue(static::SECRET, Tools::getValue(static::SECRET));
 
+            // Website Payments Standard
+            Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
+            Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE, Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE));
+
+            // Website Payments Plus
+            Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
+
+            // Express Checkout
+            Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
+
+            // PayPal Login
+            Configuration::updateValue(static::LOGIN_ENABLED, (int) Tools::getValue(static::LOGIN_ENABLED));
+            Configuration::updateValue(static::LOGIN_THEME, (int) Tools::getValue(static::LOGIN_THEME));
+
             if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
                 $rest = new PayPalRestApi(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
                 $rest->getWebProfiles();
@@ -381,19 +400,6 @@ class PayPal extends PaymentModule
                     }
                 }
             }
-
-            // Website Payments Standard
-            Configuration::updateValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
-
-            // Website Payments Plus
-            Configuration::updateValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED, Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
-
-            // Express Checkout
-            Configuration::updateValue(static::EXPRESS_CHECKOUT_ENABLED, Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
-
-            // PayPal Login
-            Configuration::updateValue(static::LOGIN_ENABLED, (int) Tools::getValue(static::LOGIN_ENABLED));
-            Configuration::updateValue(static::LOGIN_THEME, (int) Tools::getValue(static::LOGIN_THEME));
         }
     }
 
@@ -472,6 +478,8 @@ class PayPal extends PaymentModule
             static::STANDARD_WEBSITE_PROFILE_ID => Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
 
             static::WEBSITE_PAYMENTS_STANDARD_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
+            static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE),
+
             static::WEBSITE_PAYMENTS_PLUS_ENABLED     => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
             static::EXPRESS_CHECKOUT_ENABLED          => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
             static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
@@ -634,6 +642,27 @@ class PayPal extends PaymentModule
                                 'value' => 0,
                                 'label' => $this->l('Disabled'),
                             ],
+                        ],
+                    ],
+                    [
+                        'type'     => 'select',
+                        'label'    => $this->l('Landing Page Type'),
+                        'name'     => static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE,
+                        'options'  => [
+                            'query' => [
+                                [
+                                    'id' => 'billing',
+                                    'value' => 'billing',
+                                    'name' => $this->l('Billing'),
+                                ],
+                                [
+                                    'id' => 'login',
+                                    'value' => 'login',
+                                    'name' => $this->l('Login'),
+                                ],
+                            ],
+                            'id'    => 'id',
+                            'name'  => 'name',
                         ],
                     ],
                 ],
