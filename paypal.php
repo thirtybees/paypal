@@ -889,8 +889,10 @@ class PayPal extends PaymentModule
             ]
         );
 
-        $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
-        $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
+        if (Configuration::get(static::LOGIN_ENABLED) || Configuration::get(static::EXPRESS_CHECKOUT_ENABLED)) {
+            $process = $this->display(__FILE__, 'views/templates/front/paypaljs.tpl');
+            $process .= '<script async defer type="text/javascript" src="//www.paypalobjects.com/api/checkout.js"></script>';
+        }
 
         if ((
                 (method_exists($smarty, 'getTemplateVars') && ($smarty->getTemplateVars('page_name')
