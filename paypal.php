@@ -679,6 +679,7 @@ class PayPal extends PaymentModule
                         'type'     => 'select',
                         'label'    => $this->l('Landing Page Type'),
                         'name'     => static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE,
+                        'desc'     => $this->l('"Billing" allows credit card payment without a PayPal account, while selecing "Login" requires the customer having a PayPal account. Creating a PayPal account during the payment process is possible with both modes.'),
                         'options'  => [
                             'query' => [
                                 [
