@@ -138,7 +138,7 @@ class PayPalRestApi
         $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $data = $this->getWebProfileDefinition($type);
+            $data = $this->getWebProfileDefinition($type, false);
 
             $headers = [
                 'Content-Type'  => 'application/json',
@@ -586,6 +586,7 @@ class PayPalRestApi
 
     /**
      * @param int $type
+     * @param bool $adjustLogo
      *
      * @return array
      *
@@ -593,12 +594,28 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    protected function getWebProfileDefinition($type)
+    protected function getWebProfileDefinition($type, $adjustLogo = true)
     {
         $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
         $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
         $language = new \Language($idLang);
         $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
+
+        $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO');
+        if ($adjustLogo) {
+            $logo = _PS_IMG_DIR_.\Configuration::get('PS_LOGO');
+            list($width, $height) = getimagesize($logo);
+            // PayPal expects images below 190x60 - let's resize it if our logo is bigger
+            if ($width > 190 || $height > 60) {
+                $ratio = min(190 / $width, 60 / $height);
+                $dstWidth = $width * $ratio;
+                $dstHeight = $height * $ratio;
+
+                $ext = substr($logo, strrpos($logo, '.') + 1);
+                \ImageManager::resize($logo, _PS_IMG_DIR_."logo_paypal_resized.{$ext}", $dstWidth, $dstHeight, $ext);
+                $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_."logo_paypal_resized.{$ext}";
+            }
+        }
 
         switch ($type) {
             case self::PLUS_PROFILE:
@@ -606,7 +623,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'logo_image'  => $logoUrl,
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -624,7 +641,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'logo_image'  => $logoUrl,
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
@@ -642,7 +659,7 @@ class PayPalRestApi
                     'name'         => $name,
                     'presentation' => [
                         'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
-                        'logo_image'  => _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO'),
+                        'logo_image'  => $logoUrl,
                         'locale_code' => \PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
