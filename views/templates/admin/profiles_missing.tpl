@@ -17,9 +17,10 @@
 *}
 {l s='In order to provide the best checkout experience, all profiles have to be loaded and available.' mod='paypal'}<br />
 <br />
-{l s='Unfortunately, some profiles are missing:' mod='paypal'}
+{l s='Unfortunately, some profiles could not be created:' mod='paypal'}
 <ul>
-	{if $standardProfileNeeded}<li>Website Payments Standard: {$standardProfile|escape:'htmlall':'UTF-8'}</li>{/if}
-	{if $plusProfileNeeded}<li>Website Payments Plus: {$plusProfile|escape:'htmlall':'UTF-8'}</li>{/if}
-	{if $expressCheckoutProfileNeeded}<li>Express Checkout: {$expressCheckoutProfile|escape:'htmlall':'UTF-8'}</li>{/if}
+	{if $standardProfileNeeded}<li>Website Payments Standard: {if empty($standardProfile)}<em>{l s='missing' mod='paypal'}</em>{else}{$standardProfile|escape:'htmlall':'UTF-8'}{/if}</li>{/if}
+	{if $plusProfileNeeded}<li>Website Payments Plus: {if empty($plusProfile)}<em>{l s='missing' mod='paypal'}</em>{else}{$plusProfile|escape:'htmlall':'UTF-8'}{/if}</li>{/if}
+	{if $expressCheckoutProfileNeeded}<li>Express Checkout: {if empty($expressCheckoutProfile)}<em>{l s='missing' mod='paypal'}</em>{else}{$expressCheckoutProfile|escape:'htmlall':'UTF-8'}{/if}</li>{/if}
 </ul>
+{l s='This is most likely caused by existing profiles with same name, likely from another Thirty Bees instance. Try creating a new, empty REST API app in the PayPal developer portal.' mod='paypal'}

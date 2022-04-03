@@ -90,10 +90,12 @@ class PayPalRestApi
                 return (\Configuration::get(\PayPal::LIVE))
                     ? \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE)
                     : \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-            default:
+            case self::STANDARD_PROFILE:
                 return (\Configuration::get(\PayPal::LIVE))
                     ? \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE)
                     : \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+            default:
+                return null;
         }
     }
 
@@ -106,24 +108,22 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function createWebProfile($type = self::STANDARD_PROFILE)
+    public function createWebProfile($type)
     {
         $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $data = $this->getWebProfileDefinition($type);
-
             $headers = [
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
             // DELETE if profile exists
-            $profileId = $this->getWebProfileId($type);
-            $this->deleteWebProfile($profileId);
+            $this->deleteWebProfile($type);
 
             // Then CREATE
-            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($data), $headers, false, 'POST'));
+            $definition = $this->getWebProfileDefinition($type);
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($definition), $headers, false, 'POST'));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -147,7 +147,7 @@ class PayPalRestApi
 
             // CHECK if profile exists
             $profileId = $this->getWebProfileId($type);
-            if (!empty($profileId)) {
+            if ($profileId !== null) {
                 $profile = json_decode($this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers));
                 // then DELETE
                 if (isset($profile->id) && $profile->id == $profileId) {
