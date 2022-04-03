@@ -1226,11 +1226,20 @@ class PayPal extends PaymentModule
         $paymentOptions = [];
 
         if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
-            $paymentOptions[] = [
-                'cta_text' => $this->l('PayPal or credit card'),
-                'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
-                'action'   => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
-            ];
+            if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE) == 'login') {
+                $paymentOptions[] = [
+                    'cta_text' => $this->l('PayPal'),
+                    'logo'     => Media::getMediaPath($this->_path.'logo.png'),
+                    'action'   => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
+                ];
+            }
+            else {
+                $paymentOptions[] = [
+                    'cta_text' => $this->l('PayPal or credit card'),
+                    'logo'     => Media::getMediaPath($this->_path.'views/img/default_logos/default_horizontal_large.png'),
+                    'action'   => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
+                ];
+            }
         }
 
         if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
