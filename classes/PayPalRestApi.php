@@ -596,7 +596,9 @@ class PayPalRestApi
      */
     protected function getWebProfileDefinition($type, $adjustLogo = true)
     {
-        $name = 'thirtybees_'.(int) $this->context->shop->id.'_'.(int) $type;
+        $shop_id = (int) $this->context->shop->id;
+        $type_id = (int) $type;
+        $name = "thirtybees_{$shop_id}_{$type_id}_v2";
         $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
         $language = new \Language($idLang);
         $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
@@ -612,8 +614,8 @@ class PayPalRestApi
                 $dstHeight = $height * $ratio;
 
                 $ext = substr($logo, strrpos($logo, '.') + 1);
-                \ImageManager::resize($logo, _PS_IMG_DIR_."logo_paypal_resized.{$ext}", $dstWidth, $dstHeight, $ext);
-                $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_."logo_paypal_resized.{$ext}";
+                \ImageManager::resize($logo, _PS_IMG_DIR_."logo_{$shop_id}_paypal_resized.{$ext}", $dstWidth, $dstHeight, $ext);
+                $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_."logo_{$shop_id}_paypal_resized.{$ext}";
             }
         }
 
