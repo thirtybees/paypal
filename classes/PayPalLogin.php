@@ -280,11 +280,8 @@ class PayPalLogin
                 $customer = $this->setCustomer($result);
             }
 
-            $login->account_type = $result->account_type;
             $login->user_id = $result->user_id;
             $login->verified_account = $result->verified_account;
-            $login->zoneinfo = $result->zoneinfo;
-            $login->age_range = $result->age_range;
 
             return $customer;
         }

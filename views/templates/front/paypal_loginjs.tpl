@@ -46,7 +46,7 @@
 			window.paypal.login.render({
 				appid: '{$client_id|escape:'javascript':'UTF-8'}',
 				authend: {if !$live}'sandbox'{else}''{/if},
-				scopes: 'openid profile email address phone https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/expresscheckout',
+				scopes: 'openid profile email address https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/expresscheckout',
 				containerid: 'buttonPaypalLogin1',
 				theme: {if $login_theme}'blue'{else}'neutral'{/if},
 				returnurl: '{$return_link|escape:'javascript':'UTF-8'}',
