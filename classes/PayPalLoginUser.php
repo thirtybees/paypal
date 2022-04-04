@@ -47,11 +47,8 @@ class PayPalLoginUser extends \ObjectModel
             'refresh_token'    => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
             'id_token'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
             'access_token'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'account_type'     => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
             'user_id'          => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
             'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'zoneinfo'         => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
-            'age_range'        => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
         ],
     ];
     /** @var int $id_customer */
@@ -66,16 +63,10 @@ class PayPalLoginUser extends \ObjectModel
     public $id_token;
     /** @var string $access_token */
     public $access_token;
-    /** @var string $account_type */
-    public $account_type;
     /** @var string $user_id */
     public $user_id;
     /** @var string $verified_account */
     public $verified_account;
-    /** @var string $zoneinfo */
-    public $zoneinfo;
-    /** @var string $age_range */
-    public $age_range;
     // @codingStandardsIgnoreEnd
 
     /**
