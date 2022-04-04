@@ -131,7 +131,7 @@ class PayPal extends PaymentModule
         $this->author = 'thirty bees';
 
         $this->currencies = true;
-        $this->currencies_mode = 'radio';
+        $this->currencies_mode = 'checkbox';
 
         parent::__construct();
 
