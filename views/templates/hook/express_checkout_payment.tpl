@@ -23,23 +23,19 @@
   <div class="col-xs-12 col-md-12">
     <p class="payment_module paypal">
       <a href="{$link->getModuleLink('paypal', 'expresscheckout', [], true)|escape:'htmlall':'UTF-8'}" title="{l s='Pay with PayPal' mod='paypal'}">
-        <img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/default_logos/default_horizontal_large.png" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" width="220px" height="64px"/>
+        {if $landing_page == 'login'}
+        <img src="{$module_dir|escape:'htmlall':'UTF-8'}logo.png" alt="{l s='Pay with your PayPal account' mod='paypal'}" width="64" height="64"/>
+        {l s='Pay with your PayPal account' mod='paypal'}
+        {else}
+        <img src="{$module_dir|escape:'htmlall':'UTF-8'}views/img/default_logos/default_horizontal_large.png" alt="{l s='Pay with your card or your PayPal account' mod='paypal'}" width="220" height="64"/>
         {l s='Pay with your card or your PayPal account' mod='paypal'}
+        {/if}
       </a>
     </p>
   </div>
 </div>
 
 <style>
-  p.payment_module.paypal a {
-    padding: 10px;
-    background-color: #FBFBFB;
-  }
-
-  p.payment_module.paypal img {
-    height: 64px;
-  }
-
   p.payment_module.paypal a:hover {
     background-color: #f6f6f6;
   }
