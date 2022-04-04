@@ -91,8 +91,6 @@ class PayPal extends PaymentModule
     const ENUM_TLS_ERROR = -1;
 
     const WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE = 'PAYPAL_WPS_LANDING_PAGE_TYPE';
-    const WEBSITE_PAYMENTS_PLUS_LANDING_PAGE_TYPE = 'PAYPAL_WPP_LANDING_PAGE_TYPE';
-    const EXPRESS_CHECKOUT_LANDING_PAGE_TYPE = 'PAYPAL_EC_LANDING_PAGE_TYPE';
 
     // @codingStandardsIgnoreStart
     /** @var array $errors */
@@ -1119,6 +1117,7 @@ class PayPal extends PaymentModule
                 'use_mobile'       => true,
                 'PayPal_lang_code' => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
                 'params'           => $params,
+                'landing_page'     => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE)
             ]
         );
 

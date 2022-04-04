@@ -138,8 +138,6 @@ class PayPalRestApi
         $accessToken = $this->getToken();
 
         if ($accessToken) {
-            $data = $this->getWebProfileDefinition($type, false);
-
             $headers = [
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer '.$accessToken,

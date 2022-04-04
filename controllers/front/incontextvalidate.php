@@ -137,6 +137,7 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
                 die(json_encode(['success' => false]));
             }
         }
+        die(json_encode(['success' => false, 'reason' => 'Invalid parameters passed.']));
     }
 
     /**
