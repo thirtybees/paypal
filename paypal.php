@@ -377,12 +377,20 @@ class PayPal extends PaymentModule
 
                 if (Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
                     $standardProfile = $rest->createWebProfile(PayPalRestApi::STANDARD_PROFILE);
-                    if ($standardProfile) {
-                        if (Tools::getValue(static::LIVE)) {
+                    if (Tools::getValue(static::LIVE)) {
+                        if ($standardProfile) {
                             Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
                         }
                         else {
+                            Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
+                        }
+                    }
+                    else {
+                        if ($standardProfile) {
                             Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
+                        }
+                        else {
+                            Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID);
                         }
                     }
                 }
@@ -394,12 +402,20 @@ class PayPal extends PaymentModule
 
                 if (Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
                     $plusProfile = $rest->createWebProfile(PayPalRestApi::PLUS_PROFILE);
-                    if ($plusProfile) {
-                        if (Tools::getValue(static::LIVE)) {
+                    if (Tools::getValue(static::LIVE)) {
+                        if ($plusProfile) {
                             Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
                         }
                         else {
+                            Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
+                        }
+                    }
+                    else {
+                        if ($plusProfile) {
                             Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
+                        }
+                        else {
+                            Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID);
                         }
                     }
                 }
@@ -411,12 +427,20 @@ class PayPal extends PaymentModule
 
                 if (Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED)) {
                     $expressCheckoutProfile = $rest->createWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
-                    if ($expressCheckoutProfile) {
-                        if (Tools::getValue(static::LIVE)) {
+                    if (Tools::getValue(static::LIVE)) {
+                        if ($expressCheckoutProfile) {
                             Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
                         }
                         else {
+                            Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
+                        }
+                    }
+                    else {
+                        if ($expressCheckoutProfile) {
                             Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
+                        }
+                        else {
+                            Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
                         }
                     }
                 }
