@@ -633,7 +633,6 @@ class PayPalRestApi
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
-                        'user_action' => 'commit',
                     ],
                 ];
             case self::EXPRESS_CHECKOUT_PROFILE:
@@ -646,12 +645,11 @@ class PayPalRestApi
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
-                        'no_shipping'      => 1,
+                        'no_shipping'      => 2,
                         'address_override' => 0,
                     ],
                     'flow_config'  => [
                         'landing_page_type' => 'billing',
-                        'user_action' => 'commit',
                     ],
                 ];
             default:
