@@ -1,6 +1,6 @@
 img/logos/*
 !img/default*
-config_fr.xml
+config*.xml
 api/Results.txt
 node_modules/
 
