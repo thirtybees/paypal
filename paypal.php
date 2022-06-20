@@ -64,7 +64,6 @@ class PayPal extends PaymentModule
     const TRACKING_PAYPAL_PLUS = '';
     const TRACKING_EXPRESS_CHECKOUT_SEAMLESS = '';
     const TRACKING_CODE = '';
-    const SMARTPHONE_TRACKING_CODE = '';
     const TABLET_TRACKING_CODE = ''; // Website Payments Standard
     const APAC_TRACKING_INTEGRAL = ''; // Express Checkout
     const APAC_TRACKING_OPTION_PLUS = ''; // Website Payments Plus
@@ -85,10 +84,6 @@ class PayPal extends PaymentModule
     const EXPRESS_CHECKOUT_ENABLED = 'PAYPAL_EC_ENABLED';
     const LOGIN_ENABLED = 'PAYPAL_LOGIN_ENABLED';
     const LOGIN_THEME = 'PAYPAL_LOGIN_TPL';
-    const TLS_OK = 'PAYPAL_TLS_OK';
-    const TLS_LAST_CHECK = 'PAYPAL_TLS_LAST_CHECK';
-    const ENUM_TLS_OK = 1;
-    const ENUM_TLS_ERROR = -1;
 
     const WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE = 'PAYPAL_WPS_LANDING_PAGE_TYPE';
 
@@ -328,7 +323,6 @@ class PayPal extends PaymentModule
         $this->context->smarty->assign(
             [
                 'module_url' => $this->moduleUrl,
-                'tls_ok'     => (int) Configuration::get(static::TLS_OK),
             ]
         );
 
