@@ -27,7 +27,7 @@
 
 {include file="$tpl_dir./errors.tpl"}
 
-{$paypal_cart_summary|escape:'UTF-8'}
+{$paypal_cart_summary}
 <div class="inforeturn"></div>
 <div class="confirm_PPP">
 	{if $state == 'approved' || $state == 'created'}
