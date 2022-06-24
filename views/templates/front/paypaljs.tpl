@@ -147,10 +147,6 @@
       var confirmTimer = false;
 
       if ($('form[target="hss_iframe"]').length == 0) {
-        if ($('select[name^="group_"]').length > 0) {
-          displayExpressCheckoutShortcut();
-        }
-
         return false;
       } else {
         checkOrder();
