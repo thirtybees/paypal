@@ -133,11 +133,6 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
             $this->context->smarty->assign('state', 'failed');
         }
 
-        if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-            /* If guest we clear the cookie for security reason */
-            $this->context->customer->mylogout();
-        }
-
         $this->module->assignCartSummary();
         $this->setTemplate('order-confirmation-plus.tpl');
     }

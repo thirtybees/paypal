@@ -128,11 +128,6 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
                     'confirmUrl' => $this->context->link->getModuleLink('paypal', 'incontextconfirm', $params, true),
                 ]));
             } else {
-                if (($this->context->customer->is_guest) || $this->context->customer->id == false) {
-                    /* If guest we clear the cookie for security reason */
-                    $this->context->customer->mylogout();
-                }
-
                 header('Content-Type: application/json');
                 die(json_encode(['success' => false]));
             }
