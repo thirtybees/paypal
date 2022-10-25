@@ -30,7 +30,7 @@ use GuzzleHttp\Exception\GuzzleException;
 /**
  * Class paypallogintokenModuleFrontController
  */
-class paypallogintokenModuleFrontController extends \ModuleFrontController
+class paypallogintokenModuleFrontController extends ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
@@ -45,8 +45,8 @@ class paypallogintokenModuleFrontController extends \ModuleFrontController
         $login = new PayPalLogin();
         $obj = $login->getAuthorizationCode();
         if ($obj) {
-            $context = \Context::getContext();
-            $customer = new \Customer((int) $obj->id_customer);
+            $context = Context::getContext();
+            $customer = new Customer((int) $obj->id_customer);
             $context->cookie->id_customer = (int) ($customer->id);
             $context->cookie->customer_lastname = $customer->lastname;
             $context->cookie->customer_firstname = $customer->firstname;

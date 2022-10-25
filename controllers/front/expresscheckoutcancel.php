@@ -27,7 +27,7 @@ if (!defined('_TB_VERSION_')) {
 /**
  * Class paypalexpresscheckoutcancelModuleFrontController
  */
-class paypalexpresscheckoutcancelModuleFrontController extends \ModuleFrontController
+class paypalexpresscheckoutcancelModuleFrontController extends ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
@@ -51,6 +51,6 @@ class paypalexpresscheckoutcancelModuleFrontController extends \ModuleFrontContr
     {
         unset($this->context->cookie->express_checkout);
 
-        \Tools::redirectLink($this->context->link->getPageLink('order', true));
+        Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 }

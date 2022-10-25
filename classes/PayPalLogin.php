@@ -22,8 +22,12 @@
 
 namespace PayPalModule;
 
+use Address;
+use Customer;
+use Language;
 use PrestaShopException;
 use GuzzleHttp\Exception\GuzzleException;
+use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -66,7 +70,7 @@ class PayPalLogin
     /**
      * @return string
      *
-     * @throws \PrestaShopException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -85,7 +89,7 @@ class PayPalLogin
     /**
      * @return string
      *
-     * @throws \PrestaShopException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -147,7 +151,7 @@ class PayPalLogin
 
         $params = [
             'grant_type'   => 'authorization_code',
-            'code'         => \Tools::getValue('code'),
+            'code'         => Tools::getValue('code'),
             'redirect_url' => PayPalLogin::getReturnLink(),
         ];
 
@@ -255,7 +259,7 @@ class PayPalLogin
      * @param $accessToken
      * @param $login
      *
-     * @return bool|\Customer
+     * @return bool|Customer
      *
      * @throws PrestaShopException
      * @throws GuzzleException
@@ -293,7 +297,7 @@ class PayPalLogin
         $result = json_decode($result);
 
         if ($result) {
-            $customer = new \Customer();
+            $customer = new Customer();
             $customer = $customer->getByEmail($result->email);
 
             if (!$customer) {
@@ -312,30 +316,29 @@ class PayPalLogin
     /**
      * @param $result
      *
-     * @return \Customer
+     * @return Customer
      *
-     * @throws \PrestaShopDatabaseException
-     * @throws \PrestaShopException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected function setCustomer($result)
     {
-        $customer = new \Customer();
+        $customer = new Customer();
         $customer->firstname = $result->given_name;
         $customer->lastname = $result->family_name;
-        $customer->id_lang = \Language::getIdByIso(strstr($result->language, '_', true));
+        $customer->id_lang = Language::getIdByIso(strstr($result->language, '_', true));
 
 
         $customer->birthday = $result->birthday;
         $customer->email = $result->email;
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
+        $customer->passwd = Tools::encrypt(Tools::passwdGen());
         $customer->save();
 
         $resultAddress = $result->address;
 
-        $address = new \Address();
+        $address = new Address();
         $address->id_customer = $customer->id;
         $address->id_country = \Country::getByIso($resultAddress->country);
         $address->alias = 'My address';

@@ -1519,7 +1519,7 @@ class PayPal extends PaymentModule
             }
         }
         // TODO: implement refunds
-//        elseif (\Tools::isSubmit('submitPayPalRefund')) {
+//        elseif (Tools::isSubmit('submitPayPalRefund')) {
 //            $ppo = PayPalOrder::getOrderById($params['id_order']);
 //            $this->doFullRefund($ppo['id_payment']);
 //        }

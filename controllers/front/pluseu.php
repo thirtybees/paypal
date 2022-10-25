@@ -30,7 +30,7 @@ if (!defined('_TB_VERSION_')) {
 /**
  * Class paypalpluseuModuleFrontController
  */
-class paypalpluseuModuleFrontController extends \ModuleFrontController
+class paypalpluseuModuleFrontController extends ModuleFrontController
 {
     /** @var bool $display_column_left */
     public $display_column_left = false;
@@ -38,7 +38,7 @@ class paypalpluseuModuleFrontController extends \ModuleFrontController
     /** @var bool $display_column_right */
     public $display_column_right = false;
 
-    /** @var \PayPal $module */
+    /** @var PayPal $module */
     public $module;
 
     /** @var bool $ssl */
@@ -54,7 +54,7 @@ class paypalpluseuModuleFrontController extends \ModuleFrontController
     public function __construct()
     {
         parent::__construct();
-        $this->context = \Context::getContext();
+        $this->context = Context::getContext();
     }
 
     /**
@@ -87,7 +87,7 @@ class paypalpluseuModuleFrontController extends \ModuleFrontController
 
         $this->context->smarty->assign([
             'approval_url' => $approvalUrl,
-            'mode' => \Configuration::get(\PayPal::LIVE) ? 'live' : 'sandbox',
+            'mode' => Configuration::get(PayPal::LIVE) ? 'live' : 'sandbox',
             'language' => $this->module->getLocalePayPalPlus(),
             'country' => $this->module->getCountryCode(),
         ]);

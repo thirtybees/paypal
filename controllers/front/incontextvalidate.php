@@ -39,7 +39,7 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
 
     public $paymentId;
 
-    /** @var \PayPal $module */
+    /** @var PayPal $module */
     public $module;
 
     /**
@@ -49,8 +49,8 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      */
     public function initContent()
     {
-        $this->payerId = \Tools::getValue('payerID');
-        $this->paymentId = \Tools::getValue('paymentID');
+        $this->payerId = Tools::getValue('payerID');
+        $this->paymentId = Tools::getValue('paymentID');
 
         if ($this->payerId && $this->paymentId) {
             $callApiPaypalPlus = new PayPalRestApi();
@@ -67,8 +67,8 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
                 }
 
                 $customer = $this->context->customer;
-            } elseif ($idCustomer = \Customer::customerExists($email, true)) {
-                $customer = new \Customer($idCustomer);
+            } elseif ($idCustomer = Customer::customerExists($email, true)) {
+                $customer = new Customer($idCustomer);
             } else {
                 $customer = $this->setCustomerInformation($payment, $email);
                 $customer->add();
@@ -90,14 +90,14 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
             foreach ($addresses as $address) {
                 if ($address['alias'] == 'Paypal_Address') {
                     //If address has already been created
-                    $address = new \Address($address['id_address']);
+                    $address = new Address($address['id_address']);
                     break;
                 }
             }
 
             /* Create address */
             if (isset($address) && is_array($address) && isset($address['id_address'])) {
-                $address = new \Address($address['id_address']);
+                $address = new Address($address['id_address']);
             }
 
             if ((!isset($address) || !$address || !$address->id) && $customer->id) {
@@ -142,22 +142,22 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      * Set customer information
      * Used to create user account with PayPal account information
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     *
-     * @param \stdClass $payment
+     * @param stdClass $payment
      * @param string    $email
      *
      * @return Customer
+     *@author    PrestaShop SA <contact@prestashop.com>
+     * @copyright 2007-2016 PrestaShop SA
+     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     *
      */
     protected function setCustomerInformation($payment, $email)
     {
-        $customer = new \Customer();
+        $customer = new Customer();
         $customer->email = $email;
         $customer->firstname = $payment->payer->payer_info->first_name;
         $customer->lastname = $payment->payer->payer_info->last_name;
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
+        $customer->passwd = Tools::encrypt(Tools::passwdGen());
 
         return $customer;
     }
@@ -166,8 +166,8 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      * Set customer address (when not logged in)
      * Used to create user address with PayPal account information
      *
-     * @param \stdClass $payment
-     * @param \Customer $customer
+     * @param stdClass $payment
+     * @param Customer $customer
      * @param int|null $id
      *
      * @return Address
@@ -180,12 +180,12 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      *
      * @todo: figure out what $id is xD
      */
-    protected function setCustomerAddress($payment, \Customer $customer, $id = null)
+    protected function setCustomerAddress($payment, Customer $customer, $id = null)
     {
-        $address = new \Address($id);
+        $address = new Address($id);
         $payerInfo = $payment->payer->payer_info;
         $shippingAddress = $payerInfo->shipping_address;
-        $address->id_country = \Country::getByIso($shippingAddress->country_code);
+        $address->id_country = Country::getByIso($shippingAddress->country_code);
         if ($id == null) {
             $address->alias = 'Paypal address';
         }
@@ -209,8 +209,8 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
         }
 
         $address->city = $shippingAddress->city;
-        if (\Country::containsStates($address->id_country)) {
-            $address->id_state = (int) \State::getIdByIso($shippingAddress->state, $address->id_country);
+        if (Country::containsStates($address->id_country)) {
+            $address->id_state = (int) State::getIdByIso($shippingAddress->state, $address->id_country);
         }
 
         $address->postcode = $shippingAddress->postal_code;

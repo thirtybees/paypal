@@ -32,7 +32,7 @@ use GuzzleHttp\Exception\GuzzleException;
 /**
  * Class PayPalexpresscheckoutModuleFrontController
  */
-class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
+class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 {
     /** @var int $idOrder */
     public $idOrder;
@@ -43,7 +43,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     /** @var string $payPalKey */
     public $payPalKey;
 
-    /** @var \PayPal $module */
+    /** @var PayPal $module */
     public $module;
 
     /** @var bool $ssl */
@@ -60,7 +60,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      */
     public function initContent()
     {
-        if (\Tools::isSubmit('paymentId') && \Tools::isSubmit('PayerID')) {
+        if (Tools::isSubmit('paymentId') && Tools::isSubmit('PayerID')) {
             $this->processPayment();
 
             return;
@@ -119,12 +119,12 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
         $rest = new PayPalRestApi();
         $payment = $rest->executePayment($payerId, $paymentId);
-        if (isset($payment->name) && \Tools::strtoupper($payment->name) === 'PAYMENT_ALREADY_DONE') {
+        if (isset($payment->name) && Tools::strtoupper($payment->name) === 'PAYMENT_ALREADY_DONE') {
             $payment = $rest->lookUpPayment($paymentId);
         }
 
         $ready = false;
-        if (isset($payment->state) && \Tools::strtolower($payment->state) == 'approved') {
+        if (isset($payment->state) && Tools::strtolower($payment->state) == 'approved') {
             $ready = true;
             $address = $customer = null;
             $email = $payment->payer->payer_info->email;
@@ -140,8 +140,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 }
 
                 $customer = $this->context->customer;
-            } elseif ($idCustomer = \Customer::customerExists($email, true)) {
-                $customer = new \Customer($idCustomer);
+            } elseif ($idCustomer = Customer::customerExists($email, true)) {
+                $customer = new Customer($idCustomer);
             } else {
                 $customer = $this->setCustomerInformation($payment, $email);
                 $customer->add();
@@ -167,14 +167,14 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             foreach ($addresses as $address) {
                 if ($address['alias'] == 'Paypal_Address') {
                     //If address has already been created
-                    $address = new \Address($address['id_address']);
+                    $address = new Address($address['id_address']);
                     break;
                 }
             }
 
             /* Create address */
             if (is_array($address) && isset($address['id_address'])) {
-                $address = new \Address($address['id_address']);
+                $address = new Address($address['id_address']);
             }
 
             if ((!$address || !$address->id) && $customer->id) {
@@ -213,7 +213,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
             /* Check modification on the product cart / quantity */
             // FIXME: broken, find a better way
 //            if ($ppec->isProductsListStillRight()) {
-            $customer = new \Customer((int) $cart->id_customer);
+            $customer = new Customer((int) $cart->id_customer);
 
             // When all information are checked before, we can validate the payment to paypal
             // and create the prestashop order
@@ -226,11 +226,11 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 //                $ppec->logs[] = $this->module->l('Cannot create order');
             } else {
                 $idOrder = (int) $this->module->currentOrder;
-                $order = new \Order($idOrder);
+                $order = new Order($idOrder);
             }
 
             /* Check payment details to display the appropriate content */
-            if (isset($order) && (\Tools::strtolower($payment->state) !== 'approved')) {
+            if (isset($order) && (Tools::strtolower($payment->state) !== 'approved')) {
                 $values = [
                     'key' => $customer->secure_key,
                     'id_module' => (int) $this->module->id,
@@ -239,8 +239,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 ];
 
                 $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
-                \Tools::redirect($link);
-            } elseif (\Tools::strtolower($payment->state) !== 'approved') {
+                Tools::redirect($link);
+            } elseif (Tools::strtolower($payment->state) !== 'approved') {
                 $this->context->smarty->assign([
                     'logs' => [$this->module->l('Payment not approved')],
                     'message' => $this->module->l('Error occurred'),
@@ -290,22 +290,22 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      * Set customer information
      * Used to create user account with PayPal account information
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @param stdClass $payment
+     * @param string    $email
+     *
+     * @return Customer
+     *@author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      *
-     * @param \stdClass $payment
-     * @param string    $email
-     *
-     * @return \Customer
      */
     protected function setCustomerInformation($payment, $email)
     {
-        $customer = new \Customer();
+        $customer = new Customer();
         $customer->email = $email;
         $customer->firstname = $payment->payer->payer_info->first_name;
         $customer->lastname = $payment->payer->payer_info->last_name;
-        $customer->passwd = \Tools::encrypt(\Tools::passwdGen());
+        $customer->passwd = Tools::encrypt(Tools::passwdGen());
 
         return $customer;
     }
@@ -314,8 +314,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      * Set customer address (when not logged in)
      * Used to create user address with PayPal account information
      *
-     * @param \stdClass $payment
-     * @param \Customer $customer
+     * @param stdClass $payment
+     * @param Customer $customer
      * @param int $idAddress
      *
      * @return Address
@@ -331,8 +331,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         $payerInfo = $payment->payer->payer_info;
         $shippingAddress = $payerInfo->shipping_address;
 
-        $address = new \Address($idAddress);
-        $address->id_country = \Country::getByIso($shippingAddress->country_code);
+        $address = new Address($idAddress);
+        $address->id_country = Country::getByIso($shippingAddress->country_code);
         if ($idAddress == null) {
             $address->alias = 'Paypal_Address';
         }
@@ -356,8 +356,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         }
 
         $address->city = $shippingAddress->city;
-        if (\Country::containsStates($address->id_country)) {
-            $address->id_state = (int) \State::getIdByIso($shippingAddress->state, $address->id_country);
+        if (Country::containsStates($address->id_country)) {
+            $address->id_state = (int) State::getIdByIso($shippingAddress->state, $address->id_country);
         }
 
         $address->postcode = $shippingAddress->postal_code;
@@ -369,10 +369,10 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     }
 
     /**
-     * @param \stdClass $payment
-     * @param \Customer $customer
+     * @param stdClass $payment
+     * @param Customer $customer
      *
-     * @return \Address|bool
+     * @return Address|bool
      *
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
@@ -382,7 +382,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      */
     protected function checkAndModifyAddress($payment, $customer)
     {
-        $context = \Context::getContext();
+        $context = Context::getContext();
         $customerAddresses = $customer->getAddresses($context->cookie->id_lang);
         $paypalAddress = false;
         if (count($customerAddresses) == 0) {
@@ -399,12 +399,12 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                     //We check if an address exists with the same country / city / street
                     if ($address['firstname'] == $payerInfo->first_name &&
                     $address['lastname'] == $payerInfo->last_name &&
-                    $address['id_country'] == \Country::getByIso($shippingAddress->country_code) &&
+                    $address['id_country'] == Country::getByIso($shippingAddress->country_code) &&
                     $address['address1'] == $shippingAddress->line1 &&
                     $address['address2'] == isset($shippingAddress->line2) ? $shippingAddress->line2 : null &&
                         $address['city'] == $shippingAddress->city
                     ) {
-                        $paypalAddress = new \Address($address['id_address']);
+                        $paypalAddress = new Address($address['id_address']);
                         break;
                     }
                 }
@@ -422,9 +422,9 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     /**
      * Check payment return
      *
-     * @param \Customer $customer
-     * @param \Cart $cart
-     * @param \stdClass $payment
+     * @param Customer $customer
+     * @param Cart $cart
+     * @param stdClass $payment
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
@@ -432,12 +432,12 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     protected function validateOrder($customer, $cart, $payment)
     {
         $transactionAmount = (float) $payment->transactions[0]->amount->total;
-        $orderTotal = (float) round($cart->getOrderTotal(true, \Cart::BOTH), 2);
+        $orderTotal = (float) round($cart->getOrderTotal(true, Cart::BOTH), 2);
 
         // Payment succeed
-        if (\Tools::strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
-            if ((bool) \Configuration::get(\PayPal::IMMEDIATE_CAPTURE)) {
-                $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
+        if (Tools::strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
+            if ((bool) Configuration::get(PayPal::IMMEDIATE_CAPTURE)) {
+                $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                 $message = $this->module->l('Pending payment capture.').'<br />';
             } else {
                 if (isset($payment->state)) {
@@ -447,16 +447,16 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
                 }
 
                 if ((strcasecmp($paymentStatus, 'Completed') === 0) || (strcasecmp($paymentStatus, 'Completed_Funds_Held') === 0)) {
-                    $paymentType = (int) \Configuration::get('PS_OS_PAYMENT');
+                    $paymentType = (int) Configuration::get('PS_OS_PAYMENT');
                     $message = $this->module->l('Payment accepted.').'<br />';
-                } elseif (\Tools::getValue('banktxnpendingurl') && \Tools::getValue('banktxnpendingurl') == 'true') {
-                    $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
+                } elseif (Tools::getValue('banktxnpendingurl') && Tools::getValue('banktxnpendingurl') == 'true') {
+                    $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                     $message = $this->module->l('eCheck').'<br />';
                 } elseif (strcasecmp($paymentStatus, 'Pending') === 0) {
-                    $paymentType = (int) \Configuration::get('PS_OS_PAYPAL');
+                    $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                     $message = $this->module->l('Pending payment confirmation.').'<br />';
                 } else {
-                    $paymentType = (int) \Configuration::get('PS_OS_ERROR');
+                    $paymentType = (int) Configuration::get('PS_OS_ERROR');
 //                    $message = implode('<br />', $ppec->logs).'<br />';
                 }
             }
@@ -477,7 +477,7 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
         $this->module->validateOrder(
             (int) $cart->id,
-            isset($paymentType) ? $paymentType : \Configuration::get('PS_OS_PAYMENT'),
+            isset($paymentType) ? $paymentType : Configuration::get('PS_OS_PAYMENT'),
             $orderTotal,
             'PayPal',
             isset($message) ? $message : '',
@@ -496,11 +496,11 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
     }
 
     /**
-     * @param \Customer $customer
+     * @param Customer $customer
      * @param bool $redirect
      * @throws PrestaShopException
      */
-    public function redirectToCheckout(\Customer $customer, $redirect = false)
+    public function redirectToCheckout(Customer $customer, $redirect = false)
     {
         $this->ready = true;
 
@@ -513,11 +513,11 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
         $context->cookie->is_guest = $customer->isGuest();
         $context->cookie->logged = 1;
 
-        \Hook::exec('authentication');
+        Hook::exec('authentication');
 
         if ($redirect) {
             $link = $context->link->getPageLink('order.php', false, null, ['step' => '1']);
-            \Tools::redirectLink($link);
+            Tools::redirectLink($link);
             exit(0);
         }
     }

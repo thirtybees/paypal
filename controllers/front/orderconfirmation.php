@@ -29,9 +29,9 @@ if (!defined('_TB_VERSION_')) {
 /**
  * Class paypalsubmitModuleFrontController
  */
-class paypalorderconfirmationModuleFrontController extends \ModuleFrontController
+class paypalorderconfirmationModuleFrontController extends ModuleFrontController
 {
-    /** @var \PayPal $module */
+    /** @var PayPal $module */
     public $module;
 
     /**
@@ -43,7 +43,7 @@ class paypalorderconfirmationModuleFrontController extends \ModuleFrontControlle
     {
         parent::initContent();
 
-        if (!\Tools::isSubmit('id_cart')) {
+        if (!Tools::isSubmit('id_cart')) {
             $this->showError();
 
             return;
@@ -51,10 +51,10 @@ class paypalorderconfirmationModuleFrontController extends \ModuleFrontControlle
 
         // TODO: validate secure_key and id_module
 
-        $order = new \Order(\Order::getOrderByCartId((int) \Tools::getValue('id_cart')));
+        $order = new Order(Order::getOrderByCartId((int) Tools::getValue('id_cart')));
         $paypalOrder = PayPalOrder::getOrderById($order->id);
-        $price = \Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
-        $orderState = new \OrderState($order->id);
+        $price = Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
+        $orderState = new OrderState($order->id);
 
         if ($orderState) {
             $orderStateMessage = $orderState->template[$this->context->language->id];
@@ -74,7 +74,7 @@ class paypalorderconfirmationModuleFrontController extends \ModuleFrontControlle
             $this->context->smarty->assign([
                 'order' => $paypalOrder,
                 'price' => $price,
-                'reference_order' => \Order::getUniqReferenceOf($paypalOrder['id_order']),
+                'reference_order' => Order::getUniqReferenceOf($paypalOrder['id_order']),
                 'HOOK_ORDER_CONFIRMATION' => '',
                 'HOOK_PAYMENT_RETURN' => $this->module->hookPaymentReturn(['order' => $order]),
             ]);

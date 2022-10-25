@@ -22,7 +22,13 @@
 
 namespace PayPalModule;
 
+use Configuration;
+use Db;
+use DbQuery;
+use ObjectModel;
+use PayPal;
 use PrestaShopException;
+use stdClass;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -33,7 +39,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalOrder extends \ObjectModel
+class PayPalOrder extends ObjectModel
 {
     //PayPal notification fields
     const ID_INVOICE = 'invoice';
@@ -108,7 +114,7 @@ class PayPalOrder extends \ObjectModel
      */
 
     /**
-     * @param \stdClass $payment
+     * @param stdClass $payment
      *
      * @return array
      */
@@ -145,8 +151,8 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getOrderById($idOrder)
     {
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new \DbQuery())
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+            (new DbQuery())
                 ->select('*')
                 ->from(bqSQL(self::$definition['table']))
                 ->where('`id_order` = '.(int) $idOrder)
@@ -161,8 +167,8 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getIdOrderByTransactionId($idTransaction)
     {
-        $result = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new \DbQuery())
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+            (new DbQuery())
                 ->select('po.`id_order`')
                 ->from('paypal_order', 'po')
                 ->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'')
@@ -188,7 +194,7 @@ class PayPalOrder extends \ObjectModel
             $transaction['payment_status'] = 'NULL';
         }
 
-        \Db::getInstance()->insert(
+        Db::getInstance()->insert(
             bqSQL(self::$definition['table']),
             [
                 'id_order' => (int) $idOrder,
@@ -199,9 +205,9 @@ class PayPalOrder extends \ObjectModel
                 'currency' => pSQL($transaction['currency']),
                 'total_paid' => $totalPaid,
                 'shipping' => (float) $transaction['shipping'],
-                'capture' => (int) \Configuration::get('PAYPAL_CAPTURE'),
+                'capture' => (int) Configuration::get('PAYPAL_CAPTURE'),
                 'payment_date' => pSQL($transaction['payment_date']),
-                'payment_method' => (int) \Configuration::get('PAYPAL_PAYMENT_METHOD'),
+                'payment_method' => (int) Configuration::get('PAYPAL_PAYMENT_METHOD'),
                 'payment_status' => pSQL($transaction['payment_status']),
             ]
         );
@@ -218,12 +224,12 @@ class PayPalOrder extends \ObjectModel
             $transaction['payment_status'] = 'NULL';
         }
 
-        \Db::getInstance()->update(
+        Db::getInstance()->update(
             bqSQL(static::$definition['table']),
             [
                 'payment_status' => pSQL($transaction['payment_status']),
             ],
-            '`id_order` = \''.(int) $idOrder.'\' AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\' AND `currency` = \''.pSQL($transaction['currency']).'\''.((\Configuration::get(\PayPal::LIVE)) ? 'AND `total_paid` = \''.$transaction['total_paid'].'\' AND `shipping` = \''.(float) $transaction['shipping'].'\'' : '')
+            '`id_order` = \''.(int) $idOrder.'\' AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\' AND `currency` = \''.pSQL($transaction['currency']).'\''.((Configuration::get(PayPal::LIVE)) ? 'AND `total_paid` = \''.$transaction['total_paid'].'\' AND `shipping` = \''.(float) $transaction['shipping'].'\'' : '')
         );
     }
 
@@ -237,8 +243,8 @@ class PayPalOrder extends \ObjectModel
      */
     public static function getByPaymentId($paymentId)
     {
-        if ($id = \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new \DbQuery())
+        if ($id = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new DbQuery())
                 ->select(bqSQL(self::$definition['primary']))
                 ->from(bqSQL(self::$definition['table']))
                 ->where('`id_payment` = \''.pSQL($paymentId).'\'')

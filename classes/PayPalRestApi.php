@@ -22,9 +22,22 @@
 
 namespace PayPalModule;
 
+use Address;
+use Cart;
+use Configuration;
+use Context;
+use Country;
+use Currency;
+use Customer;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use ImageManager;
+use Language;
+use PayPal;
 use PrestaShopException;
+use State;
+use stdClass;
+use Validate;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -48,11 +61,11 @@ class PayPalRestApi
     const PLUS_PROFILE = 2;
     const EXPRESS_CHECKOUT_PROFILE = 3;
 
-    /** @var \Context $context */
+    /** @var Context $context */
     protected $context;
-    /** @var \Cart $cart */
+    /** @var Cart $cart */
     protected $cart;
-    /** @var \Customer $customer */
+    /** @var Customer $customer */
     protected $customer;
     /** @var string $clientId */
     protected $clientId;
@@ -60,7 +73,7 @@ class PayPalRestApi
     protected $secret;
     /** @var null|string $accessToken */
     protected $accessToken = null;
-    /** @var null|\stdClass $profiles */
+    /** @var null|stdClass $profiles */
     protected $profiles = null;
 
     /**
@@ -72,12 +85,12 @@ class PayPalRestApi
      */
     public function __construct($clientId = null, $secret = null)
     {
-        $this->context = \Context::getContext();
+        $this->context = Context::getContext();
         $this->cart = $this->context->cart;
         $this->customer = $this->context->customer;
 
-        $this->clientId = ($clientId) ? $clientId : \Configuration::get(\PayPal::CLIENT_ID);
-        $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
+        $this->clientId = ($clientId) ? $clientId : Configuration::get(PayPal::CLIENT_ID);
+        $this->secret = ($secret) ? $secret : Configuration::get(PayPal::SECRET);
     }
 
     /**
@@ -89,17 +102,17 @@ class PayPalRestApi
     {
         switch ($type) {
             case self::PLUS_PROFILE:
-                return (\Configuration::get(\PayPal::LIVE))
-                    ? \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE)
-                    : \Configuration::get(\PayPal::PLUS_WEBSITE_PROFILE_ID);
+                return (Configuration::get(PayPal::LIVE))
+                    ? Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE)
+                    : Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID);
             case self::EXPRESS_CHECKOUT_PROFILE:
-                return (\Configuration::get(\PayPal::LIVE))
-                    ? \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE)
-                    : \Configuration::get(\PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
+                return (Configuration::get(PayPal::LIVE))
+                    ? Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE)
+                    : Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
             case self::STANDARD_PROFILE:
-                return (\Configuration::get(\PayPal::LIVE))
-                    ? \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE)
-                    : \Configuration::get(\PayPal::STANDARD_WEBSITE_PROFILE_ID);
+                return (Configuration::get(PayPal::LIVE))
+                    ? Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE)
+                    : Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID);
             default:
                 return null;
         }
@@ -237,7 +250,7 @@ class PayPalRestApi
      */
     public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
     {
-        if (!\Configuration::get(\PayPal::LIVE)) {
+        if (!Configuration::get(PayPal::LIVE)) {
             $baseUri = 'https://api.sandbox.paypal.com';
         } else {
             $baseUri = 'https://api.paypal.com';
@@ -338,7 +351,7 @@ class PayPalRestApi
      * @param string|bool $cancelUrl
      * @param int $profile
      *
-     * @return \stdClass
+     * @return stdClass
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -357,10 +370,10 @@ class PayPalRestApi
             $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
         }
 
-        $oCurrency = new \Currency($this->cart->id_currency);
-        $address = new \Address((int) $this->cart->id_address_invoice);
+        $oCurrency = new Currency($this->cart->id_currency);
+        $address = new Address((int) $this->cart->id_address_invoice);
 
-        $country = new \Country((int) $address->id_country);
+        $country = new Country((int) $address->id_country);
         $isoCode = $country->iso_code;
 
         $totalShippingCostWithoutTax = $cart->getTotalShippingCost(null, false);
@@ -381,7 +394,7 @@ class PayPalRestApi
 
         $cartItems = $cart->getProducts();
 
-        $state = new \State($address->id_state);
+        $state = new State($address->id_state);
         $shippingAddress = [
             'recipient_name' => $customer->firstname.' '.$customer->lastname,
             'line1'          => $address->address1,
@@ -392,7 +405,7 @@ class PayPalRestApi
             'state'          => ($state->iso_code == null) ? '' : $state->iso_code,
         ];
 
-        $payer = new \stdClass();
+        $payer = new stdClass();
         $payer->payment_method = 'paypal';
 
         $subTotal = 0.00000;
@@ -472,11 +485,6 @@ class PayPalRestApi
         /* Transaction */
         $transaction = (object) [
             'amount'      => $amount,
-           // 'description' => 'Payment description',
-           // 'item_list'   => [
-            //    'items' => $aItems,
-            //    'shipping_address' => \Validate::isLoadedObject($address) ? $shippingAddress : null,
-           // ],
         ];
 
         /* Redirect Url */
@@ -507,8 +515,8 @@ class PayPalRestApi
      */
     public function setParams($params)
     {
-        $this->cart = new \Cart($params['cart']->id);
-        $this->customer = new \Customer($params['cookie']->id_customer);
+        $this->cart = new Cart($params['cart']->id);
+        $this->customer = new Customer($params['cookie']->id_customer);
     }
 
     /**
@@ -588,7 +596,7 @@ class PayPalRestApi
 
     /**
      * @param string $paymentId
-     * @param \stdClass $data
+     * @param stdClass $data
      *
      * @return bool|mixed
      *
@@ -630,13 +638,13 @@ class PayPalRestApi
         $shop_id = (int) $this->context->shop->id;
         $type_id = (int) $type;
         $name = "thirtybees_{$shop_id}_{$type_id}_v2";
-        $idLang = (int) \Configuration::get('PS_LANG_DEFAULT');
-        $language = new \Language($idLang);
-        $iso = \Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
+        $idLang = (int) Configuration::get('PS_LANG_DEFAULT');
+        $language = new Language($idLang);
+        $iso = Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
 
-        $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_.\Configuration::get('PS_LOGO');
+        $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_. Configuration::get('PS_LOGO');
         if ($adjustLogo) {
-            $logo = _PS_IMG_DIR_.\Configuration::get('PS_LOGO');
+            $logo = _PS_IMG_DIR_. Configuration::get('PS_LOGO');
             list($width, $height) = getimagesize($logo);
             // PayPal expects images below 190x60 - let's resize it if our logo is bigger
             if ($width > 190 || $height > 60) {
@@ -645,7 +653,7 @@ class PayPalRestApi
                 $dstHeight = $height * $ratio;
 
                 $ext = substr($logo, strrpos($logo, '.') + 1);
-                \ImageManager::resize($logo, _PS_IMG_DIR_."logo_{$shop_id}_paypal_resized.{$ext}", $dstWidth, $dstHeight, $ext);
+                ImageManager::resize($logo, _PS_IMG_DIR_."logo_{$shop_id}_paypal_resized.{$ext}", $dstWidth, $dstHeight, $ext);
                 $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_."logo_{$shop_id}_paypal_resized.{$ext}";
             }
         }
@@ -655,9 +663,9 @@ class PayPalRestApi
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'brand_name'  => Configuration::get('PS_SHOP_NAME'),
                         'logo_image'  => $logoUrl,
-                        'locale_code' => \PayPal::getLocaleByIso($iso),
+                        'locale_code' => PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
@@ -672,9 +680,9 @@ class PayPalRestApi
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'brand_name'  => Configuration::get('PS_SHOP_NAME'),
                         'logo_image'  => $logoUrl,
-                        'locale_code' => \PayPal::getLocaleByIso($iso),
+                        'locale_code' => PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
@@ -689,9 +697,9 @@ class PayPalRestApi
                 return [
                     'name'         => $name,
                     'presentation' => [
-                        'brand_name'  => \Configuration::get('PS_SHOP_NAME'),
+                        'brand_name'  => Configuration::get('PS_SHOP_NAME'),
                         'logo_image'  => $logoUrl,
-                        'locale_code' => \PayPal::getLocaleByIso($iso),
+                        'locale_code' => PayPal::getLocaleByIso($iso),
                     ],
                     'input_fields' => [
                         'allow_note'       => false,
@@ -699,7 +707,7 @@ class PayPalRestApi
                         'address_override' => 1,
                     ],
                     'flow_config'  => [
-                        'landing_page_type' => (\Configuration::get(\PayPal::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE) == 'login') ? 'login' : 'billing',
+                        'landing_page_type' => (Configuration::get(PayPal::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE) == 'login') ? 'login' : 'billing',
                         'user_action' => 'commit',
                     ],
                 ];

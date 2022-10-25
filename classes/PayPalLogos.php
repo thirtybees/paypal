@@ -22,8 +22,10 @@
 
 namespace PayPalModule;
 
+use Exception;
 use GuzzleHttp\Client;
-use Hybridauth\Exception\Exception;
+use PayPal;
+use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -50,7 +52,7 @@ class PayPalLogos
      */
     public static function getLogos($isoCode)
     {
-        $file = _PS_MODULE_DIR_.'paypal/'.\PayPal::_PAYPAL_LOGO_XML_;
+        $file = _PS_MODULE_DIR_.'paypal/'. PayPal::_PAYPAL_LOGO_XML_;
 
         if (!file_exists($file)) {
             return false;
@@ -107,7 +109,7 @@ class PayPalLogos
         }
 
         if (isset($logos['default'][self::LOCAL.'Local'.$orientation.'SolutionPP'])) {
-            return _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.$logos['default'][self::LOCAL.'Local'.$orientation.'SolutionPP'];
+            return _MODULE_DIR_.PayPal::_PAYPAL_MODULE_DIRNAME_.$logos['default'][self::LOCAL.'Local'.$orientation.'SolutionPP'];
         }
 
         return false;
@@ -131,22 +133,22 @@ class PayPalLogos
                 preg_match('#.*/([\w._-]*)$#', $value, $logo);
 
                 if ((count($logo) == 2) && (strstr($key, 'Local') === false)) {
-                    $destination = \PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/logos/'.$isoCode.'_'.$logo[1];
+                    $destination = PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/logos/'.$isoCode.'_'.$logo[1];
                     self::updatePictures($logo[0], $destination);
 
                     // Define the local path after picture have been downloaded
                     $values['Local'.$key] = _MODULE_DIR_.$destination;
 
                     // Load back office cards path
-                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.\Tools::strtoupper($isoCode).'_bo_cards.png')) {
-                        $values['BackOfficeCards'] = _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.\Tools::strtoupper($isoCode).'_bo_cards.png';
+                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png')) {
+                        $values['BackOfficeCards'] = _MODULE_DIR_. PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png';
                     } elseif (file_exists(dirname(__FILE__).'/views/img/bo-cards/default.png')) {
-                        $values['BackOfficeCards'] = _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/default.png';
+                        $values['BackOfficeCards'] = _MODULE_DIR_. PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/default.png';
                     }
 
                 } elseif (isset($values['Local'.$key])) {
                     // Use the local version
-                    $values['Local'.$key] = _MODULE_DIR_.\PayPal::_PAYPAL_MODULE_DIRNAME_.$values['Local'.$key];
+                    $values['Local'.$key] = _MODULE_DIR_. PayPal::_PAYPAL_MODULE_DIRNAME_.$values['Local'.$key];
                 }
 
             }

@@ -30,7 +30,7 @@ if (!defined('_TB_VERSION_')) {
 /**
  * Class PayPalIncontextajaxModuleFrontController
  */
-class paypalincontextajaxModuleFrontController extends \ModuleFrontController
+class paypalincontextajaxModuleFrontController extends ModuleFrontController
 {
     /** @var bool $ssl */
     public $ssl = true;
@@ -44,11 +44,11 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
      */
     public function initContent()
     {
-        if (\Tools::isSubmit('updateCart')) {
+        if (Tools::isSubmit('updateCart')) {
             $this->updateCart();
 
             return;
-        } elseif (\Tools::isSubmit('get_qty')) {
+        } elseif (Tools::isSubmit('get_qty')) {
             $this->checkQuantity();
 
             return;
@@ -84,13 +84,13 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
      */
     protected function updateCart()
     {
-        $idProduct = (int) \Tools::getValue('idProduct');
-        $idProductAttribute = (int) \Tools::getValue('idProductAttribute');
+        $idProduct = (int) Tools::getValue('idProduct');
+        $idProductAttribute = (int) Tools::getValue('idProductAttribute');
         if (!$idProductAttribute) {
             $idProductAttribute = null;
         }
 
-        /** @var \Cart $cart */
+        /** @var Cart $cart */
         $cart = $this->context->cart;
         if (!$cart->id) {
             $cart->add();
@@ -103,7 +103,7 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
             $cart->deleteProduct($product['id_product'], $product['id_product_attribute']);
         }
 
-        $cart->secure_key = \Tools::encrypt(\Tools::passwdGen(20, 'RANDOM'));
+        $cart->secure_key = Tools::encrypt(Tools::passwdGen(20, 'RANDOM'));
 
         // Add product to cart
         if ($cart->updateQty(1, $idProduct, $idProductAttribute) && $cart->update()) {
@@ -128,18 +128,18 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
     protected function checkQuantity()
     {
         // Ajax query
-        $quantity = \Tools::getValue('get_qty');
+        $quantity = Tools::getValue('get_qty');
 
-        if (\Configuration::get('PS_CATALOG_MODE') == 1) {
+        if (Configuration::get('PS_CATALOG_MODE') == 1) {
             die('0');
         }
 
         if ($quantity && $quantity > 0) {
             /* Ajax response */
-            $idProduct = (int) \Tools::getValue('id_product');
-            $idProductAttribute = (int) \Tools::getValue('id_product_attribute');
-            $productQuantity = \Product::getQuantity($idProduct, $idProductAttribute);
-            $product = new \Product($idProduct);
+            $idProduct = (int) Tools::getValue('id_product');
+            $idProductAttribute = (int) Tools::getValue('id_product_attribute');
+            $productQuantity = Product::getQuantity($idProduct, $idProductAttribute);
+            $product = new Product($idProduct);
 
             if (!$product->available_for_order) {
                 die('0');

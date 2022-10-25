@@ -22,10 +22,20 @@
 
 namespace PayPalModule;
 
+use Address;
+use Cart;
+use Configuration;
+use Country;
+use Currency;
+use Customer;
+use Exception;
 use GuzzleHttp\Client;
-use Hybridauth\Exception\Exception;
+use Language;
+use PayPal;
 use PrestaShopException;
+use Shop;
 use SmartyException;
+use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -36,7 +46,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalNotifier extends \PayPal
+class PayPalNotifier extends PayPal
 {
     /** @var int $decimals */
     public $decimals;
@@ -52,19 +62,19 @@ class PayPalNotifier extends \PayPal
      */
     public function confirmOrder($custom)
     {
-        $cart = new \Cart((int) $custom['id_cart']);
+        $cart = new Cart((int) $custom['id_cart']);
 
         $cartHash = sha1(serialize($cart->nbProducts()));
 
         $this->context->cart = $cart;
-        $address = new \Address((int) $cart->id_address_invoice);
-        $this->context->country = new \Country((int) $address->id_country);
-        $this->context->customer = new \Customer((int) $cart->id_customer);
-        $this->context->language = new \Language((int) $cart->id_lang);
-        $this->context->currency = new \Currency((int) $cart->id_currency);
+        $address = new Address((int) $cart->id_address_invoice);
+        $this->context->country = new Country((int) $address->id_country);
+        $this->context->customer = new Customer((int) $cart->id_customer);
+        $this->context->language = new Language((int) $cart->id_lang);
+        $this->context->currency = new Currency((int) $cart->id_currency);
 
         if (isset($cart->id_shop)) {
-            $this->context->shop = new \Shop($cart->id_shop);
+            $this->context->shop = new Shop($cart->id_shop);
         }
 
         $result = $this->getResult();
@@ -74,7 +84,7 @@ class PayPalNotifier extends \PayPal
             $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
 
             $message = null;
-            $mcGross = \Tools::ps_round(\Tools::getValue('mc_gross'), $this->decimals);
+            $mcGross = Tools::ps_round(Tools::getValue('mc_gross'), $this->decimals);
 
             $cartDetails = $cart->getSummaryDetails(null, true);
 
@@ -82,23 +92,23 @@ class PayPalNotifier extends \PayPal
             $subtotal = $cartDetails['total_price_without_tax'] - $cartDetails['total_shipping_tax_exc'];
             $tax = $cartDetails['total_tax'];
 
-            $totalPrice = \Tools::ps_round($shipping + $subtotal + $tax, $this->decimals);
+            $totalPrice = Tools::ps_round($shipping + $subtotal + $tax, $this->decimals);
 
             if (bccomp($mcGross, $totalPrice, 2) !== 0) {
-                $payment = (int) \Configuration::get('PS_OS_ERROR');
+                $payment = (int) Configuration::get('PS_OS_ERROR');
                 $message = $this->l('Price paid on paypal is not the same that on Thirty Bees.').'<br />';
             } elseif ($custom['hash'] != $cartHash) {
-                $payment = (int) \Configuration::get('PS_OS_ERROR');
+                $payment = (int) Configuration::get('PS_OS_ERROR');
                 $message = $this->l('Cart changed, please retry.').'<br />';
             } else {
-                $payment = (int) \Configuration::get('PS_OS_PAYMENT');
+                $payment = (int) Configuration::get('PS_OS_PAYMENT');
                 $message = $this->l('Payment accepted.').'<br />';
             }
 
-            $customer = new \Customer((int) $cart->id_customer);
+            $customer = new Customer((int) $cart->id_customer);
             $transaction = PayPalOrder::getTransactionDetails(false);
             $idShop = $this->context->shop->id;
-            $shop = new \Shop($idShop);
+            $shop = new Shop($idShop);
 
             $this->validateOrder($cart->id, $payment, $totalPrice, 'PayPal', $message, $transaction, $cart->id_currency, false, $customer->secure_key, $shop);
         }
@@ -114,7 +124,7 @@ class PayPalNotifier extends \PayPal
      */
     public function getResult()
     {
-        if (!\Configuration::get(self::LIVE)) {
+        if (!Configuration::get(self::LIVE)) {
             $actionUrl = 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_notify-validate';
         } else {
             $actionUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_notify-validate';

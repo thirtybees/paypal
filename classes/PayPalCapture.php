@@ -22,7 +22,14 @@
 
 namespace PayPalModule;
 
+use Cart;
+use Db;
+use DbQuery;
+use ObjectModel;
+use Order;
+use PDOStatement;
 use PrestaShopException;
+use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -33,7 +40,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalCapture extends \ObjectModel
+class PayPalCapture extends ObjectModel
 {
     /**
      * @see ObjectModel::$definition
@@ -76,8 +83,8 @@ class PayPalCapture extends \ObjectModel
      */
     public static function getTotalAmountCapturedByIdOrder($idOrder)
     {
-        return \Tools::ps_round(\Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new \DbQuery())
+        return Tools::ps_round(Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new DbQuery())
                 ->select('SUM(`capture_amount`)')
                 ->from(self::$definition['table'])
                 ->where('`id_order` = '.(int) $idOrder)
@@ -86,7 +93,7 @@ class PayPalCapture extends \ObjectModel
     }
 
     /**
-     * @param \Order $order
+     * @param Order $order
      *
      * @return float
      *
@@ -95,12 +102,12 @@ class PayPalCapture extends \ObjectModel
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getRestToPaid(\Order $order)
+    public function getRestToPaid(Order $order)
     {
-        $cart = new \Cart($order->id_cart);
-        $totalPaid = \Tools::ps_round($cart->getOrderTotal(), 2);
+        $cart = new Cart($order->id_cart);
+        $totalPaid = Tools::ps_round($cart->getOrderTotal(), 2);
 
-        return \Tools::ps_round($totalPaid, 2) - \Tools::ps_round(self::getTotalAmountCapturedByIdOrder($order->id), 2);
+        return Tools::ps_round($totalPaid, 2) - Tools::ps_round(self::getTotalAmountCapturedByIdOrder($order->id), 2);
     }
 
     /**
@@ -115,11 +122,11 @@ class PayPalCapture extends \ObjectModel
      */
     public function getRestToCapture($idOrder)
     {
-        $cart = \Cart::getCartByOrderId($idOrder);
+        $cart = Cart::getCartByOrderId($idOrder);
 
-        $total = \Tools::ps_round($cart->getOrderTotal(), 2) - \Tools::ps_round(self::getTotalAmountCapturedByIdOrder($idOrder), 2);
+        $total = Tools::ps_round($cart->getOrderTotal(), 2) - Tools::ps_round(self::getTotalAmountCapturedByIdOrder($idOrder), 2);
 
-        if ($total > \Tools::ps_round(0, 2)) {
+        if ($total > Tools::ps_round(0, 2)) {
             return true;
         } else {
             return false;
@@ -127,7 +134,7 @@ class PayPalCapture extends \ObjectModel
     }
 
     /**
-     * @return array|bool|\PDOStatement|null
+     * @return array|bool|PDOStatement|null
      *
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -136,8 +143,8 @@ class PayPalCapture extends \ObjectModel
      */
     public function getListCaptured()
     {
-        $result = \Db::getInstance()->executeS(
-            (new \DbQuery())
+        $result = Db::getInstance()->executeS(
+            (new DbQuery())
                 ->from(bqSQL(static::$definition['table']))
                 ->where('`id_order` = '.$this->id_order)
                 ->orderBy('`date_add` DESC')
@@ -164,7 +171,7 @@ class PayPalCapture extends \ObjectModel
             $arrayReplace = ['.', ''];
             $price = preg_replace($arrayRegexp, $arrayReplace, $price);
 
-            return \Tools::ps_round($price, 2);
+            return Tools::ps_round($price, 2);
         } else {
             return false;
         }

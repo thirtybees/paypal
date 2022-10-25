@@ -22,6 +22,9 @@
 
 namespace PayPalModule;
 
+use Db;
+use DbQuery;
+use ObjectModel;
 use PrestaShopException;
 
 if (!defined('_TB_VERSION_')) {
@@ -33,7 +36,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalCustomer extends \ObjectModel
+class PayPalCustomer extends ObjectModel
 {
 
     /** @var int $id_customer */
@@ -64,8 +67,8 @@ class PayPalCustomer extends \ObjectModel
      */
     public static function getPayPalCustomerIdByEmail($email)
     {
-        return \Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new \DbQuery())
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+            (new DbQuery())
                 ->select('pc.`id_customer`')
                 ->from(bqSQL(self::$definition['table']), 'pc')
                 ->where('pc.`paypal_email` = \''.pSQL($email).'\'')

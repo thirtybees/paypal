@@ -27,7 +27,7 @@ if (!defined('_TB_VERSION_')) {
 /**
  * Class paypalpluscancelModuleFrontController
  */
-class paypalpluscancelModuleFrontController extends \ModuleFrontController
+class paypalpluscancelModuleFrontController extends ModuleFrontController
 {
     /** @var bool $display_column_left */
     public $display_column_left = false;
@@ -50,6 +50,6 @@ class paypalpluscancelModuleFrontController extends \ModuleFrontController
         unset ($cookie->paypal_access_token_time_max);
         $cookie->write();
 
-        \Tools::redirectLink($this->context->link->getPageLink('order', true));
+        Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 }

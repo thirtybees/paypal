@@ -32,12 +32,12 @@ if (!defined('_TB_VERSION_')) {
 /**
  * Class paypalincontextconfirmModuleFrontController
  */
-class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
+class paypalincontextconfirmModuleFrontController extends ModuleFrontController
 {
     /** @var bool $display_column_left */
     public $display_column_left = false;
 
-    /** @var \PayPal $module */
+    /** @var PayPal $module */
     public $module;
 
     /** @var bool $ssl */
@@ -54,13 +54,13 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
     {
         parent::initContent();
 
-        if (\Tools::isSubmit('confirm')) {
+        if (Tools::isSubmit('confirm')) {
             $this->confirmOrder();
 
             return;
         }
 
-        if (\Tools::isSubmit('update')) {
+        if (Tools::isSubmit('update')) {
             $this->updateOrder();
         }
 
@@ -68,8 +68,8 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
 
         $params = [
             'confirm' => true,
-            'PayerID' => \Tools::getValue('PayerID'),
-            'paymentID' => \Tools::getValue('paymentID'),
+            'PayerID' => Tools::getValue('PayerID'),
+            'paymentID' => Tools::getValue('paymentID'),
         ];
 
         $this->context->smarty->assign([
@@ -87,14 +87,14 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
      */
     public function assignCartSummary()
     {
-        $currency = new \Currency((int) $this->context->cart->id_currency);
+        $currency = new Currency((int) $this->context->cart->id_currency);
 
         $this->context->smarty->assign([
-            'total' => \Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
+            'total' => Tools::displayPrice($this->context->cart->getOrderTotal(true), $currency),
             'logos' => PayPalLogos::getLogos($this->module->getLocale()),
             'use_mobile' => (bool) $this->context->getMobileDevice(),
-            'address_shipping' => new \Address($this->context->cart->id_address_delivery),
-            'address_billing' => new \Address($this->context->cart->id_address_invoice),
+            'address_shipping' => new Address($this->context->cart->id_address_delivery),
+            'address_billing' => new Address($this->context->cart->id_address_invoice),
             'cart' => $this->context->cart,
             'patternRules' => ['avoid' => []],
             'cart_image_size' => 'cart_default',
@@ -113,8 +113,8 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
      */
     protected function confirmOrder()
     {
-        $payerId = \Tools::getValue('PayerID');
-        $paymentId = \Tools::getValue('paymentID');
+        $payerId = Tools::getValue('PayerID');
+        $paymentId = Tools::getValue('paymentID');
 
         $rest = new PayPalRestApi();
         $payment = $rest->executePayment($payerId, $paymentId);
@@ -123,7 +123,7 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
 
         if ($this->module->validateOrder(
             $this->context->cart->id,
-            (int) \Configuration::get('PS_OS_PAYMENT'),
+            (int) Configuration::get('PS_OS_PAYMENT'),
             $payment->transactions[0]->amount->total,
             'PayPal',
             null,
@@ -138,13 +138,13 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
                 'id_module' => $this->module->id,
             ];
 
-            \Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'orderconfirmation', $params, true));
+            Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'orderconfirmation', $params, true));
 
             return;
         }
 
         // FIXME: file missing
-        \Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'error', [], true));
+        Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'error', [], true));
     }
 
     /**

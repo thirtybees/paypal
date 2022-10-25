@@ -22,7 +22,11 @@
 
 namespace PayPalModule;
 
+use Db;
+use DbQuery;
+use ObjectModel;
 use PrestaShopException;
+use Validate;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -33,7 +37,7 @@ if (!defined('_TB_VERSION_')) {
  *
  * @package PayPalModule
  */
-class PayPalLoginUser extends \ObjectModel
+class PayPalLoginUser extends ObjectModel
 {
     /**
      * @see ObjectModel::$definition
@@ -83,15 +87,15 @@ class PayPalLoginUser extends \ObjectModel
      */
     public static function getPaypalLoginUsers($idPaypalLoginUser = false, $idCustomer = false, $refreshToken = false)
     {
-        $sql = new \DbQuery();
+        $sql = new DbQuery();
         $sql->select(bqSQL(self::$definition['primary']));
         $sql->from(bqSQL(self::$definition['table']));
 
-        if ($idPaypalLoginUser && \Validate::isInt($idPaypalLoginUser)) {
+        if ($idPaypalLoginUser && Validate::isInt($idPaypalLoginUser)) {
             $sql->where('`'.bqSQL(self::$definition['primary']).'` = '.(int) $idPaypalLoginUser);
         }
 
-        if ($idCustomer && \Validate::isInt($idCustomer)) {
+        if ($idCustomer && Validate::isInt($idCustomer)) {
             $sql->where('`id_customer` = '.(int) $idCustomer);
         }
 
@@ -99,7 +103,7 @@ class PayPalLoginUser extends \ObjectModel
             $sql->where('`refresh_token` = '.$refreshToken);
         }
 
-        $results = \Db::getInstance()->executeS($sql);
+        $results = Db::getInstance()->executeS($sql);
         $logins = [];
 
         if ($results && count($results)) {

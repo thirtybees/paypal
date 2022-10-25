@@ -22,6 +22,8 @@
 
 namespace PayPalModule;
 
+use Hook;
+use Module;
 use PrestaShopException;
 
 if (!defined('_TB_VERSION_')) {
@@ -63,9 +65,9 @@ class PayPalTools
      */
     public function moveTopPayments($position)
     {
-        $hookPayment = (int) \Hook::getIdByName('payment');
-        $moduleInstance = \Module::getInstanceByName($this->name);
-        $moduleInfo = \Hook::getModulesFromHook($hookPayment, $moduleInstance->id);
+        $hookPayment = (int) Hook::getIdByName('payment');
+        $moduleInstance = Module::getInstanceByName($this->name);
+        $moduleInfo = Hook::getModulesFromHook($hookPayment, $moduleInstance->id);
 
 
         if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
@@ -88,9 +90,9 @@ class PayPalTools
      */
     public function moveRightColumn($position)
     {
-        $hookRight = (int) \Hook::getIdByName('rightColumn');
-        $moduleInstance = \Module::getInstanceByName($this->name);
-        $moduleInfo = \Hook::getModulesFromHook($hookRight, $moduleInstance->id);
+        $hookRight = (int) Hook::getIdByName('rightColumn');
+        $moduleInstance = Module::getInstanceByName($this->name);
+        $moduleInfo = Hook::getModulesFromHook($hookRight, $moduleInstance->id);
 
 
         if ((isset($moduleInfo['position']) && (int) $moduleInfo['position'] > (int) $position) ||
