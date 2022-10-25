@@ -23,6 +23,8 @@
 namespace PayPalModule;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use PrestaShopException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -46,7 +48,6 @@ class PayPalRestApi
     const PLUS_PROFILE = 2;
     const EXPRESS_CHECKOUT_PROFILE = 3;
 
-    // @codingStandardsIgnoreStart
     /** @var \Context $context */
     protected $context;
     /** @var \Cart $cart */
@@ -61,13 +62,13 @@ class PayPalRestApi
     protected $accessToken = null;
     /** @var null|\stdClass $profiles */
     protected $profiles = null;
-    // @codingStandardsIgnoreEnd
 
     /**
      * ApiPaypalPlus constructor.
      *
      * @param string|null $clientId
      * @param string|null $secret
+     * @throws PrestaShopException
      */
     public function __construct($clientId = null, $secret = null)
     {
@@ -79,6 +80,11 @@ class PayPalRestApi
         $this->secret = ($secret) ? $secret : \Configuration::get(\PayPal::SECRET);
     }
 
+    /**
+     * @param $type
+     * @return false|string|null
+     * @throws PrestaShopException
+     */
     private function getWebProfileId($type)
     {
         switch ($type) {
@@ -104,6 +110,8 @@ class PayPalRestApi
      *
      * @return bool|array
      *
+     * @throws PrestaShopException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -133,6 +141,12 @@ class PayPalRestApi
         return false;
     }
 
+    /**
+     * @param $type
+     * @return bool
+     * @throws PrestaShopException
+     * @throws GuzzleException
+     */
     public function deleteWebProfile($type)
     {
         $accessToken = $this->getToken();
@@ -161,6 +175,8 @@ class PayPalRestApi
     /**
      * @return bool
      *
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -206,13 +222,15 @@ class PayPalRestApi
     }
 
     /**
-     * @param string      $url         URL including get params
+     * @param string $url URL including get params
      * @param bool|string $body
-     * @param bool        $headers
-     * @param bool        $identify
+     * @param bool $headers
+     * @param bool $identify
      * @param bool|string $requestType
      *
-     * @return mixed
+     * @return string
+     * @throws PrestaShopException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -253,6 +271,8 @@ class PayPalRestApi
     /**
      * @return array
      *
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -292,9 +312,11 @@ class PayPalRestApi
     /**
      * @param bool|string $returnUrl
      * @param bool|string $cancelUrl
-     * @param int         $profile
+     * @param int $profile
      *
      * @return mixed
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -314,9 +336,10 @@ class PayPalRestApi
     /**
      * @param string|bool $returnUrl
      * @param string|bool $cancelUrl
-     * @param int         $profile
+     * @param int $profile
      *
      * @return \stdClass
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -477,6 +500,7 @@ class PayPalRestApi
     /**
      * @param array $params
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -492,6 +516,8 @@ class PayPalRestApi
      *
      * @return bool|mixed
      *
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -515,6 +541,8 @@ class PayPalRestApi
     /**
      * @return bool
      *
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -534,6 +562,8 @@ class PayPalRestApi
      *
      * @return bool|mixed
      *
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -557,11 +587,13 @@ class PayPalRestApi
     }
 
     /**
-     * @param string    $paymentId
+     * @param string $paymentId
      * @param \stdClass $data
      *
      * @return bool|mixed
      *
+     * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -588,6 +620,7 @@ class PayPalRestApi
      *
      * @return array
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

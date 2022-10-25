@@ -21,6 +21,7 @@
  */
 
 use PayPalModule\PayPalRestApi;
+use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -31,13 +32,11 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalpluseuModuleFrontController extends \ModuleFrontController
 {
-    // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
 
     /** @var bool $display_column_right */
     public $display_column_right = false;
-    // @codingStandardsIgnoreEnd
 
     /** @var \PayPal $module */
     public $module;
@@ -59,9 +58,11 @@ class paypalpluseuModuleFrontController extends \ModuleFrontController
     }
 
     /**
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws PrestaShopException
+     * @throws GuzzleException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function initContent()
     {

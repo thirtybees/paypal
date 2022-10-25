@@ -22,6 +22,8 @@
 
 namespace PayPalModule;
 
+use PrestaShopException;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -34,13 +36,11 @@ if (!defined('_TB_VERSION_')) {
 class PayPalCustomer extends \ObjectModel
 {
 
-    // @codingStandardsIgnoreStart
     /** @var int $id_customer */
     public $id_customer;
 
     /** @var string $paypal_email */
     public $paypal_email;
-    // @codingStandardsIgnoreEnd
 
     /**
      * @see ObjectModel::$definition
@@ -60,6 +60,7 @@ class PayPalCustomer extends \ObjectModel
      * @param string $email
      *
      * @return false|null|string
+     * @throws PrestaShopException
      */
     public static function getPayPalCustomerIdByEmail($email)
     {

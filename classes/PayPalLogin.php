@@ -22,6 +22,9 @@
 
 namespace PayPalModule;
 
+use PrestaShopException;
+use GuzzleHttp\Exception\GuzzleException;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -33,10 +36,19 @@ if (!defined('_TB_VERSION_')) {
  */
 class PayPalLogin
 {
+    /**
+     * @var array
+     */
     protected $logs = [];
+
+    /**
+     * @var bool
+     */
     protected $enableLog = false;
 
-    /** @var PayPalRestApi $rest */
+    /**
+     * @var PayPalRestApi $rest
+     */
     protected $rest;
 
     /**
@@ -54,6 +66,7 @@ class PayPalLogin
     /**
      * @return string
      *
+     * @throws \PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -72,6 +85,7 @@ class PayPalLogin
     /**
      * @return string
      *
+     * @throws \PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -114,6 +128,8 @@ class PayPalLogin
     /**
      * @return array|bool|mixed|PayPalLoginUser
      *
+     * @throws PrestaShopException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -186,6 +202,8 @@ class PayPalLogin
     /**
      * @return array|bool|mixed
      *
+     * @throws PrestaShopException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -239,6 +257,8 @@ class PayPalLogin
      *
      * @return bool|\Customer
      *
+     * @throws PrestaShopException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -294,6 +314,8 @@ class PayPalLogin
      *
      * @return \Customer
      *
+     * @throws \PrestaShopDatabaseException
+     * @throws \PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

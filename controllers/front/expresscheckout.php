@@ -27,6 +27,7 @@ if (!defined('_TB_VERSION_')) {
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
+use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class PayPalexpresscheckoutModuleFrontController
@@ -52,6 +53,10 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      * Initialize content
      *
      * @return void
+     * @throws GuzzleException
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function initContent()
     {
@@ -78,6 +83,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
     /**
      * Prepare to redirect visitor to PayPal website
+     * @throws PrestaShopException
+     * @throws GuzzleException
      */
     public function preparePayment()
     {
@@ -99,6 +106,10 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
     /**
      * Process PayPal payment
+     * @throws GuzzleException
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function processPayment()
     {
@@ -303,15 +314,17 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      * Set customer address (when not logged in)
      * Used to create user address with PayPal account information
      *
+     * @param \stdClass $payment
+     * @param \Customer $customer
+     * @param int $idAddress
+     *
+     * @return Address
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      *
-     * @param \stdClass $payment
-     * @param \Customer $customer
-     * @param int       $idAddress
-     *
-     * @return Address
      */
     protected function setCustomerAddress($payment, $customer, $idAddress = null)
     {
@@ -361,6 +374,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      *
      * @return \Address|bool
      *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -408,8 +423,11 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
      * Check payment return
      *
      * @param \Customer $customer
-     * @param \Cart     $cart
+     * @param \Cart $cart
      * @param \stdClass $payment
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     protected function validateOrder($customer, $cart, $payment)
     {
@@ -479,7 +497,8 @@ class PayPalexpresscheckoutModuleFrontController extends \ModuleFrontController
 
     /**
      * @param \Customer $customer
-     * @param bool      $redirect
+     * @param bool $redirect
+     * @throws PrestaShopException
      */
     public function redirectToCheckout(\Customer $customer, $redirect = false)
     {

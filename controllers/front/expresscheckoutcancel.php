@@ -34,6 +34,7 @@ class paypalexpresscheckoutcancelModuleFrontController extends \ModuleFrontContr
 
     /**
      * Initialize content
+     * @throws PrestaShopException
      */
     public function initContent()
     {
@@ -44,6 +45,7 @@ class paypalexpresscheckoutcancelModuleFrontController extends \ModuleFrontContr
 
     /**
      * Cancel Express Checkout
+     * @throws PrestaShopException
      */
     public function cancelExpressCheckout()
     {

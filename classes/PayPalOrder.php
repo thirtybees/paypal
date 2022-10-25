@@ -22,6 +22,8 @@
 
 namespace PayPalModule;
 
+use PrestaShopException;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -45,7 +47,6 @@ class PayPalOrder extends \ObjectModel
     const SHIPPING = 'shipping';
     const VERIFY_SIGN = 'verify_sign';
 
-    // @codingStandardsIgnoreStart
     /**
      * @see ObjectModel::$definition
      */
@@ -91,7 +92,6 @@ class PayPalOrder extends \ObjectModel
     public $payment_method;
     /** @var string $payment_status */
     public $payment_status;
-    // @codingStandardsIgnoreEnd
 
     /*
      * Get PayPal order data
@@ -138,6 +138,7 @@ class PayPalOrder extends \ObjectModel
      *
      * @return array|bool|null|object
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -156,6 +157,7 @@ class PayPalOrder extends \ObjectModel
      * @param string $idTransaction
      *
      * @return int
+     * @throws PrestaShopException
      */
     public static function getIdOrderByTransactionId($idTransaction)
     {
@@ -174,8 +176,9 @@ class PayPalOrder extends \ObjectModel
     }
 
     /**
-     * @param int   $idOrder
+     * @param int $idOrder
      * @param array $transaction
+     * @throws PrestaShopException
      */
     public static function saveOrder($idOrder, $transaction)
     {
@@ -205,8 +208,9 @@ class PayPalOrder extends \ObjectModel
     }
 
     /**
-     * @param int   $idOrder
+     * @param int $idOrder
      * @param array $transaction
+     * @throws PrestaShopException
      */
     public static function updateOrder($idOrder, $transaction)
     {
@@ -229,6 +233,7 @@ class PayPalOrder extends \ObjectModel
      * @param string $paymentId
      *
      * @return bool|PayPalOrder
+     * @throws PrestaShopException
      */
     public static function getByPaymentId($paymentId)
     {

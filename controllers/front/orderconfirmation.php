@@ -36,6 +36,8 @@ class paypalorderconfirmationModuleFrontController extends \ModuleFrontControlle
 
     /**
      * Initialize content
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function initContent()
     {
@@ -83,6 +85,9 @@ class paypalorderconfirmationModuleFrontController extends \ModuleFrontControlle
         $this->setTemplate($template);
     }
 
+    /**
+     * @return void
+     */
     protected function showError()
     {
         // TODO: implement

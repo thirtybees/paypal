@@ -36,7 +36,7 @@ class AvailablePaymentMethods
     /**
      * @param string $isoCode
      *
-     * @return bool|mixed
+     * @return array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -121,7 +121,7 @@ class AvailablePaymentMethods
     /**
      * @param string $isoCode
      *
-     * @return bool|int|string
+     * @return bool|string
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -169,7 +169,7 @@ class AvailablePaymentMethods
     /**
      * @param string $isoCode
      *
-     * @return mixed
+     * @return array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -216,7 +216,7 @@ class AvailablePaymentMethods
     /**
      * @param string $isoCode
      *
-     * @return mixed
+     * @return array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -230,7 +230,7 @@ class AvailablePaymentMethods
     /**
      * @param string $isoCode
      *
-     * @return bool|mixed
+     * @return array
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA

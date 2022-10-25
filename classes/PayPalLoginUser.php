@@ -22,6 +22,8 @@
 
 namespace PayPalModule;
 
+use PrestaShopException;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -33,7 +35,6 @@ if (!defined('_TB_VERSION_')) {
  */
 class PayPalLoginUser extends \ObjectModel
 {
-    // @codingStandardsIgnoreStart
     /**
      * @see ObjectModel::$definition
      */
@@ -67,7 +68,6 @@ class PayPalLoginUser extends \ObjectModel
     public $user_id;
     /** @var string $verified_account */
     public $verified_account;
-    // @codingStandardsIgnoreEnd
 
     /**
      * @param bool $idPaypalLoginUser
@@ -76,6 +76,7 @@ class PayPalLoginUser extends \ObjectModel
      *
      * @return array
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -116,6 +117,7 @@ class PayPalLoginUser extends \ObjectModel
      *
      * @return array|bool|mixed
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

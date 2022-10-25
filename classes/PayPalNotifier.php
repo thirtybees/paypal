@@ -24,6 +24,8 @@ namespace PayPalModule;
 
 use GuzzleHttp\Client;
 use Hybridauth\Exception\Exception;
+use PrestaShopException;
+use SmartyException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -42,6 +44,8 @@ class PayPalNotifier extends \PayPal
     /**
      * @param array $custom
      *
+     * @throws PrestaShopException
+     * @throws SmartyException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -103,6 +107,7 @@ class PayPalNotifier extends \PayPal
     /**
      * @return false|string
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

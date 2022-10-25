@@ -22,6 +22,8 @@
 
 namespace PayPalModule;
 
+use PrestaShopException;
+
 if (!defined('_TB_VERSION_')) {
     exit;
 }
@@ -33,7 +35,6 @@ if (!defined('_TB_VERSION_')) {
  */
 class PayPalCapture extends \ObjectModel
 {
-    // @codingStandardsIgnoreStart
     /**
      * @see ObjectModel::$definition
      */
@@ -60,7 +61,6 @@ class PayPalCapture extends \ObjectModel
     public $date_upd;
     /** @var int $id_paypal_capture */
     public $id_paypal_capture;
-    // @codingStandardsIgnoreEnd
 
     /**
      * Get the total amount that has been captured for the given Order
@@ -69,6 +69,7 @@ class PayPalCapture extends \ObjectModel
      *
      * @return float Total amount captured
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -89,6 +90,7 @@ class PayPalCapture extends \ObjectModel
      *
      * @return float
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -106,6 +108,7 @@ class PayPalCapture extends \ObjectModel
      *
      * @return bool
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -124,8 +127,9 @@ class PayPalCapture extends \ObjectModel
     }
 
     /**
-     * @return array|false|\mysqli_result|null|\PDOStatement|resource
+     * @return array|bool|\PDOStatement|null
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

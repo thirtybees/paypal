@@ -23,6 +23,7 @@
 use PayPalModule\CallPayPalPlusApi;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
+use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -33,7 +34,6 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalplussubmitModuleFrontController extends \ModuleFrontController
 {
-    // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
     /** @var bool $display_column_right */
@@ -52,7 +52,6 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     public $token;
     /** @var bool $ssl */
     public $ssl = true;
-    // @codingStandardsIgnoreEnd
 
     /**
      * PayPalSubmitplusModuleFrontController constructor.
@@ -68,9 +67,12 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     }
 
     /**
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws PrestaShopException
+     * @throws SmartyException
+     * @throws GuzzleException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function initContent()
     {
@@ -140,6 +142,7 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     /**
      * @return array|bool
      *
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -165,9 +168,13 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     }
 
     /**
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws GuzzleException
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function displayAjax()
     {
@@ -256,9 +263,10 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     /**
      * Execute the hook displayPaymentReturn
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws PrestaShopException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function displayPaymentReturn()
     {
@@ -274,9 +282,10 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
     /**
      * Execute the hook displayOrderConfirmation
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws PrestaShopException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function displayOrderConfirmation()
     {
@@ -293,6 +302,7 @@ class paypalplussubmitModuleFrontController extends \ModuleFrontController
      * @param $template
      *
      * @return false|null|string
+     * @throws PrestaShopException
      */
     public function getOrderStatus($template)
     {

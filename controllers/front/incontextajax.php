@@ -21,6 +21,7 @@
  */
 
 use PayPalModule\PayPalRestApi;
+use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -38,6 +39,8 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
      * Initialize content
      *
      * @return void
+     * @throws PrestaShopException
+     * @throws GuzzleException
      */
     public function initContent()
     {
@@ -77,6 +80,7 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
 
     /**
      * Update the cart before incontext checkout
+     * @throws PrestaShopException
      */
     protected function updateCart()
     {
@@ -117,6 +121,10 @@ class paypalincontextajaxModuleFrontController extends \ModuleFrontController
         die();
     }
 
+    /**
+     * @throws PrestaShopException
+     * @throws PrestaShopDatabaseException
+     */
     protected function checkQuantity()
     {
         // Ajax query

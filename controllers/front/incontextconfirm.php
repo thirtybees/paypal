@@ -23,6 +23,7 @@
 use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
+use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -33,10 +34,8 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
 {
-    // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
-    // @codingStandardsIgnoreEnd
 
     /** @var \PayPal $module */
     public $module;
@@ -46,6 +45,10 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
 
     /**
      * Initialize content
+     *
+     * @throws PrestaShopException
+     * @throws SmartyException
+     * @throws GuzzleException
      */
     public function initContent()
     {
@@ -78,6 +81,9 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
 
     /**
      * Assign cart summary
+     *
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function assignCartSummary()
     {
@@ -99,6 +105,12 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
         ]);
     }
 
+    /**
+     * @return void
+     * @throws PrestaShopException
+     * @throws SmartyException
+     * @throws GuzzleException
+     */
     protected function confirmOrder()
     {
         $payerId = \Tools::getValue('PayerID');
@@ -135,13 +147,19 @@ class paypalincontextconfirmModuleFrontController extends \ModuleFrontController
         \Tools::redirectLink($this->context->link->getModuleLink($this->module->name, 'error', [], true));
     }
 
+    /**
+     * @return void
+     */
     protected function updateOrder()
     {
         // TODO: implement
     }
 
+    /**
+     * @return void
+     */
     protected function cancelOrder()
     {
-//        $this->module->cancelOrder();
+        // TODO: implement
     }
 }

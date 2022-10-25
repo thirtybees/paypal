@@ -20,6 +20,11 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
+/**
+ * @param $module
+ * @return bool
+ * @throws PrestaShopException
+ */
 function upgrade_module_5_0_0($module)
 {
     /** @var PayPal $module */

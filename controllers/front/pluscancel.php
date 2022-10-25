@@ -29,7 +29,6 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalpluscancelModuleFrontController extends \ModuleFrontController
 {
-    // @codingStandardsIgnoreStart
     /** @var bool $display_column_left */
     public $display_column_left = false;
 
@@ -41,6 +40,7 @@ class paypalpluscancelModuleFrontController extends \ModuleFrontController
 
     /**
      * Initialize content
+     * @throws PrestaShopException
      */
     public function initContent()
     {

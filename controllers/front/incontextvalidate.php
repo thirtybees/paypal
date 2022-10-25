@@ -26,6 +26,7 @@ if (!defined('_TB_VERSION_')) {
 
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalRestApi;
+use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class paypalincontextvalidateModuleFrontController
@@ -43,6 +44,8 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
 
     /**
      * Initialize content
+     * @throws PrestaShopException
+     * @throws GuzzleException
      */
     public function initContent()
     {
@@ -163,15 +166,17 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      * Set customer address (when not logged in)
      * Used to create user address with PayPal account information
      *
+     * @param \stdClass $payment
+     * @param \Customer $customer
+     * @param int|null $id
+     *
+     * @return Address
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     *
-     * @param \stdClass $payment
-     * @param \Customer $customer
-     * @param int|null  $id
-     *
-     * @return Address
      *
      * @todo: figure out what $id is xD
      */

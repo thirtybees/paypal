@@ -37,6 +37,7 @@ use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 use PayPalModule\PayPalTools;
+use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class PayPal
@@ -87,7 +88,6 @@ class PayPal extends PaymentModule
 
     const WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE = 'PAYPAL_WPS_LANDING_PAGE_TYPE';
 
-    // @codingStandardsIgnoreStart
     /** @var array $errors */
     public $errors = [];
     /**
@@ -112,7 +112,6 @@ class PayPal extends PaymentModule
     public $bootstrap = true;
     /** @var string $html */
     protected $html = '';
-    // @codingStandardsIgnoreEnd
 
     /**
      * PayPal constructor.
@@ -313,6 +312,7 @@ class PayPal extends PaymentModule
      * @throws PrestaShopException
      * @throws SmartyException
      * @throws HTMLPurifier_Exception
+     * @throws GuzzleException
      */
     public function getContent()
     {
@@ -334,8 +334,9 @@ class PayPal extends PaymentModule
     /**
      * Post process
      *
-     * @throws PrestaShopException
+     * @throws GuzzleException
      * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      */
     protected function postProcess()
     {
@@ -1096,6 +1097,7 @@ class PayPal extends PaymentModule
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws GuzzleException
      */
     public function hookPayment($params)
     {
@@ -1294,6 +1296,7 @@ class PayPal extends PaymentModule
      * @return null|string
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws GuzzleException
      */
     public function hookShoppingCartExtra()
     {
@@ -1326,6 +1329,7 @@ class PayPal extends PaymentModule
      *
      * @return string
      * @throws PrestaShopException
+     * @throws GuzzleException
      */
     public function getTrackingCode($method)
     {
@@ -1480,6 +1484,7 @@ class PayPal extends PaymentModule
      * @param array $params
      *
      * @return string
+     * @throws GuzzleException
      * @throws HTMLPurifier_Exception
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
@@ -1643,6 +1648,7 @@ class PayPal extends PaymentModule
      * @return bool|null
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
+     * @throws GuzzleException
      */
     public function hookCancelProduct($params)
     {
@@ -1689,6 +1695,7 @@ class PayPal extends PaymentModule
      *
      * @return bool
      * @throws PrestaShopException
+     * @throws GuzzleException
      */
     protected function doRefund($idPayment, $order, $amount)
     {
@@ -1776,6 +1783,7 @@ class PayPal extends PaymentModule
      * @return null|string
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws GuzzleException
      */
     public function renderExpressCheckoutButton($type)
     {
@@ -1961,6 +1969,7 @@ class PayPal extends PaymentModule
      *
      * @return bool
      * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function validateOrder(
         $idCart,

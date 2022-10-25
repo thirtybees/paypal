@@ -25,6 +25,7 @@ if (!defined('_TB_VERSION_')) {
 }
 
 use PayPalModule\PayPalLogin;
+use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class paypallogintokenModuleFrontController
@@ -34,6 +35,11 @@ class paypallogintokenModuleFrontController extends \ModuleFrontController
     /** @var bool $ssl */
     public $ssl = true;
 
+    /**
+     * @return void
+     * @throws PrestaShopException
+     * @throws GuzzleException
+     */
     public function initContent()
     {
         $login = new PayPalLogin();
