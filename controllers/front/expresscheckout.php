@@ -211,8 +211,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
         // if previous steps succeed, the errors array should be empty
         if ($ready) {
             /* Check modification on the product cart / quantity */
-            // FIXME: broken, find a better way
-//            if ($ppec->isProductsListStillRight()) {
             $customer = new Customer((int) $cart->id_customer);
 
             // When all information are checked before, we can validate the payment to paypal
@@ -222,9 +220,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
             unset($this->context->cookie->express_checkout);
 
-            if (!$this->module->currentOrder) {
-//                $ppec->logs[] = $this->module->l('Cannot create order');
-            } else {
+            if ($this->module->currentOrder) {
                 $idOrder = (int) $this->module->currentOrder;
                 $order = new Order($idOrder);
             }
@@ -248,19 +244,13 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
                 $this->setTemplate('error.tpl');
             }
-//            } else {
-//                /* If Cart changed, no need to keep the paypal data */
-//                unset($this->context->cookie->{PayPalExpressCheckout::$cookieName});
-//                $ppec->errors[] = $this->module->l('Cart changed since the last checkout express, please make a new Paypal checkout payment');
-//            }
         }
 
         /* Display result if error occurred */
         if (!$this->context->cart->id) {
             $this->context->cart->delete();
-//            $ppec->logs[] = $this->module->l('Your cart is empty.');
         }
-        $logs = [sprintf($this->module->l('An unknown error occurred. The payment status is `%s`'), isset($payment->state) ? $payment->state : $this->module->l('Unknown'))];
+        $logs = [sprintf($this->module->l('An unknown error occurred. The payment status is `%s`'), $payment->state ?? $this->module->l('Unknown'))];
         if (_PS_MODE_DEV_) {
             $logs[] = json_encode(['The full payment object looks like' => $payment]);
         }
@@ -436,7 +426,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
         // Payment succeed
         if (Tools::strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
-            if ((bool) Configuration::get(PayPal::IMMEDIATE_CAPTURE)) {
+            if (Configuration::get(PayPal::IMMEDIATE_CAPTURE)) {
                 $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                 $message = $this->module->l('Pending payment capture.').'<br />';
             } else {
@@ -457,19 +447,8 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
                     $message = $this->module->l('Pending payment confirmation.').'<br />';
                 } else {
                     $paymentType = (int) Configuration::get('PS_OS_ERROR');
-//                    $message = implode('<br />', $ppec->logs).'<br />';
                 }
             }
-        } else {
-            // FIXME: proper error handling
-//            $paymentStatus = isset($ppec->result['PAYMENTINFO_0_PAYMENTSTATUS']) ? $ppec->result['PAYMENTINFO_0_PAYMENTSTATUS'] : false;
-//            $paymentType = (int) \Configuration::get('PS_OS_ERROR');
-//
-//            if ($amountMatch) {
-//                $message = implode('<br />', $ppec->logs).'<br />';
-//            } else {
-//                $message = $this->module->l('Price paid on paypal is not the same that on Thirty Bees.').'<br />';
-//            }
         }
 
         $transaction = PayPalOrder::getTransactionDetails($payment);
@@ -477,10 +456,10 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
         $this->module->validateOrder(
             (int) $cart->id,
-            isset($paymentType) ? $paymentType : Configuration::get('PS_OS_PAYMENT'),
+            $paymentType ?? Configuration::get('PS_OS_PAYMENT'),
             $orderTotal,
             'PayPal',
-            isset($message) ? $message : '',
+            $message ?? '',
             $transaction,
             (int) $cart->id_currency,
             false,

@@ -1311,7 +1311,7 @@ class PayPal extends PaymentModule
         $this->context->smarty->assign(
             [
                 'PayPal_payment_type'                   => 'cart',
-                'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
+                'paypal_express_checkout_shortcut_logo' => $paypalLogos['ExpressCheckoutShortcutButton'] ?? false,
                 'PayPal_current_page'                   => $this->getCurrentUrl(),
                 'PayPal_lang_code'                      => $this->context->language->iso_code ? $this->context->language->iso_code : 'en_US',
                 'PayPal_tracking_code'                  => $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD')),
@@ -1802,7 +1802,7 @@ class PayPal extends PaymentModule
                 'PayPal_current_page'                   => $this->getCurrentUrl(),
                 'PayPal_lang_code'                      => (isset($isoLang[$this->context->language->iso_code])) ? $isoLang[$this->context->language->iso_code] : 'en_US',
                 'PayPal_tracking_code'                  => $this->getTrackingCode((int) Configuration::get('PAYPAL_PAYMENT_METHOD')),
-                'paypal_express_checkout_shortcut_logo' => isset($paypalLogos['ExpressCheckoutShortcutButton']) ? $paypalLogos['ExpressCheckoutShortcutButton'] : false,
+                'paypal_express_checkout_shortcut_logo' => $paypalLogos['ExpressCheckoutShortcutButton'] ?? false,
                 'express_checkout_payment_link'         => $this->context->link->getModuleLink($this->name, 'expresscheckout', [], true),
             ]
         );
@@ -1818,7 +1818,7 @@ class PayPal extends PaymentModule
         $file = dirname(__FILE__).'/'.static::_PAYPAL_TRANSLATIONS_XML_;
         if (file_exists($file)) {
             $xml = simplexml_load_file($file);
-            if (isset($xml) && $xml) {
+            if ($xml) {
                 $index = -1;
                 $content = $default = [];
 
@@ -1983,7 +1983,7 @@ class PayPal extends PaymentModule
         if ($this->active) {
             // Set transaction details if pcc is defined in PaymentModule class_exists
             if (isset($this->pcc)) {
-                $this->pcc->transaction_id = (isset($transaction['transaction_id']) ? $transaction['transaction_id'] : '');
+                $this->pcc->transaction_id = ($transaction['transaction_id'] ?? '');
             }
 
             parent::validateOrder(

@@ -149,7 +149,7 @@ class paypalincontextajaxModuleFrontController extends ModuleFrontController
                 die('1');
             }
 
-            if ($productQuantity <= 0 && $product->isAvailableWhenOutOfStock((int) $product->out_of_stock)) {
+            if ($product->isAvailableWhenOutOfStock((int) $product->out_of_stock)) {
                 die('1');
             }
 

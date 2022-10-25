@@ -40,7 +40,7 @@ class paypalexpresscheckoutcancelModuleFrontController extends ModuleFrontContro
     {
         parent::initContent();
 
-        return $this->cancelExpressCheckout();
+        $this->cancelExpressCheckout();
     }
 
     /**

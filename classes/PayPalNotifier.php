@@ -105,7 +105,7 @@ class PayPalNotifier extends PayPal
             }
 
             $customer = new Customer((int) $cart->id_customer);
-            $transaction = PayPalOrder::getTransactionDetails(false);
+            $transaction = [];
             $idShop = $this->context->shop->id;
             $shop = new Shop($idShop);
 

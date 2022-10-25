@@ -117,7 +117,14 @@ class AvailablePaymentMethods
             'SN' => [PayPal::WPS, PayPal::EC              ], // Senegal
         ];
 
-        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : [PayPal::WPS, PayPal::EC];
+        if (isset($paymentMethod[$isoCode])) {
+            return $paymentMethod[$isoCode];
+        }
+
+        return [
+            PayPal::WPS,
+            PayPal::EC
+        ];
     }
 
     /**
@@ -212,7 +219,14 @@ class AvailablePaymentMethods
             'ZA' => [PayPal::WPS, PayPal::EC              ],
         ];
 
-        return isset($paymentMethod[$isoCode]) ? $paymentMethod[$isoCode] : $paymentMethod['NL'];
+        if (isset($paymentMethod[$isoCode])) {
+            return $paymentMethod[$isoCode];
+        }
+
+        return [
+            PayPal::WPS,
+            PayPal::EC
+        ];
     }
 
     /**

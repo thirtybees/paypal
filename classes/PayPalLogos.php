@@ -61,7 +61,7 @@ class PayPalLogos
         $xml = simplexml_load_file($file);
         $logos = [];
 
-        if (isset($xml) && $xml != false) {
+        if ($xml) {
             foreach ($xml->country as $item) {
                 $tmpIsoCode = (string) $item->attributes()->iso_code;
                 $logos[$tmpIsoCode] = (array) $item;
@@ -96,7 +96,7 @@ class PayPalLogos
         $logos = self::getLogos($isoCode);
 
         if (!$logos) {
-            return $logos[self::LOCAL.'PayPal'.self::HORIZONTAL.'SolutionPP'];
+            return false;
         }
 
         $orientation = $vertical === true ? self::VERTICAL : self::HORIZONTAL;

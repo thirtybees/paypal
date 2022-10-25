@@ -56,19 +56,17 @@ class paypalorderconfirmationModuleFrontController extends ModuleFrontController
         $price = Tools::displayPrice($paypalOrder['total_paid'], $this->context->currency);
         $orderState = new OrderState($order->id);
 
-        if ($orderState) {
+        if (Validate::isLoadedObject($orderState)) {
             $orderStateMessage = $orderState->template[$this->context->language->id];
         }
 
-        if (!$order || !$orderState || (isset($orderStateMessage) && ($orderStateMessage == 'payment_error'))) {
+        if ((isset($orderStateMessage) && $orderStateMessage == 'payment_error')) {
             $this->context->smarty->assign([
                 'logs' => [$this->module->l('An error occurred while processing payment.')],
                 'order' => $paypalOrder,
                 'price' => $price,
+                'message' => $orderStateMessage,
             ]);
-            if (isset($orderStateMessage) && $orderStateMessage) {
-                $this->context->smarty->assign('message', $orderStateMessage);
-            }
             $template = 'error.tpl';
         } else {
             $this->context->smarty->assign([
