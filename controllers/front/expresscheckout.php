@@ -119,12 +119,12 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
         $rest = new PayPalRestApi();
         $payment = $rest->executePayment($payerId, $paymentId);
-        if (isset($payment->name) && Tools::strtoupper($payment->name) === 'PAYMENT_ALREADY_DONE') {
+        if (isset($payment->name) && strtoupper($payment->name) === 'PAYMENT_ALREADY_DONE') {
             $payment = $rest->lookUpPayment($paymentId);
         }
 
         $ready = false;
-        if (isset($payment->state) && Tools::strtolower($payment->state) == 'approved') {
+        if (isset($payment->state) && strtolower($payment->state) == 'approved') {
             $ready = true;
             $address = null;
             $email = $payment->payer->payer_info->email;
@@ -226,7 +226,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
             }
 
             /* Check payment details to display the appropriate content */
-            if (isset($order) && (Tools::strtolower($payment->state) !== 'approved')) {
+            if (isset($order) && (strtolower($payment->state) !== 'approved')) {
                 $values = [
                     'key' => $customer->secure_key,
                     'id_module' => (int) $this->module->id,
@@ -236,7 +236,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
                 $link = $this->context->link->getModuleLink('paypal', 'submit', $values);
                 Tools::redirect($link);
-            } elseif (Tools::strtolower($payment->state) !== 'approved') {
+            } elseif (strtolower($payment->state) !== 'approved') {
                 $this->context->smarty->assign([
                     'logs' => [$this->module->l('Payment not approved')],
                     'message' => $this->module->l('Error occurred'),
@@ -425,7 +425,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
         $orderTotal = (float) round($cart->getOrderTotal(true, Cart::BOTH), 2);
 
         // Payment succeed
-        if (Tools::strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
+        if (strtoupper($payment->state) === 'VERIFIED' && $transactionAmount == $orderTotal) {
             if (Configuration::get(PayPal::IMMEDIATE_CAPTURE)) {
                 $paymentType = (int) Configuration::get('PS_OS_PAYPAL');
                 $message = $this->module->l('Pending payment capture.').'<br />';

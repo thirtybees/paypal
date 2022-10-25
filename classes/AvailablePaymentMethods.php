@@ -46,7 +46,7 @@ class AvailablePaymentMethods
      */
     public static function getPaymentMethodsByIsoCode($isoCode)
     {
-        $isoCode = \Tools::strtoupper($isoCode);
+        $isoCode = strtoupper($isoCode);
 
         // WPS  -> Web Payments Standard
         // EC   -> Express Checkout

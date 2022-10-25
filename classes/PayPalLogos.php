@@ -25,7 +25,6 @@ namespace PayPalModule;
 use Exception;
 use GuzzleHttp\Client;
 use PayPal;
-use Tools;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -140,8 +139,8 @@ class PayPalLogos
                     $values['Local'.$key] = _MODULE_DIR_.$destination;
 
                     // Load back office cards path
-                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png')) {
-                        $values['BackOfficeCards'] = _MODULE_DIR_. PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.Tools::strtoupper($isoCode).'_bo_cards.png';
+                    if (file_exists(dirname(__FILE__).'/views/img/bo-cards/'.strtoupper($isoCode).'_bo_cards.png')) {
+                        $values['BackOfficeCards'] = _MODULE_DIR_. PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/'.strtoupper($isoCode).'_bo_cards.png';
                     } elseif (file_exists(dirname(__FILE__).'/views/img/bo-cards/default.png')) {
                         $values['BackOfficeCards'] = _MODULE_DIR_. PayPal::_PAYPAL_MODULE_DIRNAME_.'/views/img/bo-cards/default.png';
                     }
