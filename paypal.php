@@ -44,6 +44,7 @@ use GuzzleHttp\Exception\GuzzleException;
  */
 class PayPal extends PaymentModule
 {
+    const INSTALLATION_ID = 'PAYPAL_INSTALLATION_ID';
     const LIVE = 'PAYPAL_LIVE';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
     const STORE_COUNTRY = 'PAYPAL_COUNTRY_DEFAULT';
@@ -294,6 +295,7 @@ class PayPal extends PaymentModule
      */
     public function deleteConfiguration()
     {
+        Configuration::deleteByName(static::INSTALLATION_ID);
         Configuration::deleteByName(static::LIVE);
 
         Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
@@ -367,81 +369,9 @@ class PayPal extends PaymentModule
             // Create/update needed payment profiles via REST API
             if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
                 $rest = new PayPalRestApi(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
-
-                if (Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
-                    $standardProfile = $rest->createWebProfile(PayPalRestApi::STANDARD_PROFILE);
-                    if (Tools::getValue(static::LIVE)) {
-                        if ($standardProfile) {
-                            Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID_LIVE, $standardProfile);
-                        }
-                        else {
-                            Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                        }
-                    }
-                    else {
-                        if ($standardProfile) {
-                            Configuration::updateValue(static::STANDARD_WEBSITE_PROFILE_ID, $standardProfile);
-                        }
-                        else {
-                            Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID);
-                        }
-                    }
-                }
-                else {
-                    $rest->deleteWebProfile(PayPalRestApi::STANDARD_PROFILE);
-                    Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID_LIVE);
-                    Configuration::deleteByName(static::STANDARD_WEBSITE_PROFILE_ID);
-                }
-
-                if (Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
-                    $plusProfile = $rest->createWebProfile(PayPalRestApi::PLUS_PROFILE);
-                    if (Tools::getValue(static::LIVE)) {
-                        if ($plusProfile) {
-                            Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID_LIVE, $plusProfile);
-                        }
-                        else {
-                            Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
-                        }
-                    }
-                    else {
-                        if ($plusProfile) {
-                            Configuration::updateValue(static::PLUS_WEBSITE_PROFILE_ID, $plusProfile);
-                        }
-                        else {
-                            Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID);
-                        }
-                    }
-                }
-                else {
-                    $rest->deleteWebProfile(PayPalRestApi::PLUS_PROFILE);
-                    Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID_LIVE);
-                    Configuration::deleteByName(static::PLUS_WEBSITE_PROFILE_ID);
-                }
-
-                if (Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED)) {
-                    $expressCheckoutProfile = $rest->createWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
-                    if (Tools::getValue(static::LIVE)) {
-                        if ($expressCheckoutProfile) {
-                            Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE, $expressCheckoutProfile);
-                        }
-                        else {
-                            Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
-                        }
-                    }
-                    else {
-                        if ($expressCheckoutProfile) {
-                            Configuration::updateValue(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID, $expressCheckoutProfile);
-                        }
-                        else {
-                            Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-                        }
-                    }
-                }
-                else {
-                    $rest->deleteWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
-                    Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE);
-                    Configuration::deleteByName(static::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-                }
+                $rest->updateWebProfile(PayPalRestApi::STANDARD_PROFILE, Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
+                $rest->updateWebProfile(PayPalRestApi::PLUS_PROFILE, Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
+                $rest->updateWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE, Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
             }
         }
     }
@@ -2081,5 +2011,21 @@ class PayPal extends PaymentModule
         } else {
             return false;
         }
+    }
+
+    /**
+     * @returns string
+     *
+     * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
+     */
+    public static function getInstallationId()
+    {
+        $id = Configuration::getGlobalValue(static::INSTALLATION_ID);
+        if (! $id) {
+            $id = Tools::passwdGen(8, 'ALPHANUMERIC');
+            Configuration::updateGlobalValue(static::INSTALLATION_ID, $id);
+        }
+        return $id;
     }
 }

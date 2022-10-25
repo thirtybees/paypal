@@ -29,6 +29,7 @@ use Currency;
 use Customer;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use HTMLPurifier_Exception;
 use ImageManager;
 use Language;
 use PayPal;
@@ -70,8 +71,6 @@ class PayPalRestApi
     protected $secret;
     /** @var null|string $accessToken */
     protected $accessToken = null;
-    /** @var null|stdClass $profiles */
-    protected $profiles = null;
 
     /**
      * ApiPaypalPlus constructor.
@@ -91,27 +90,41 @@ class PayPalRestApi
     }
 
     /**
-     * @param $type
-     * @return false|string|null
+     * @param int $profileType
+     * @return string|null
      * @throws PrestaShopException
      */
-    private function getWebProfileId($type)
+    private function getWebProfileId($profileType)
     {
-        switch ($type) {
-            case self::PLUS_PROFILE:
-                return (Configuration::get(PayPal::LIVE))
-                    ? Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE)
-                    : Configuration::get(PayPal::PLUS_WEBSITE_PROFILE_ID);
-            case self::EXPRESS_CHECKOUT_PROFILE:
-                return (Configuration::get(PayPal::LIVE))
-                    ? Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE)
-                    : Configuration::get(PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID);
-            case self::STANDARD_PROFILE:
-                return (Configuration::get(PayPal::LIVE))
-                    ? Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE)
-                    : Configuration::get(PayPal::STANDARD_WEBSITE_PROFILE_ID);
+        $profileId = Configuration::get(static::getWebProfileConfigKey($profileType));
+        return $profileId ? $profileId : null;
+    }
+
+    /**
+     * @param int $profileType
+     * @return string
+     * @throws PrestaShopException
+     */
+    public static function getWebProfileConfigKey($profileType)
+    {
+        $profileType = (int)$profileType;
+        $live = (bool)Configuration::get(PayPal::LIVE);
+
+        switch ((int)$profileType) {
+            case static::STANDARD_PROFILE:
+                return $live
+                    ? PayPal::STANDARD_WEBSITE_PROFILE_ID_LIVE
+                    : PayPal::STANDARD_WEBSITE_PROFILE_ID;
+            case static::PLUS_PROFILE:
+                return $live
+                    ? PayPal::PLUS_WEBSITE_PROFILE_ID_LIVE
+                    : PayPal::PLUS_WEBSITE_PROFILE_ID;
+            case static::EXPRESS_CHECKOUT_PROFILE:
+                return $live
+                    ? PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE
+                    : PayPal::EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID;
             default:
-                return null;
+                throw new PrestaShopException("Invalid profile type: $profileType");
         }
     }
 
@@ -122,6 +135,7 @@ class PayPalRestApi
      *
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -156,6 +170,7 @@ class PayPalRestApi
      * @return bool
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function deleteWebProfile($type)
     {
@@ -167,19 +182,41 @@ class PayPalRestApi
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
-            // CHECK if profile exists
-            $profileId = $this->getWebProfileId($type);
-            if ($profileId !== null) {
-                $profile = json_decode($this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers));
-                // then DELETE
-                if (isset($profile->id) && $profile->id == $profileId) {
+            $profiles = $this->getWebProfiles();
+            $profileName = $this->getWebProfileName($type, $this->context->shop->id);
+            foreach ($profiles as $profile) {
+                if ($profile->name == $profileName) {
+                    $profileId = $profile->id;
                     $this->send(self::PATH_WEBPROFILES.'/'.$profileId, false, $headers, false, 'DELETE');
                 }
             }
-            return true; // It just matters that the profile does not exist now
         }
 
         return false;
+    }
+
+    /**
+     * @param int $profileType
+     * @param bool $enabled
+     * @return void
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
+     * @throws GuzzleException
+     */
+    public function updateWebProfile($profileType, $enabled)
+    {
+        $configKey = static::getWebProfileConfigKey($profileType);
+        if ($enabled) {
+            $profileId = $this->createWebProfile($profileType);
+            if ($profileId) {
+                Configuration::updateValue($configKey, $profileId);
+            } else {
+                Configuration::deleteByName($configKey);
+            }
+        } else {
+            $this->deleteWebProfile($profileType);
+            Configuration::deleteByName($configKey);
+        }
     }
 
     /**
@@ -297,26 +334,13 @@ class PayPalRestApi
                 'Authorization' => 'Bearer '.$accessToken,
             ];
 
-            $this->profiles = json_decode($this->send(self::PATH_WEBPROFILES, false, $header));
-
-            return $this->profiles;
+            $profiles = json_decode($this->send(self::PATH_WEBPROFILES, false, $header));
+            return is_array($profiles)
+                ? $profiles
+                : [];
         }
 
         return [];
-    }
-
-    /**
-     * @return bool
-     */
-    public function deleteProfile()
-    {
-//        $accessToken = $this->getToken();
-//
-//        if ($accessToken) {
-//            $this->send(self::PATH_WEBPROFILES, false, false, false, 'DELETE');
-//        }
-
-        return true;
     }
 
     /**
@@ -518,6 +542,21 @@ class PayPalRestApi
         return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
     }
 
+
+    /**
+     * @param int $type
+     * @param int $shopId
+     * @return string
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
+     */
+    protected function getWebProfileName($type, $shopId)
+    {
+        $type = (int)$type;
+        $shopId = (int)$shopId;
+        return "tb_" . PayPal::getInstallationId() . '_' . $shopId . '_' . $type;
+    }
+
     /**
      * @param int $type
      * @param bool $adjustLogo
@@ -525,15 +564,15 @@ class PayPalRestApi
      * @return array
      *
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected function getWebProfileDefinition($type, $adjustLogo = true)
     {
-        $shop_id = (int) $this->context->shop->id;
-        $type_id = (int) $type;
-        $name = "thirtybees_{$shop_id}_{$type_id}_v2";
+        $shopId = (int)Context::getContext()->shop->id;
+        $name = $this->getWebProfileName($type, $shopId);
         $idLang = (int) Configuration::get('PS_LANG_DEFAULT');
         $language = new Language($idLang);
         $iso = Validate::isLoadedObject($language) ? strtolower($language->iso_code) : 'en';
@@ -549,8 +588,8 @@ class PayPalRestApi
                 $dstHeight = $height * $ratio;
 
                 $ext = substr($logo, strrpos($logo, '.') + 1);
-                ImageManager::resize($logo, _PS_IMG_DIR_."logo_{$shop_id}_paypal_resized.$ext", $dstWidth, $dstHeight, $ext);
-                $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_."logo_{$shop_id}_paypal_resized.$ext";
+                ImageManager::resize($logo, _PS_IMG_DIR_."logo_{$shopId}_paypal_resized.$ext", $dstWidth, $dstHeight, $ext);
+                $logoUrl = _PS_BASE_URL_SSL_._PS_IMG_."logo_{$shopId}_paypal_resized.$ext";
             }
         }
 
