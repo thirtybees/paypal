@@ -1492,12 +1492,14 @@ class PayPal extends PaymentModule
      */
     public function hookAdminOrder($params)
     {
+        $orderId = (int)$params['id_order'];
+
         if (Tools::isSubmit('submitPayPalCapture')) {
             if ($captureAmount = Tools::getValue('totalCaptureMoney')) {
                 if ($captureAmount = PayPalCapture::parsePrice($captureAmount)) {
                     if (Validate::isFloat($captureAmount)) {
                         $captureAmount = Tools::ps_round($captureAmount, '6');
-                        $ord = new Order((int) $params['id_order']);
+                        $ord = new Order($orderId);
                         $cpt = new PayPalCapture();
 
                         if (($captureAmount > Tools::ps_round(0, '6')) && (Tools::ps_round($cpt->getRestToPaid($ord), '6') >= $captureAmount)) {
@@ -1511,37 +1513,32 @@ class PayPal extends PaymentModule
                                 $complete = true;
                             }
 
-                            // TODO: implement manual capture
-//                            $this->doCapture($params['id_order'], $captureAmount, $complete);
+                            $this->doCapture($orderId, $captureAmount, $complete);
                         }
                     }
                 }
             }
         }
-        // TODO: implement refunds
-//        elseif (Tools::isSubmit('submitPayPalRefund')) {
-//            $ppo = PayPalOrder::getOrderById($params['id_order']);
-//            $this->doFullRefund($ppo['id_payment']);
-//        }
+
 
         $adminTemplates = [];
         if ($this->isPayPalAPIAvailable()) {
-            if ($this->needsValidation((int) $params['id_order'])) {
+            if ($this->needsValidation($orderId)) {
                 $adminTemplates[] = 'validation';
             }
 
-            if ($this->needsCapture((int) $params['id_order'])) {
+            if ($this->needsCapture($orderId)) {
                 $adminTemplates[] = 'capture';
             }
 
-            if ($this->canRefund((int) $params['id_order'])) {
+            if ($this->canRefund($orderId)) {
                 $adminTemplates[] = 'refund';
             }
 
         }
 
         if (count($adminTemplates) > 0) {
-            $order = new Order((int) $params['id_order']);
+            $order = new Order($orderId);
             $currency = new Currency($order->id_currency);
             $cpt = new PayPalCapture();
             $cpt->id_order = (int) $order->id;
@@ -2062,13 +2059,10 @@ class PayPal extends PaymentModule
      * @param int        $idOrder
      * @param bool|float $captureAmount
      * @param bool       $isComplete
-     *
-     * @return bool
      */
     protected function doCapture($idOrder, $captureAmount = false, $isComplete = false)
     {
         // FIXME: not implemented
-        return false;
     }
 
     /**

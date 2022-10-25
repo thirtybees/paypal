@@ -126,7 +126,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
         $ready = false;
         if (isset($payment->state) && Tools::strtolower($payment->state) == 'approved') {
             $ready = true;
-            $address = $customer = null;
+            $address = null;
             $email = $payment->payer->payer_info->email;
 
             /* Create Customer if not exist with address etc */

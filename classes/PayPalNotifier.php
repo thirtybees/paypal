@@ -83,7 +83,6 @@ class PayPalNotifier extends PayPal
             $currencyDecimals = is_array($this->context->currency) ? (int) $this->context->currency['decimals'] : (int) $this->context->currency->decimals;
             $this->decimals = $currencyDecimals * _PS_PRICE_DISPLAY_PRECISION_;
 
-            $message = null;
             $mcGross = Tools::ps_round(Tools::getValue('mc_gross'), $this->decimals);
 
             $cartDetails = $cart->getSummaryDetails(null, true);
