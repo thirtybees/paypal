@@ -1175,10 +1175,6 @@ class PayPal extends PaymentModule
             return null;
         }
 
-        if (isset($this->context->cookie->express_checkout)) {
-            $this->redirectToConfirmation();
-        }
-
         $paymentOptions = [];
 
         if (Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED)) {
@@ -1207,21 +1203,6 @@ class PayPal extends PaymentModule
         }
 
         return $paymentOptions;
-    }
-
-    /**
-     * Redirect to confirmation page
-     * @throws PrestaShopException
-     */
-    public function redirectToConfirmation()
-    {
-        // Check if user went through the payment preparation detail and completed it
-        $detail = unserialize($this->context->cookie->express_checkout);
-
-        if (!empty($detail['payer_id']) && !empty($detail['token'])) {
-            $values = ['get_confirmation' => true];
-            Tools::redirect(Context::getContext()->link->getModuleLink('paypal', 'incontextconfirm', $values));
-        }
     }
 
     /**

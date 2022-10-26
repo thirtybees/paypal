@@ -49,8 +49,6 @@ class paypalexpresscheckoutcancelModuleFrontController extends ModuleFrontContro
      */
     public function cancelExpressCheckout()
     {
-        unset($this->context->cookie->express_checkout);
-
         Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 }

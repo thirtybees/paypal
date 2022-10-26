@@ -155,10 +155,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
                 $ppc->add();
             }
 
-//            if (!$customer->id) {
-//                $ppec->logs[] = $this->module->l('Cannot create customer');
-//            }
-
             $shippingAddress = $payment->payer->payer_info->shipping_address;
             if (!isset($shippingAddress->line1) || !isset($shippingAddress->city)
                 || !isset($shippingAddress->postal_code) || !isset($shippingAddress->country_code)
@@ -220,8 +216,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
             // and create the prestashop order
 
             $this->validateOrder($customer, $cart, $payment);
-
-            unset($this->context->cookie->express_checkout);
 
             if ($this->module->currentOrder) {
                 $idOrder = (int) $this->module->currentOrder;
