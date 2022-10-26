@@ -57,6 +57,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws HTMLPurifier_Exception
      */
     public function initContent()
     {
@@ -85,6 +86,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      * Prepare to redirect visitor to PayPal website
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function preparePayment()
     {
@@ -110,6 +112,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws HTMLPurifier_Exception
      */
     public function processPayment()
     {

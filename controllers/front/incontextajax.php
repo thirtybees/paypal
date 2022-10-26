@@ -41,6 +41,7 @@ class paypalincontextajaxModuleFrontController extends ModuleFrontController
      * @return void
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function initContent()
     {

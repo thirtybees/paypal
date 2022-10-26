@@ -46,6 +46,7 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      * Initialize content
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function initContent()
     {

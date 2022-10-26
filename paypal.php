@@ -48,6 +48,7 @@ class PayPal extends PaymentModule
     const LIVE = 'PAYPAL_LIVE';
     const IMMEDIATE_CAPTURE = 'PAYPAL_CAPTURE';
     const STORE_COUNTRY = 'PAYPAL_COUNTRY_DEFAULT';
+    const ACCESS_TOKENS = 'PAYPAL_ATS';
     const CLIENT_ID = 'PAYPAL_CLIENT_ID';
     const SECRET = 'PAYPAL_SECRET';
     const STANDARD_WEBSITE_PROFILE_ID = 'PAYPAL_WEB_PROFILE_ID';
@@ -305,6 +306,7 @@ class PayPal extends PaymentModule
         Configuration::deleteByName(static::CLIENT_ID);
         Configuration::deleteByName(static::SECRET);
         Configuration::deleteByName(static::LOGIN_THEME);
+        Configuration::deleteByName(static::ACCESS_TOKENS);
     }
 
     /**
@@ -1028,6 +1030,7 @@ class PayPal extends PaymentModule
      * @throws PrestaShopException
      * @throws SmartyException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function hookPayment($params)
     {
@@ -1576,6 +1579,7 @@ class PayPal extends PaymentModule
      * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function hookCancelProduct($params)
     {
@@ -1623,6 +1627,7 @@ class PayPal extends PaymentModule
      * @return bool
      * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     protected function doRefund($idPayment, $order, $amount)
     {

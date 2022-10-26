@@ -49,6 +49,7 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
      * @throws PrestaShopException
      * @throws SmartyException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     public function initContent()
     {
@@ -110,6 +111,7 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
      * @throws PrestaShopException
      * @throws SmartyException
      * @throws GuzzleException
+     * @throws HTMLPurifier_Exception
      */
     protected function confirmOrder()
     {

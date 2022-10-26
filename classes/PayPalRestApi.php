@@ -26,7 +26,6 @@ use Cart;
 use Configuration;
 use Context;
 use Currency;
-use Customer;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use HTMLPurifier_Exception;
@@ -61,16 +60,15 @@ class PayPalRestApi
 
     /** @var Context $context */
     protected $context;
+
     /** @var Cart $cart */
     protected $cart;
-    /** @var Customer $customer */
-    protected $customer;
+
     /** @var string $clientId */
     protected $clientId;
+
     /** @var string $secret */
     protected $secret;
-    /** @var null|string $accessToken */
-    protected $accessToken = null;
 
     /**
      * ApiPaypalPlus constructor.
@@ -83,10 +81,13 @@ class PayPalRestApi
     {
         $this->context = Context::getContext();
         $this->cart = $this->context->cart;
-        $this->customer = $this->context->customer;
 
-        $this->clientId = ($clientId) ? $clientId : Configuration::get(PayPal::CLIENT_ID);
-        $this->secret = ($secret) ? $secret : Configuration::get(PayPal::SECRET);
+        $this->clientId = $clientId
+            ? $clientId
+            : Configuration::get(PayPal::CLIENT_ID);
+        $this->secret = $secret
+            ? $secret
+            : Configuration::get(PayPal::SECRET);
     }
 
     /**
@@ -220,20 +221,83 @@ class PayPalRestApi
     }
 
     /**
-     * @return bool
+     * @return string|false
      *
      * @throws GuzzleException
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getToken()
     {
-        if ($this->accessToken) {
-            return $this->accessToken;
+        $accessTokens = $this->getValidAccessTokens();
+        if (isset($accessTokens[$this->clientId])) {
+            return $accessTokens[$this->clientId]['token'];
         }
 
+        $record = $this->authenticate();
+        if ($record) {
+            $accessTokens[$this->clientId] = $record;
+            $this->saveAccessTokens($accessTokens);
+            return $record['token'];
+        } else {
+           return false;
+        }
+    }
+
+    /**
+     * @return array
+     * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
+     */
+    protected function getValidAccessTokens()
+    {
+        $now = time();
+        $accessTokensString = Configuration::getGlobalValue(PayPal::ACCESS_TOKENS);
+        $accessTokens = [];
+        if ($accessTokensString) {
+            $array = json_decode($accessTokensString, true);
+            $update = false;
+            if (is_array($array)) {
+                foreach ($array as $clientId => $record) {
+                    if ($record['expiration'] < $now) {
+                        $update = true;
+                    } else {
+                        $accessTokens[$clientId] = $record;
+                    }
+                }
+            }
+            if ($update) {
+                $this->saveAccessTokens($accessTokens);
+            }
+        }
+        return $accessTokens;
+    }
+
+    /**
+     * @param array $accessTokens
+     * @return void
+     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
+     */
+    protected function saveAccessTokens($accessTokens)
+    {
+        if ($accessTokens) {
+            Configuration::updateGlobalValue(PayPal::ACCESS_TOKENS, json_encode($accessTokens));
+        } else {
+            Configuration::deleteByName(PayPal::ACCESS_TOKENS);
+        }
+    }
+
+    /**
+     * @return array|false
+     * @throws GuzzleException
+     * @throws PrestaShopException
+     */
+    protected function authenticate()
+    {
         $result = $this->send(
             self::PATH_CREATE_TOKEN,
             http_build_query(['grant_type' => 'client_credentials']),
@@ -250,21 +314,13 @@ class PayPalRestApi
         if (isset($oPayPalToken->error)) {
             return false;
         } else {
-            $timeMax = time() + $oPayPalToken->expires_in;
+            $timeMax = time() + $oPayPalToken->expires_in - 10;
             $accessToken = $oPayPalToken->access_token;
 
-            /*
-             * Set Token in Cookie
-             */
-            $this->context->cookie->paypal_access_token_time_max = $timeMax;
-            $this->context->cookie->paypal_access_token_access_token = $accessToken;
-            $this->context->cookie->write();
-
-            if (!$this->accessToken) {
-                $this->accessToken = $accessToken;
-            }
-
-            return $accessToken;
+            return [
+                'token' => $accessToken,
+                'expiration' => $timeMax,
+            ];
         }
     }
 
@@ -320,6 +376,7 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -351,6 +408,7 @@ class PayPalRestApi
      * @return mixed
      * @throws GuzzleException
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -426,26 +484,13 @@ class PayPalRestApi
     }
 
     /**
-     * @param array $params
-     *
-     * @throws PrestaShopException
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function setParams($params)
-    {
-        $this->cart = new Cart($params['cart']->id);
-        $this->customer = new Customer($params['cookie']->id_customer);
-    }
-
-    /**
      * @param string $paymentId
      *
      * @return bool|mixed
      *
      * @throws GuzzleException
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -456,7 +501,7 @@ class PayPalRestApi
             return false;
         }
 
-        $accessToken = $this->refreshToken();
+        $accessToken = $this->getToken();
 
         $header = [
             'Content-Type'  => 'application/json',
@@ -467,24 +512,6 @@ class PayPalRestApi
     }
 
     /**
-     * @return bool
-     *
-     * @throws GuzzleException
-     * @throws PrestaShopException
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function refreshToken()
-    {
-        if ($this->context->cookie->paypal_access_token_time_max < time()) {
-            return $this->getToken();
-        } else {
-            return $this->context->cookie->paypal_access_token_access_token;
-        }
-    }
-
-    /**
      * @param string $payerId
      * @param string $paymentId
      *
@@ -492,6 +519,7 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -502,7 +530,7 @@ class PayPalRestApi
             return false;
         }
 
-        $accessToken = $this->refreshToken();
+        $accessToken = $this->getToken();
 
         $header = [
             'Content-Type'  => 'application/json',
@@ -522,6 +550,7 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
+     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -532,7 +561,7 @@ class PayPalRestApi
             return false;
         }
 
-        $accessToken = $this->refreshToken();
+        $accessToken = $this->getToken();
 
         $header = [
             'Content-Type'  => 'application/json',

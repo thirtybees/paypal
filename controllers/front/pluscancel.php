@@ -44,12 +44,6 @@ class paypalpluscancelModuleFrontController extends ModuleFrontController
      */
     public function initContent()
     {
-        $cookie = $this->context->cookie;
-
-        unset ($cookie->paypal_access_token_access_token);
-        unset ($cookie->paypal_access_token_time_max);
-        $cookie->write();
-
         Tools::redirectLink($this->context->link->getPageLink('order', true));
     }
 }
