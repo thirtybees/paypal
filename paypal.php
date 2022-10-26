@@ -187,7 +187,6 @@ class PayPal extends PaymentModule
             || !$this->registerHook('payment')
             || !$this->registerHook('paymentReturn')
             || !$this->registerHook('shoppingCartExtra')
-            || !$this->registerHook('backBeforePayment')
             || !$this->registerHook('rightColumn')
             || !$this->registerHook('cancelProduct')
             || !$this->registerHook('productFooter')
@@ -1372,32 +1371,6 @@ class PayPal extends PaymentModule
         $this->context->smarty->assign('logo', PayPalLogos::getCardsLogo($this->getLocale(), true));
 
         return $this->display(__FILE__, 'column.tpl');
-    }
-
-    /**
-     * @param array $params
-     *
-     * @return bool|null
-     * @throws PrestaShopException
-     */
-    public function hookBackBeforePayment($params)
-    {
-        if (!$this->active) {
-            return null;
-        }
-
-        /* Only execute if you use PayPal API for payment */
-        if ($this->isPayPalAPIAvailable()) {
-            if ($params['module'] != $this->name || !$this->context->cookie->paypal_token
-                || !$this->context->cookie->paypal_payer_id
-            ) {
-                return false;
-            }
-
-            Tools::redirect($this->context->link->getModuleLink($this->name, 'plussubmit', [], true).'?confirm=1&token='.$this->context->cookie->paypal_token.'&payerID='.$this->context->cookie->paypal_payer_id);
-        }
-
-        return null;
     }
 
     /**
