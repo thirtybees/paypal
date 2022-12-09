@@ -128,6 +128,7 @@ class PayPal extends PaymentModule
 
         $this->currencies = true;
         $this->currencies_mode = 'radio';
+        $this->need_instance = false;
 
         parent::__construct();
 
