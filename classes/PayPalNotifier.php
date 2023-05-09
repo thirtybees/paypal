@@ -30,6 +30,7 @@ use Currency;
 use Customer;
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Language;
 use PayPal;
 use PrestaShopException;
@@ -56,6 +57,7 @@ class PayPalNotifier extends PayPal
      *
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -117,6 +119,7 @@ class PayPalNotifier extends PayPal
      * @return false|string
      *
      * @throws PrestaShopException
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

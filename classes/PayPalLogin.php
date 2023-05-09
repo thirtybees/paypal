@@ -27,6 +27,7 @@ use Customer;
 use Language;
 use PrestaShopException;
 use GuzzleHttp\Exception\GuzzleException;
+use stdClass;
 use Tools;
 
 if (!defined('_TB_VERSION_')) {
@@ -132,8 +133,8 @@ class PayPalLogin
     /**
      * @return array|bool|mixed|PayPalLoginUser
      *
-     * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -206,8 +207,8 @@ class PayPalLogin
     /**
      * @return array|bool|mixed
      *
-     * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -256,8 +257,8 @@ class PayPalLogin
     }
 
     /**
-     * @param $accessToken
-     * @param $login
+     * @param string $accessToken
+     * @param PayPalLoginUser $login
      *
      * @return bool|Customer
      *
@@ -314,7 +315,7 @@ class PayPalLogin
     }
 
     /**
-     * @param $result
+     * @param stdClass $result
      *
      * @return Customer
      *

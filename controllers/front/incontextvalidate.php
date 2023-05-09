@@ -33,20 +33,31 @@ use GuzzleHttp\Exception\GuzzleException;
  */
 class paypalincontextvalidateModuleFrontController extends ModuleFrontController
 {
+    /**
+     * @var bool
+     */
     public $ssl = true;
 
+    /**
+     * @var string
+     */
     public $payerId;
 
+    /**
+     * @var string
+     */
     public $paymentId;
 
-    /** @var PayPal $module */
+    /**
+     * @var PayPal $module
+     */
     public $module;
 
     /**
      * Initialize content
-     * @throws PrestaShopException
+     *
      * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      */
     public function initContent()
     {
@@ -173,7 +184,6 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
      *
      * @return Address
      *
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA

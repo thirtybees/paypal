@@ -28,7 +28,6 @@ use Context;
 use Currency;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use HTMLPurifier_Exception;
 use ImageManager;
 use Language;
 use PayPal;
@@ -134,9 +133,8 @@ class PayPalRestApi
      *
      * @return bool|array
      *
-     * @throws PrestaShopException
      * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -167,11 +165,11 @@ class PayPalRestApi
     }
 
     /**
-     * @param $type
+     * @param int $type
+     *
      * @return bool
-     * @throws PrestaShopException
      * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      */
     public function deleteWebProfile($type)
     {
@@ -199,10 +197,10 @@ class PayPalRestApi
     /**
      * @param int $profileType
      * @param bool $enabled
+     *
      * @return void
-     * @throws HTMLPurifier_Exception
-     * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws PrestaShopException
      */
     public function updateWebProfile($profileType, $enabled)
     {
@@ -225,7 +223,6 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -250,7 +247,6 @@ class PayPalRestApi
     /**
      * @return array
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      */
     protected function getValidAccessTokens()
     {
@@ -278,8 +274,8 @@ class PayPalRestApi
 
     /**
      * @param array $accessTokens
+     *
      * @return void
-     * @throws HTMLPurifier_Exception
      * @throws PrestaShopException
      */
     protected function saveAccessTokens($accessTokens)
@@ -376,7 +372,6 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -408,7 +403,6 @@ class PayPalRestApi
      * @return mixed
      * @throws GuzzleException
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -490,7 +484,6 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -519,7 +512,6 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -550,7 +542,6 @@ class PayPalRestApi
      *
      * @throws GuzzleException
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -575,8 +566,8 @@ class PayPalRestApi
     /**
      * @param int $type
      * @param int $shopId
+     *
      * @return string
-     * @throws HTMLPurifier_Exception
      * @throws PrestaShopException
      */
     protected function getWebProfileName($type, $shopId)
@@ -593,7 +584,6 @@ class PayPalRestApi
      * @return array
      *
      * @throws PrestaShopException
-     * @throws HTMLPurifier_Exception
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

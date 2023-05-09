@@ -47,9 +47,10 @@ class paypalpluseuModuleFrontController extends ModuleFrontController
     /**
      * PayPalSubmitplusModuleFrontController constructor.
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws PrestaShopException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function __construct()
     {
@@ -58,9 +59,8 @@ class paypalpluseuModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @throws PrestaShopException
      * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      * @author    PrestaShop SA <contact@prestashop.com>

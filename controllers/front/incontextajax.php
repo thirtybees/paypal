@@ -39,9 +39,8 @@ class paypalincontextajaxModuleFrontController extends ModuleFrontController
      * Initialize content
      *
      * @return void
-     * @throws PrestaShopException
      * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      */
     public function initContent()
     {
@@ -91,7 +90,6 @@ class paypalincontextajaxModuleFrontController extends ModuleFrontController
             $idProductAttribute = null;
         }
 
-        /** @var Cart $cart */
         $cart = $this->context->cart;
         if (!$cart->id) {
             $cart->add();
@@ -124,7 +122,6 @@ class paypalincontextajaxModuleFrontController extends ModuleFrontController
 
     /**
      * @throws PrestaShopException
-     * @throws PrestaShopDatabaseException
      */
     protected function checkQuantity()
     {

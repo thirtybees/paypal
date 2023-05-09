@@ -46,10 +46,9 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
     /**
      * Initialize content
      *
+     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
      */
     public function initContent()
     {
@@ -85,6 +84,7 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
      *
      * @throws PrestaShopException
      * @throws SmartyException
+     * @throws GuzzleException
      */
     public function assignCartSummary()
     {
@@ -108,10 +108,9 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
 
     /**
      * @return void
+     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
      */
     protected function confirmOrder()
     {

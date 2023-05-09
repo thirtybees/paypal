@@ -54,10 +54,8 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      *
      * @return void
      * @throws GuzzleException
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws HTMLPurifier_Exception
      */
     public function initContent()
     {
@@ -84,9 +82,9 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
     /**
      * Prepare to redirect visitor to PayPal website
-     * @throws PrestaShopException
+     *
      * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
+     * @throws PrestaShopException
      */
     public function preparePayment()
     {
@@ -109,10 +107,8 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
     /**
      * Process PayPal payment
      * @throws GuzzleException
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws HTMLPurifier_Exception
      */
     public function processPayment()
     {
@@ -306,7 +302,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      * @param int $idAddress
      *
      * @return Address
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -361,7 +356,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      *
      * @return Address|bool
      *
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -412,7 +406,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      * @param Customer $customer
      * @param Cart $cart
      * @param stdClass $payment
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
      */

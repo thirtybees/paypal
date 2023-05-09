@@ -56,9 +56,10 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
     /**
      * PayPalSubmitplusModuleFrontController constructor.
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws PrestaShopException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public function __construct()
     {
@@ -67,10 +68,9 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
     }
 
     /**
+     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws GuzzleException
-     * @throws HTMLPurifier_Exception
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -170,10 +170,8 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
 
     /**
      * @throws GuzzleException
-     * @throws PrestaShopDatabaseException
      * @throws PrestaShopException
      * @throws SmartyException
-     * @throws HTMLPurifier_Exception
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -301,7 +299,7 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @param $template
+     * @param string $template
      *
      * @return false|null|string
      * @throws PrestaShopException

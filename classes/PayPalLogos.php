@@ -24,6 +24,7 @@ namespace PayPalModule;
 
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use PayPal;
 
 if (!defined('_TB_VERSION_')) {
@@ -45,9 +46,12 @@ class PayPalLogos
      * @param string $isoCode
      *
      * @return array|bool
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws GuzzleException
+     * @throws GuzzleException
+     * @throws GuzzleException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public static function getLogos($isoCode)
     {
@@ -83,12 +87,13 @@ class PayPalLogos
 
     /**
      * @param string $isoCode
-     * @param bool   $vertical
+     * @param bool $vertical
      *
      * @return bool|mixed|string
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws GuzzleException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public static function getCardsLogo($isoCode, $vertical = false)
     {
@@ -115,14 +120,15 @@ class PayPalLogos
     }
 
     /**
-     * @param array  $values
+     * @param array $values
      * @param string $isoCode
      *
      * @return array
      *
-     * @author    PrestaShop SA <contact@prestashop.com>
+     * @throws GuzzleException
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @author    PrestaShop SA <contact@prestashop.com>
      */
     public static function getLocalLogos(array $values, $isoCode)
     {
@@ -163,6 +169,7 @@ class PayPalLogos
      *
      * @return bool|string
      *
+     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)

@@ -117,6 +117,7 @@ class PayPalOrder extends ObjectModel
      * @param stdClass $payment
      *
      * @return array
+     * @throws PrestaShopException
      */
     public static function getTransactionDetails($payment)
     {
@@ -142,7 +143,7 @@ class PayPalOrder extends ObjectModel
     /**
      * @param int $idOrder
      *
-     * @return array|bool|null|object
+     * @return array|false
      *
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>

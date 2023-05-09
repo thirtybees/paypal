@@ -37,6 +37,9 @@ if (!defined('_TB_VERSION_')) {
  */
 class PayPalTools
 {
+    /**
+     * @var string
+     */
     protected $name = null;
 
     /**

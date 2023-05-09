@@ -37,8 +37,8 @@ class paypallogintokenModuleFrontController extends ModuleFrontController
 
     /**
      * @return void
-     * @throws PrestaShopException
      * @throws GuzzleException
+     * @throws PrestaShopException
      */
     public function initContent()
     {
