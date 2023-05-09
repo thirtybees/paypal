@@ -56,17 +56,35 @@ class PayPalCapture extends ObjectModel
             'date_upd'       => ['type' => self::TYPE_DATE,   'validate' => 'isDate',       'required' => true, 'db_type' => 'DATETIME'],
         ],
     ];
-    /** @var int $id_order */
+
+    /**
+     * @var int $id_order
+     */
     public $id_order;
-    /** @var float $capture_amount */
+
+    /**
+     * @var float $capture_amount
+     */
     public $capture_amount;
-    /** @var $result */
+
+    /**
+     * @var $result
+     */
     public $result;
-    /** @var string $date_add */
+
+    /**
+     * @var string $date_add
+     */
     public $date_add;
-    /** @var string $date_upd */
+
+    /**
+     * @var string $date_upd
+     */
     public $date_upd;
-    /** @var int $id_paypal_capture */
+
+    /**
+     * @var int $id_paypal_capture
+     */
     public $id_paypal_capture;
 
     /**
@@ -111,29 +129,6 @@ class PayPalCapture extends ObjectModel
     }
 
     /**
-     * @param int $idOrder
-     *
-     * @return bool
-     *
-     * @throws PrestaShopException
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
-    public function getRestToCapture($idOrder)
-    {
-        $cart = Cart::getCartByOrderId($idOrder);
-
-        $total = Tools::ps_round($cart->getOrderTotal(), 2) - Tools::ps_round(self::getTotalAmountCapturedByIdOrder($idOrder), 2);
-
-        if ($total > Tools::ps_round(0, 2)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
      * @return array|bool|PDOStatement|null
      *
      * @throws PrestaShopException
@@ -154,9 +149,9 @@ class PayPalCapture extends ObjectModel
     }
 
     /**
-     * @param float $price
+     * @param string $price
      *
-     * @return bool|float
+     * @return float|false
      *
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -164,10 +159,10 @@ class PayPalCapture extends ObjectModel
      */
     public static function parsePrice($price)
     {
-        $regexp = "/^([0-9\s]{0,10})((\.|,)[0-9]{0,2})?$/isD";
+        $regexp = "/^([0-9\s]{0,10})(([.,])[0-9]{0,2})?$/iD";
 
         if (preg_match($regexp, $price)) {
-            $arrayRegexp = ['#,#isD', '# #isD'];
+            $arrayRegexp = ['#,#', '# #'];
             $arrayReplace = ['.', ''];
             $price = preg_replace($arrayRegexp, $arrayReplace, $price);
 
@@ -175,6 +170,5 @@ class PayPalCapture extends ObjectModel
         } else {
             return false;
         }
-
     }
 }

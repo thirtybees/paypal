@@ -20,7 +20,6 @@
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
-use PayPalModule\CallPayPalPlusApi;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
 use GuzzleHttp\Exception\GuzzleException;
@@ -195,7 +194,7 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
             !empty($payerID) &&
             !empty($paymentId) &&
             !empty($submit)) {
-            $callApiPaypalPlus = new CallPayPalPlusApi();
+            $callApiPaypalPlus = new PayPalRestApi();
             $payment = $callApiPaypalPlus->executePayment($payerID, $paymentId);
 
             if (isset($payment->state)) {

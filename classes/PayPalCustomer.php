@@ -39,10 +39,14 @@ if (!defined('_TB_VERSION_')) {
 class PayPalCustomer extends ObjectModel
 {
 
-    /** @var int $id_customer */
+    /**
+     * @var int $id_customer
+     */
     public $id_customer;
 
-    /** @var string $paypal_email */
+    /**
+     * @var string $paypal_email
+     */
     public $paypal_email;
 
     /**
@@ -62,12 +66,12 @@ class PayPalCustomer extends ObjectModel
      *
      * @param string $email
      *
-     * @return false|null|string
+     * @return int
      * @throws PrestaShopException
      */
     public static function getPayPalCustomerIdByEmail($email)
     {
-        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+        return (int)Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
             (new DbQuery())
                 ->select('pc.`id_customer`')
                 ->from(bqSQL(self::$definition['table']), 'pc')

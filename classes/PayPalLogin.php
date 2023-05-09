@@ -76,25 +76,6 @@ class PayPalLogin
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function getIdentityAPIURL()
-    {
-        if (!\Configuration::get(\PayPal::LIVE)) {
-            //return 'www.sandbox.paypal.com';
-            return 'api.sandbox.paypal.com';
-        } else {
-            return 'api.paypal.com';
-        }
-
-    }
-
-    /**
-     * @return string
-     *
-     * @throws PrestaShopException
-     * @author    PrestaShop SA <contact@prestashop.com>
-     * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
-     */
     public function getTokenServiceEndpoint()
     {
         if (!\Configuration::get(\PayPal::LIVE)) {
@@ -131,7 +112,7 @@ class PayPalLogin
     }
 
     /**
-     * @return array|bool|mixed|PayPalLoginUser
+     * @return PayPalLoginUser|false
      *
      * @throws GuzzleException
      * @throws PrestaShopException
@@ -205,7 +186,7 @@ class PayPalLogin
     }
 
     /**
-     * @return array|bool|mixed
+     * @return PayPalLoginUser|false
      *
      * @throws GuzzleException
      * @throws PrestaShopException
@@ -217,8 +198,7 @@ class PayPalLogin
     {
         unset($this->logs);
         $login = PayPalLoginUser::getByIdCustomer((int) \Context::getContext()->customer->id);
-
-        if (!is_object($login)) {
+        if (! $login) {
             return false;
         }
 
@@ -260,7 +240,7 @@ class PayPalLogin
      * @param string $accessToken
      * @param PayPalLoginUser $login
      *
-     * @return bool|Customer
+     * @return Customer|false
      *
      * @throws PrestaShopException
      * @throws GuzzleException

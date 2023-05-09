@@ -23,18 +23,12 @@
 /**
  * @param PayPal $module
  * @return bool
- * @throws PrestaShopException
  */
 function upgrade_module_5_0_0($module)
 {
     try {
         Db::getInstance()->execute('ALTER TABLE `'._DB_PREFIX_.'paypal_order` ADD COLUMN `id_payer` VARCHAR(255)');
-    } catch (PrestaShopDatabaseException $e) {
-    }
-    try {
         Db::getInstance()->execute('ALTER TABLE `'._DB_PREFIX_.'paypal_order` ADD COLUMN `id_payment` VARCHAR(255)');
-    } catch (PrestaShopDatabaseException $e) {
-    }
-
+    } catch (PrestaShopException $ignored) {}
     return true;
 }

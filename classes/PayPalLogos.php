@@ -163,11 +163,11 @@ class PayPalLogos
     }
 
     /**
-     * @param      $source
-     * @param      $destination
+     * @param string $source
+     * @param string $destination
      * @param bool $force
      *
-     * @return bool|string
+     * @return string|false
      *
      * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>

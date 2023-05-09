@@ -56,21 +56,45 @@ class PayPalLoginUser extends ObjectModel
             'verified_account' => ['type' => self::TYPE_STRING, 'validate' => 'isString',     'required' => true, 'db_type' => 'VARCHAR(255)'],
         ],
     ];
-    /** @var int $id_customer */
+
+    /**
+     * @var int $id_customer
+     */
     public $id_customer;
-    /** @var string $token_type */
+
+    /**
+     * @var string $token_type
+     */
     public $token_type;
-    /** @var string $expires_in */
+
+    /**
+     * @var string $expires_in
+     */
     public $expires_in;
-    /** @var string $refresh_token */
+
+    /**
+     * @var string $refresh_token
+     */
     public $refresh_token;
-    /** @var string $id_token */
+
+    /**
+     * @var string $id_token
+     */
     public $id_token;
-    /** @var string $access_token */
+
+    /**
+     * @var string $access_token
+     */
     public $access_token;
-    /** @var string $user_id */
+
+    /**
+     * @var string $user_id
+     */
     public $user_id;
-    /** @var string $verified_account */
+
+    /**
+     * @var string $verified_account
+     */
     public $verified_account;
 
     /**
@@ -78,7 +102,7 @@ class PayPalLoginUser extends ObjectModel
      * @param bool $idCustomer
      * @param bool $refreshToken
      *
-     * @return array
+     * @return PayPalLoginUser[]
      *
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
@@ -119,7 +143,7 @@ class PayPalLoginUser extends ObjectModel
     /**
      * @param int $idCustomer
      *
-     * @return array|bool|mixed
+     * @return PayPalLoginUser|false
      *
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>

@@ -26,7 +26,6 @@ use Configuration;
 use Db;
 use DbQuery;
 use ObjectModel;
-use PayPal;
 use PrestaShopException;
 use stdClass;
 
@@ -74,29 +73,65 @@ class PayPalOrder extends ObjectModel
             'payment_status' => ['type' => self::TYPE_STRING, 'validate' => 'isString',      'required' => true, 'db_type' => 'VARCHAR(255)'],
         ],
     ];
-    /** @var int $id_order */
+
+    /**
+     * @var int $id_order
+     */
     public $id_order;
-    /** @var string $id_transaction */
+
+    /**
+     * @var string $id_transaction
+     */
     public $id_transaction;
-    /** @var string $id_payer */
+
+    /**
+     * @var string $id_payer
+     */
     public $id_payer;
-    /** @var string $id_payment */
+
+    /**
+     * @var string $id_payment
+     */
     public $id_payment;
-    /** @var string $id_invoice */
+
+    /**
+     * @var string $id_invoice
+     */
     public $id_invoice;
-    /** @var string $currency */
+
+    /**
+     * @var string $currency
+     */
     public $currency;
-    /** @var float $total_paid */
+
+    /**
+     * @var float $total_paid
+     */
     public $total_paid;
-    /** @var string $shipping */
+
+    /**
+     * @var string $shipping
+     */
     public $shipping;
-    /** @var string $capture */
+
+    /**
+     * @var string $capture
+     */
     public $capture;
-    /** @var string $payment_date */
+
+    /**
+     * @var string $payment_date
+     */
     public $payment_date;
-    /** @var int $payment_method */
+
+    /**
+     * @var int $payment_method
+     */
     public $payment_method;
-    /** @var string $payment_status */
+
+    /**
+     * @var string $payment_status
+     */
     public $payment_status;
 
     /*
@@ -161,28 +196,6 @@ class PayPalOrder extends ObjectModel
     }
 
     /**
-     * @param string $idTransaction
-     *
-     * @return int
-     * @throws PrestaShopException
-     */
-    public static function getIdOrderByTransactionId($idTransaction)
-    {
-        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
-            (new DbQuery())
-                ->select('po.`id_order`')
-                ->from('paypal_order', 'po')
-                ->where('po.`id_transaction` = \''.pSQL($idTransaction).'\'')
-        );
-
-        if ($result != false) {
-            return (int) $result['id_order'];
-        }
-
-        return 0;
-    }
-
-    /**
      * @param int $idOrder
      * @param array $transaction
      * @throws PrestaShopException
@@ -212,47 +225,5 @@ class PayPalOrder extends ObjectModel
                 'payment_status' => pSQL($transaction['payment_status']),
             ]
         );
-    }
-
-    /**
-     * @param int $idOrder
-     * @param array $transaction
-     * @throws PrestaShopException
-     */
-    public static function updateOrder($idOrder, $transaction)
-    {
-        if (!isset($transaction['payment_status']) || !$transaction['payment_status']) {
-            $transaction['payment_status'] = 'NULL';
-        }
-
-        Db::getInstance()->update(
-            bqSQL(static::$definition['table']),
-            [
-                'payment_status' => pSQL($transaction['payment_status']),
-            ],
-            '`id_order` = \''.(int) $idOrder.'\' AND `id_transaction` = \''.pSQL($transaction['id_transaction']).'\' AND `currency` = \''.pSQL($transaction['currency']).'\''.((Configuration::get(PayPal::LIVE)) ? 'AND `total_paid` = \''.$transaction['total_paid'].'\' AND `shipping` = \''.(float) $transaction['shipping'].'\'' : '')
-        );
-    }
-
-    /**
-     * Get PayPalOrder by Payment ID
-     *
-     * @param string $paymentId
-     *
-     * @return bool|PayPalOrder
-     * @throws PrestaShopException
-     */
-    public static function getByPaymentId($paymentId)
-    {
-        if ($id = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-            (new DbQuery())
-                ->select(bqSQL(self::$definition['primary']))
-                ->from(bqSQL(self::$definition['table']))
-                ->where('`id_payment` = \''.pSQL($paymentId).'\'')
-        )) {
-            return new self($id);
-        }
-
-        return false;
     }
 }
