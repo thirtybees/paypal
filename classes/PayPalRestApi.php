@@ -322,10 +322,10 @@ class PayPalRestApi
 
     /**
      * @param string $url URL including get params
-     * @param bool|string $body
-     * @param bool $headers
+     * @param string|false $body
+     * @param string[] $headers
      * @param bool $identify
-     * @param bool|string $requestType
+     * @param string $requestType
      *
      * @return string
      * @throws PrestaShopException
@@ -334,7 +334,7 @@ class PayPalRestApi
      * @copyright 2007-2016 PrestaShop SA
      * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function send($url, $body = false, $headers = false, $identify = false, $requestType = 'GET')
+    public function send($url, $body = false, $headers = [], $identify = false, $requestType = 'GET')
     {
         if (!Configuration::get(PayPal::LIVE)) {
             $baseUri = 'https://api.sandbox.paypal.com';
@@ -355,9 +355,7 @@ class PayPalRestApi
         if ($identify) {
             $requestOptions['auth'] = [$this->clientId, $this->secret];
         }
-        if ($headers) {
-            $requestOptions['headers'] = $headers;
-        }
+        $requestOptions['headers'] = $headers;
         if ($body) {
             $requestOptions['body'] = (string) $body;
         }

@@ -159,7 +159,7 @@ class PayPalLogin
         $result = $this->rest->send(
             $this->getTokenServiceEndpoint(),
             http_build_query($params, '', '&'),
-            ['Content-Type', 'application/x-www-form-urlencoded'],
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
             true,
             'POST'
         );
