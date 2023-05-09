@@ -1502,14 +1502,15 @@ class PayPal extends PaymentModule
      */
     protected function canRefund($idOrder)
     {
-        if (!(bool) $idOrder) {
+        $idOrder = (int)$idOrder;
+        if (!$idOrder) {
             return false;
         }
 
         $sql = new DbQuery();
         $sql->select('po.`payment_status`, po.`capture`');
         $sql->from('paypal_order', 'po');
-        $sql->where('po.`id_order` = '.(int) $idOrder);
+        $sql->where('po.`id_order` = '.$idOrder);
 
         $paypalOrder = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow($sql);
 
@@ -1596,7 +1597,8 @@ class PayPal extends PaymentModule
      */
     public function addNewPrivateMessage($idOrder, $message)
     {
-        if (!(bool) $idOrder) {
+        $idOrder = (int)$idOrder;
+        if (!$idOrder) {
             return false;
         }
 
@@ -1608,7 +1610,7 @@ class PayPal extends PaymentModule
         }
 
         $newMessage->message = $message;
-        $newMessage->id_order = (int) $idOrder;
+        $newMessage->id_order = $idOrder;
         $newMessage->private = 1;
 
         return $newMessage->add();
