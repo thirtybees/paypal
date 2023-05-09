@@ -471,8 +471,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
      */
     public function redirectToCheckout(Customer $customer, $redirect = false)
     {
-        $this->ready = true;
-
         $context = $this->context;
         $context->cookie->id_customer = (int) $customer->id;
         $context->cookie->customer_lastname = $customer->lastname;
