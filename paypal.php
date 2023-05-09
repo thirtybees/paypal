@@ -420,9 +420,12 @@ class PayPal extends PaymentModule
 
         $helper->token = Tools::getAdminTokenLite('AdminModules');
 
+        /** @var AdminController $controller */
+        $controller = $this->context->controller;
+
         $helper->tpl_vars = [
             'fields_value' => $this->getMainFormValues(),
-            'languages'    => $this->context->controller->getLanguages(),
+            'languages'    => $controller->getLanguages(),
             'id_language'  => $this->context->language->id,
         ];
 
