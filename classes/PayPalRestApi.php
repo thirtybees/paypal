@@ -8,16 +8,16 @@
  * This source file is subject to the Academic Free License (AFL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * https://opensource.org/licenses/afl-3.0.php
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
  * @author    Thirty Bees <modules@thirtybees.com>
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2017 Thirty Bees
+ * @copyright 2017-2024 thirty bees
  * @copyright 2007-2016 PrestaShop SA
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
 namespace PayPalModule;
@@ -137,7 +137,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function createWebProfile($type)
     {
@@ -225,7 +225,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getToken()
     {
@@ -332,7 +332,7 @@ class PayPalRestApi
      * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function send($url, $body = false, $headers = [], $identify = false, $requestType = 'GET')
     {
@@ -372,7 +372,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function getWebProfiles()
     {
@@ -403,7 +403,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function createPayment($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
@@ -426,7 +426,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
@@ -484,7 +484,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function lookUpPayment($paymentId)
     {
@@ -512,7 +512,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function executePayment($payerId, $paymentId)
     {
@@ -542,7 +542,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function executeRefund($paymentId, $data)
     {
@@ -584,7 +584,7 @@ class PayPalRestApi
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
-     * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+     * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     protected function getWebProfileDefinition($type, $adjustLogo = true)
     {
