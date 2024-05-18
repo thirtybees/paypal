@@ -6,4 +6,4 @@
 
         {logs}
 
-        {shop_url} provido por Thirty Bees™
+        {shop_url}

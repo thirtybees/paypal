@@ -6,4 +6,4 @@
 
 	{logs}
 
-	{shop_url} powered by Thirty Bees™
+	{shop_url}

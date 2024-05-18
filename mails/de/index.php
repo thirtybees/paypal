@@ -1,6 +1,6 @@
 <?php
 /**
- * 2017 Thirty Bees
+ * 2017-2024 thirty bees
  * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
@@ -13,7 +13,7 @@
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <modules@thirtybees.com>
+ *  @author    thirty bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2017-2024 thirty bees
  *  @copyright 2007-2016 PrestaShop SA
