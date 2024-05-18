@@ -1,6 +1,6 @@
 <?php
 /**
- * 2017 Thirty Bees
+ * 2017-2024 thirty bees
  * 2007-2016 PrestaShop
  *
  * NOTICE OF LICENSE
@@ -13,20 +13,19 @@
  * obtain it through the world-wide-web, please send an email
  * to license@thirtybees.com so we can send you a copy immediately.
  *
- *  @author    Thirty Bees <modules@thirtybees.com>
+ *  @author    thirty bees <modules@thirtybees.com>
  *  @author    PrestaShop SA <contact@prestashop.com>
  *  @copyright 2017-2024 thirty bees
  *  @copyright 2007-2016 PrestaShop SA
  *  @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
-
-			    	
+ 
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
 header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT");
-	
+
 header("Cache-Control: no-store, no-cache, must-revalidate");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
-	
+
 header("Location: ../");
 exit;
