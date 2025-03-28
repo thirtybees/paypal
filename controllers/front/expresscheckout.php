@@ -447,7 +447,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
         $this->module->validateOrder(
             (int) $cart->id,
             $paymentType ?? Configuration::get('PS_OS_PAYMENT'),
-            $orderTotal,
+            $transactionAmount,
             'PayPal',
             $message ?? '',
             $transaction,
