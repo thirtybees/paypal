@@ -21,7 +21,6 @@
  */
 
 use PayPalModule\PayPalRestApi;
-use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -32,16 +31,24 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalpluseuModuleFrontController extends ModuleFrontController
 {
-    /** @var bool $display_column_left */
+    /**
+     * @var bool $display_column_left
+     */
     public $display_column_left = false;
 
-    /** @var bool $display_column_right */
+    /**
+     * @var bool $display_column_right
+     */
     public $display_column_right = false;
 
-    /** @var PayPal $module */
+    /**
+     * @var PayPal $module
+     */
     public $module;
 
-    /** @var bool $ssl */
+    /**
+     * @var bool $ssl
+     */
     public $ssl = true;
 
     /**
@@ -59,7 +66,6 @@ class paypalpluseuModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @copyright 2007-2016 PrestaShop SA
      * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -69,7 +75,7 @@ class paypalpluseuModuleFrontController extends ModuleFrontController
     {
         parent::initContent();
 
-        $rest = new PayPalRestApi();
+        $rest = $this->module->getFactory()->getRestApi();
         $payment = $rest->createPayment(
             $this->context->link->getModuleLink($this->module->name, 'plussubmit', [], true),
             $this->context->link->getModuleLink($this->module->name, 'pluscancel', [], true),

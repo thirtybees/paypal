@@ -22,7 +22,6 @@
 
 use PayPalModule\PayPalLogos;
 use PayPalModule\PayPalOrder;
-use PayPalModule\PayPalRestApi;
 use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
@@ -34,13 +33,20 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalincontextconfirmModuleFrontController extends ModuleFrontController
 {
-    /** @var bool $display_column_left */
+
+    /**
+     * @var bool $display_column_left
+     */
     public $display_column_left = false;
 
-    /** @var PayPal $module */
+    /**
+     * @var PayPal $module
+     */
     public $module;
 
-    /** @var bool $ssl */
+    /**
+     * @var bool $ssl
+     */
     public $ssl = true;
 
     /**
@@ -108,7 +114,6 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
 
     /**
      * @return void
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
      */
@@ -117,7 +122,7 @@ class paypalincontextconfirmModuleFrontController extends ModuleFrontController
         $payerId = Tools::getValue('PayerID');
         $paymentId = Tools::getValue('paymentID');
 
-        $rest = new PayPalRestApi();
+        $rest = $this->module->getFactory()->getRestApi();
         $payment = $rest->executePayment($payerId, $paymentId);
 
         $transaction = PayPalOrder::getTransactionDetails($payment);

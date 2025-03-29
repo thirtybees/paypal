@@ -22,10 +22,10 @@
 
 namespace PayPalModule;
 
-use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use PayPal;
+use Throwable;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -184,7 +184,7 @@ class PayPalLogos
             ]);
             try {
                 $picture = (string) $guzzle->get($source)->getBody();
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 $picture = false;
             }
 

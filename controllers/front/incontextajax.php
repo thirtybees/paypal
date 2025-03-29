@@ -21,7 +21,6 @@
  */
 
 use PayPalModule\PayPalRestApi;
-use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
     exit;
@@ -32,14 +31,21 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalincontextajaxModuleFrontController extends ModuleFrontController
 {
-    /** @var bool $ssl */
+    /**
+     * @var PayPal $module
+     */
+    public $module;
+
+    /**
+     * @var bool $ssl
+     */
     public $ssl = true;
+
 
     /**
      * Initialize content
      *
      * @return void
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function initContent()
@@ -56,8 +62,12 @@ class paypalincontextajaxModuleFrontController extends ModuleFrontController
 
         $errors = [];
         if (Validate::isLoadedObject(Context::getContext()->cart)) {
-            $rest = new PayPalRestApi();
-            $payment = $rest->createPayment(false, false, PayPalRestApi::EXPRESS_CHECKOUT_PROFILE);
+            $rest = $this->module->getFactory()->getRestApi();
+            $payment = $rest->createPayment(
+                false,
+                false,
+                PayPalRestApi::EXPRESS_CHECKOUT_PROFILE
+            );
 
             if (isset($payment->id)) {
                 header('Content-Type: application/json');

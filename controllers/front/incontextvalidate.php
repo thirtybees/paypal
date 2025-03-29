@@ -25,8 +25,6 @@ if (!defined('_TB_VERSION_')) {
 }
 
 use PayPalModule\PayPalCustomer;
-use PayPalModule\PayPalRestApi;
-use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class paypalincontextvalidateModuleFrontController
@@ -56,7 +54,6 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
     /**
      * Initialize content
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function initContent()
@@ -65,7 +62,7 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
         $this->paymentId = Tools::getValue('paymentID');
 
         if ($this->payerId && $this->paymentId) {
-            $callApiPaypalPlus = new PayPalRestApi();
+            $callApiPaypalPlus = $this->module->getFactory()->getRestApi();
             $payment = $callApiPaypalPlus->lookUpPayment($this->paymentId);
             $email = $payment->payer->payer_info->email;
             /* Create Customer if not exist with address etc */
@@ -108,7 +105,7 @@ class paypalincontextvalidateModuleFrontController extends ModuleFrontController
             }
 
             /* Create address */
-            if (isset($address) && is_array($address) && isset($address['id_address'])) {
+            if (isset($address['id_address'])) {
                 $address = new Address($address['id_address']);
             }
 

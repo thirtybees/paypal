@@ -20,7 +20,6 @@
 *}
 
 {capture name=path}<a href="order.php">{l s='Your shopping cart' mod='paypal'}</a><span class="navigation-pipe"> {$navigationPipe|escape:'htmlall':'UTF-8'} </span>{l s='PayPal' mod='paypal'}{/capture}
-{include file="$tpl_dir./breadcrumb.tpl"}
 <h2>{$message|escape:'htmlall':'UTF-8'}</h2>
 {if isset($logs) && $logs}
 	<div class="error">

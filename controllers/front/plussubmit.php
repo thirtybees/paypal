@@ -21,7 +21,6 @@
  */
 
 use PayPalModule\PayPalOrder;
-use PayPalModule\PayPalRestApi;
 use GuzzleHttp\Exception\GuzzleException;
 
 if (!defined('_TB_VERSION_')) {
@@ -33,23 +32,49 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalplussubmitModuleFrontController extends ModuleFrontController
 {
-    /** @var bool $display_column_left */
+    /**
+     * @var bool $display_column_left
+     */
     public $display_column_left = false;
-    /** @var bool $display_column_right */
+
+    /**
+     * @var bool $display_column_right
+     */
     public $display_column_right = false;
-    /** @var int $idModule */
+
+    /**
+     * @var int $idModule
+     */
     public $idModule;
-    /** @var int $idOrder */
+
+    /**
+     * @var int $idOrder
+     */
     public $idOrder;
-    /** @var string $paymentId */
+
+    /**
+     * @var string $paymentId
+     */
     public $paymentId;
-    /** @var string $payerId */
+
+    /**
+     * @var string $payerId
+     */
     public $payerId;
-    /** @var PayPal $module */
+
+    /**
+     * @var PayPal $module
+     */
     public $module;
-    /** @var string $token */
+
+    /**
+     * @var string $token
+     */
     public $token;
-    /** @var bool $ssl */
+
+    /**
+     * @var bool $ssl
+     */
     public $ssl = true;
 
     /**
@@ -85,7 +110,7 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
         $idCart = $this->context->cart->id;
 
         if ($this->paymentId && $this->payerId && $this->token) {
-            $rest = new PayPalRestApi();
+            $rest = $this->module->getFactory()->getRestApi();
             $payment = $rest->lookUpPayment($this->paymentId);
 
             if (isset($payment->state)) {
@@ -168,7 +193,6 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
     }
 
     /**
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
      * @copyright 2007-2016 PrestaShop SA
@@ -194,7 +218,7 @@ class paypalplussubmitModuleFrontController extends ModuleFrontController
             !empty($payerID) &&
             !empty($paymentId) &&
             !empty($submit)) {
-            $callApiPaypalPlus = new PayPalRestApi();
+            $callApiPaypalPlus = $this->module->getFactory()->getRestApi();
             $payment = $callApiPaypalPlus->executePayment($payerID, $paymentId);
 
             if (isset($payment->state)) {

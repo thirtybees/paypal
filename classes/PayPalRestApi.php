@@ -22,17 +22,18 @@
 
 namespace PayPalModule;
 
-use Cart;
 use Configuration;
 use Context;
 use Currency;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
 use ImageManager;
 use Language;
 use PayPal;
+use PayPalModule\Logger\DummyLogger;
+use PayPalModule\Logger\Logger;
 use PrestaShopException;
 use stdClass;
+use Throwable;
 use Validate;
 
 if (!defined('_TB_VERSION_')) {
@@ -57,36 +58,57 @@ class PayPalRestApi
     const PLUS_PROFILE = 2;
     const EXPRESS_CHECKOUT_PROFILE = 3;
 
-    /** @var Context $context */
-    protected $context;
+    /**
+     * @var string $clientId
+     */
+    protected string $clientId;
 
-    /** @var Cart $cart */
-    protected $cart;
+    /**
+     * @var string $secret
+     */
+    protected string $secret;
 
-    /** @var string $clientId */
-    protected $clientId;
+    /**
+     * @var string
+     */
+    protected string $baseUri;
 
-    /** @var string $secret */
-    protected $secret;
+    /**
+     * @var Logger
+     */
+    protected Logger $logger;
+
 
     /**
      * ApiPaypalPlus constructor.
      *
+     * @param Logger|null $logger
      * @param string|null $clientId
      * @param string|null $secret
+     *
      * @throws PrestaShopException
      */
-    public function __construct($clientId = null, $secret = null)
+    public function __construct(
+        ?string $clientId = null,
+        ?string $secret = null,
+        ?Logger $logger = null
+    )
     {
-        $this->context = Context::getContext();
-        $this->cart = $this->context->cart;
+        $this->logger = $logger
+            ? $logger
+            : new DummyLogger();
 
         $this->clientId = $clientId
             ? $clientId
-            : Configuration::get(PayPal::CLIENT_ID);
+            : (string)Configuration::get(PayPal::CLIENT_ID);
+
         $this->secret = $secret
             ? $secret
-            : Configuration::get(PayPal::SECRET);
+            : (string)Configuration::get(PayPal::SECRET);
+
+        $this->baseUri = !Configuration::get(PayPal::LIVE)
+            ? 'https://api.sandbox.paypal.com'
+            : 'https://api.paypal.com';
     }
 
     /**
@@ -133,7 +155,6 @@ class PayPalRestApi
      *
      * @return bool|array
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -154,7 +175,7 @@ class PayPalRestApi
 
             // Then CREATE
             $definition = $this->getWebProfileDefinition($type);
-            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($definition), $headers, false, 'POST'));
+            $result = json_decode($this->send(self::PATH_WEBPROFILES, json_encode($definition, JSON_PRETTY_PRINT), $headers, false, 'POST'));
 
             if (isset($result->id)) {
                 return $result->id;
@@ -168,7 +189,6 @@ class PayPalRestApi
      * @param int $type
      *
      * @return bool
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function deleteWebProfile($type)
@@ -182,7 +202,7 @@ class PayPalRestApi
             ];
 
             $profiles = $this->getWebProfiles();
-            $profileName = $this->getWebProfileName($type, $this->context->shop->id);
+            $profileName = $this->getWebProfileName($type, Context::getContext()->shop->id);
             foreach ($profiles as $profile) {
                 if ($profile->name == $profileName) {
                     $profileId = $profile->id;
@@ -199,7 +219,6 @@ class PayPalRestApi
      * @param bool $enabled
      *
      * @return void
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function updateWebProfile($profileType, $enabled)
@@ -221,7 +240,6 @@ class PayPalRestApi
     /**
      * @return string|false
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -289,7 +307,6 @@ class PayPalRestApi
 
     /**
      * @return array|false
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     protected function authenticate()
@@ -329,22 +346,15 @@ class PayPalRestApi
      *
      * @return string
      * @throws PrestaShopException
-     * @throws GuzzleException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
     public function send($url, $body = false, $headers = [], $identify = false, $requestType = 'GET')
     {
-        if (!Configuration::get(PayPal::LIVE)) {
-            $baseUri = 'https://api.sandbox.paypal.com';
-        } else {
-            $baseUri = 'https://api.paypal.com';
-        }
-
         $guzzle = new Client(
             [
-                'base_uri'    => $baseUri,
+                'base_uri'    => $this->baseUri,
                 'timeout'     => 60.0,
                 'verify'      => _PS_TOOL_DIR_.'cacert.pem',
                 'http_errors' => false,
@@ -360,15 +370,47 @@ class PayPalRestApi
             $requestOptions['body'] = (string) $body;
         }
 
-        $response = $guzzle->request($requestType, '/'.ltrim($url, '/'), $requestOptions);
+        $uri = '/'.ltrim($url, '/');
 
-        return (string) $response->getBody();
+        if ($this->logger->isEnabled()) {
+            $message = "API REQUEST: $requestType " . $this->baseUri . $uri;
+            if ($body) {
+                $message .= "\n$body\n";
+            }
+            $this->logger->log($message);
+        }
+
+        try {
+            $response = $guzzle->request($requestType, $uri, $requestOptions);
+        } catch (Throwable $e) {
+            if ($this->logger->isEnabled()) {
+                $this->logger->exception($e);
+            }
+            throw new PrestaShopException("Paypal api failled", 0, $e);
+        }
+
+        $res = (string) $response->getBody();
+
+        if ($this->logger->isEnabled()) {
+            try  {
+                $logData = json_decode($res, true);
+                if ($logData) {
+                    $logData = json_encode($logData, JSON_PRETTY_PRINT);
+                    $this->logger->log("API RESPONSE:\n$logData\n");
+                } else {
+                    $this->logger->log("API RESPONSE:\n$res\n");
+                }
+            } catch (Throwable $e) {
+                $this->logger->log("API RESPONSE:\n$res\n");
+            }
+        }
+
+        return $res;
     }
 
     /**
      * @return array
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -399,7 +441,6 @@ class PayPalRestApi
      * @param int $profile
      *
      * @return mixed
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -413,7 +454,7 @@ class PayPalRestApi
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer '.$this->getToken(),
         ];
-        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data), $header, false, 'POST'));
+        $result = json_decode($this->send(self::PATH_CREATE_PAYMENT, json_encode($data, JSON_PRETTY_PRINT), $header, false, 'POST'));
         return $result;
     }
 
@@ -430,17 +471,18 @@ class PayPalRestApi
      */
     public function createPaymentObject($returnUrl = false, $cancelUrl = false, $profile = self::STANDARD_PROFILE)
     {
-        $cart = $this->cart;
+        $context = Context::getContext();
+        $cart = $context->cart;
 
         if (!$returnUrl) {
-            $returnUrl = $this->context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
+            $returnUrl = $context->link->getModuleLink('paypal', 'expresscheckout', ['id_cart' => (int) $cart->id], true);
         }
 
         if (!$cancelUrl) {
-            $cancelUrl = $this->context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
+            $cancelUrl = $context->link->getModuleLink('paypal', 'expresscheckoutcancel', ['id_cart' => (int) $cart->id], true);
         }
 
-        $oCurrency = new Currency($this->cart->id_currency);
+        $oCurrency = new Currency($cart->id_currency);
 
         $totalCartWithTax = $cart->getOrderTotal(true);
 
@@ -455,7 +497,8 @@ class PayPalRestApi
 
         /* Transaction */
         $transaction = (object) [
-            'amount'      => $amount,
+            'amount' => $amount,
+            'custom' => 'CART#' . $cart->id,
         ];
 
         /* Redirect Url */
@@ -480,7 +523,6 @@ class PayPalRestApi
      *
      * @return bool|mixed
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -508,7 +550,6 @@ class PayPalRestApi
      *
      * @return bool|mixed
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -529,7 +570,7 @@ class PayPalRestApi
 
         $data = ['payer_id' => $payerId];
 
-        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data), $header, false, 'POST'));
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_PAYMENT.$paymentId.'/execute/', json_encode($data, JSON_PRETTY_PRINT), $header, false, 'POST'));
     }
 
     /**
@@ -538,7 +579,6 @@ class PayPalRestApi
      *
      * @return bool|mixed
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -557,7 +597,7 @@ class PayPalRestApi
             'Authorization' => 'Bearer '.$accessToken,
         ];
 
-        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data), $header));
+        return json_decode($this->send(PayPalRestApi::PATH_EXECUTE_REFUND.$paymentId.'/refund', json_encode($data, JSON_PRETTY_PRINT), $header));
     }
 
 
@@ -665,4 +705,5 @@ class PayPalRestApi
                 ];
         }
     }
+
 }

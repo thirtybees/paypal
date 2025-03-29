@@ -25,24 +25,27 @@ if (!defined('_TB_VERSION_')) {
 }
 
 use PayPalModule\PayPalLogin;
-use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class paypallogintokenModuleFrontController
  */
 class paypallogintokenModuleFrontController extends ModuleFrontController
 {
+    /**
+     * @var PayPal
+     */
+    public $module;
+
     /** @var bool $ssl */
     public $ssl = true;
 
     /**
      * @return void
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function initContent()
     {
-        $login = new PayPalLogin();
+        $login = new PayPalLogin($this->module->getFactory()->getRestApi());
         $obj = $login->getAuthorizationCode();
         if ($obj) {
             $context = Context::getContext();

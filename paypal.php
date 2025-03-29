@@ -29,6 +29,7 @@ if (!defined('_TB_VERSION_')) {
 
 require_once __DIR__.'/vendor/autoload.php';
 
+use PayPalModule\DependencyInjection\Factory;
 use PayPalModule\PayPalCapture;
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalLogin;
@@ -56,6 +57,7 @@ class PayPal extends PaymentModule
     const STANDARD_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_WEB_PROFILE_ID_LIVE';
     const EXPRESS_CHECKOUT_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_EC_WEB_PROFILE_ID_LIVE';
     const PLUS_WEBSITE_PROFILE_ID_LIVE = 'PAYPAL_WPP_WEB_PROFILE_ID_LIVE';
+    const SETTINGS_LOG = 'PAYPAL_LOG';
 
     const WPS = 1;
     const EC = 4;
@@ -71,6 +73,11 @@ class PayPal extends PaymentModule
     const LOGIN_THEME = 'PAYPAL_LOGIN_TPL';
 
     const WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE = 'PAYPAL_WPS_LANDING_PAGE_TYPE';
+
+    /**
+     * @var Factory
+     */
+    private Factory $factory;
 
     /**
      * PayPal constructor.
@@ -90,6 +97,8 @@ class PayPal extends PaymentModule
         $this->is_eu_compatible = 1;
 
         parent::__construct();
+
+        $this->factory = new Factory();
 
         $this->displayName = $this->l('PayPal');
         $this->description = $this->l('Accepts payments by credit cards (CB, Visa, MasterCard, Amex, Aurore, Cofinoga, 4 stars) with PayPal.');
@@ -157,6 +166,7 @@ class PayPal extends PaymentModule
     public function updateConfiguration()
     {
         Configuration::updateValue(static::LIVE, false);
+        Configuration::updateValue(static::SETTINGS_LOG, true);
         Configuration::updateValue(static::IMMEDIATE_CAPTURE, true);
     }
 
@@ -224,6 +234,7 @@ class PayPal extends PaymentModule
     {
         Configuration::deleteByName(static::INSTALLATION_ID);
         Configuration::deleteByName(static::LIVE);
+        Configuration::deleteByName(static::SETTINGS_LOG);
 
         Configuration::deleteByName(static::IMMEDIATE_CAPTURE);
         Configuration::deleteByName(static::STORE_COUNTRY);
@@ -239,7 +250,6 @@ class PayPal extends PaymentModule
      * Get module configuration page
      *
      * @return string HTML
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
      */
@@ -265,7 +275,6 @@ class PayPal extends PaymentModule
     /**
      * Post process
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     protected function postProcess()
@@ -274,6 +283,7 @@ class PayPal extends PaymentModule
             // General
             Configuration::updateValue(static::STORE_COUNTRY, (int) Tools::getValue(static::STORE_COUNTRY));
             Configuration::updateValue(static::LIVE, (int) Tools::getValue(static::LIVE));
+            Configuration::updateValue(static::SETTINGS_LOG, (int) Tools::getValue(static::SETTINGS_LOG));
             Configuration::updateValue(static::IMMEDIATE_CAPTURE, (int) Tools::getValue(static::IMMEDIATE_CAPTURE));
 
             // REST API
@@ -296,7 +306,11 @@ class PayPal extends PaymentModule
 
             // Create/update needed payment profiles via REST API
             if (Tools::getValue(static::CLIENT_ID) && Tools::getValue(static::SECRET)) {
-                $rest = new PayPalRestApi(Tools::getValue(static::CLIENT_ID), Tools::getValue(static::SECRET));
+                $rest = new PayPalRestApi(
+                    (string)Tools::getValue(static::CLIENT_ID),
+                    (string)Tools::getValue(static::SECRET),
+                    $this->factory->getLogger()
+                );
                 $rest->updateWebProfile(PayPalRestApi::STANDARD_PROFILE, Tools::getValue(static::WEBSITE_PAYMENTS_STANDARD_ENABLED));
                 $rest->updateWebProfile(PayPalRestApi::PLUS_PROFILE, Tools::getValue(static::WEBSITE_PAYMENTS_PLUS_ENABLED));
                 $rest->updateWebProfile(PayPalRestApi::EXPRESS_CHECKOUT_PROFILE, Tools::getValue(static::EXPRESS_CHECKOUT_ENABLED));
@@ -358,20 +372,21 @@ class PayPal extends PaymentModule
     protected function getMainFormValues()
     {
         return [
-            static::STORE_COUNTRY               => (int) Configuration::get(static::STORE_COUNTRY),
-            static::LIVE                        => Configuration::get(static::LIVE),
+            static::STORE_COUNTRY => (int) Configuration::get(static::STORE_COUNTRY),
+            static::LIVE => Configuration::get(static::LIVE),
+            static::SETTINGS_LOG => (bool)Configuration::get(static::SETTINGS_LOG),
             static::STANDARD_WEBSITE_PROFILE_ID => Configuration::get(static::STANDARD_WEBSITE_PROFILE_ID),
 
             static::WEBSITE_PAYMENTS_STANDARD_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_ENABLED),
             static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE => Configuration::get(static::WEBSITE_PAYMENTS_STANDARD_LANDING_PAGE_TYPE),
 
-            static::WEBSITE_PAYMENTS_PLUS_ENABLED     => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
-            static::EXPRESS_CHECKOUT_ENABLED          => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
-            static::LOGIN_ENABLED                     => Configuration::get(static::LOGIN_ENABLED),
-            static::LOGIN_THEME                       => Configuration::get(static::LOGIN_THEME),
+            static::WEBSITE_PAYMENTS_PLUS_ENABLED => Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED),
+            static::EXPRESS_CHECKOUT_ENABLED => Configuration::get(static::EXPRESS_CHECKOUT_ENABLED),
+            static::LOGIN_ENABLED => Configuration::get(static::LOGIN_ENABLED),
+            static::LOGIN_THEME => Configuration::get(static::LOGIN_THEME),
 
             static::CLIENT_ID => Configuration::get(static::CLIENT_ID),
-            static::SECRET    => Configuration::get(static::SECRET),
+            static::SECRET => Configuration::get(static::SECRET),
         ];
     }
 
@@ -418,6 +433,22 @@ class PayPal extends PaymentModule
                             ],
                         ],
                         'desc'   => $this->l('Enable this options to go live, otherwise the sandbox is used, which you can use to test your store.'),
+                    ],
+                    [
+                        'type'   => 'switch',
+                        'label'  => $this->l('Log'),
+                        'name'   => static::SETTINGS_LOG,
+                        'values' => [
+                            [
+                                'value' => 1,
+                                'label' => $this->l('Yes'),
+                            ],
+                            [
+                                'value' => 0,
+                                'label' => $this->l('No'),
+                            ],
+                        ],
+                        'desc'   => $this->l('Enable this option to go log debuging information into files inside thirty bees log directory'),
                     ],
                 ],
                 'submit' => [
@@ -953,7 +984,7 @@ class PayPal extends PaymentModule
         }
 
         if (Configuration::get(static::WEBSITE_PAYMENTS_PLUS_ENABLED)) {
-            $rest = new PayPalRestApi();
+            $rest = $this->factory->getRestApi();
             $payment = $rest->createPayment(
                 $this->context->link->getModuleLink($this->name, 'plussubmit', [], true),
                 $this->context->link->getModuleLink($this->name, 'pluscancel', [], true),
@@ -1212,7 +1243,6 @@ class PayPal extends PaymentModule
      * @param array $params
      *
      * @return string
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
      */
@@ -1370,7 +1400,6 @@ class PayPal extends PaymentModule
      * @param array $params
      *
      * @return bool|null
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function hookCancelProduct($params)
@@ -1417,7 +1446,6 @@ class PayPal extends PaymentModule
      * @param float $amount Amount
      *
      * @return bool
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     protected function doRefund($idPayment, $order, $amount)
@@ -1426,8 +1454,7 @@ class PayPal extends PaymentModule
         $details->amount = (float) $amount;
         $details->currency = strtoupper(Currency::getCurrencyInstance($order->id_currency)->iso_code);
 
-        // TODO: check if succeeded
-        $rest = new PayPalRestApi();
+        $rest = $this->factory->getRestApi();
         if ($rest->executeRefund($idPayment, $details)) {
             return true;
         }
@@ -1508,7 +1535,7 @@ class PayPal extends PaymentModule
      * @param float $amountPaid
      * @param string $paymentMethod
      * @param string|null $message
-     * @param array $transaction
+     * @param array $extraVars
      * @param int|null $currencySpecial
      * @param bool $dontTouchAmount
      * @param bool $secureKey
@@ -1524,7 +1551,7 @@ class PayPal extends PaymentModule
         $amountPaid,
         $paymentMethod = 'PayPal',
         $message = null,
-        $transaction = [],
+        $extraVars = [],
         $currencySpecial = null,
         $dontTouchAmount = false,
         $secureKey = false,
@@ -1533,7 +1560,7 @@ class PayPal extends PaymentModule
         if ($this->active) {
             // Set transaction details if pcc is defined in PaymentModule class_exists
             if (isset($this->pcc)) {
-                $this->pcc->transaction_id = ($transaction['transaction_id'] ?? '');
+                $this->pcc->transaction_id = ($extraVars['transaction_id'] ?? '');
             }
 
             parent::validateOrder(
@@ -1542,15 +1569,15 @@ class PayPal extends PaymentModule
                 (float) $amountPaid,
                 $paymentMethod,
                 $message,
-                $transaction,
+                $extraVars,
                 $currencySpecial,
                 $dontTouchAmount,
                 $secureKey,
                 $shop
             );
 
-            if (count($transaction) > 0) {
-                PayPalOrder::saveOrder((int) $this->currentOrder, $transaction);
+            if (count($extraVars) > 0) {
+                PayPalOrder::saveOrder((int) $this->currentOrder, $extraVars);
             }
         }
 
@@ -1615,4 +1642,13 @@ class PayPal extends PaymentModule
         }
         return $id;
     }
+
+    /**
+     * @return Factory
+     */
+    public function getFactory(): Factory
+    {
+        return $this->factory;
+    }
+
 }

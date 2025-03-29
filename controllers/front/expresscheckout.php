@@ -27,33 +27,41 @@ if (!defined('_TB_VERSION_')) {
 use PayPalModule\PayPalCustomer;
 use PayPalModule\PayPalOrder;
 use PayPalModule\PayPalRestApi;
-use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class PayPalexpresscheckoutModuleFrontController
  */
 class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 {
-    /** @var int $idOrder */
-    public $idOrder;
-
-    /** @var int $idModule */
-    public $idModule;
-
-    /** @var string $payPalKey */
-    public $payPalKey;
-
-    /** @var PayPal $module */
+    /**
+     * @var PayPal $module
+     */
     public $module;
 
-    /** @var bool $ssl */
+    /**
+     * @var bool $ssl
+     */
     public $ssl = true;
+
+    /**
+     * @var PayPalRestApi
+     */
+    private PayPalRestApi $restApi;
+
+    /**
+     * @throws PrestaShopException
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $factory = $this->module->getFactory();
+        $this->restApi = $factory->getRestApi();
+    }
 
     /**
      * Initialize content
      *
      * @return void
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
      */
@@ -83,13 +91,15 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
     /**
      * Prepare to redirect visitor to PayPal website
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      */
     public function preparePayment()
     {
-        $rest = new PayPalRestApi();
-        $payment = $rest->createPayment(false, false, PayPalRestApi::STANDARD_PROFILE);
+        $payment = $this->restApi->createPayment(
+            false,
+            false,
+            PayPalRestApi::STANDARD_PROFILE
+        );
 
         if (isset($payment->id) && $payment->id) {
             foreach ($payment->links as $link) {
@@ -106,7 +116,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
 
     /**
      * Process PayPal payment
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @throws SmartyException
      */
@@ -116,10 +125,9 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
         $paymentId = Tools::getValue('paymentId');
         $payerId = Tools::getValue('PayerID');
 
-        $rest = new PayPalRestApi();
-        $payment = $rest->executePayment($payerId, $paymentId);
+        $payment = $this->restApi->executePayment($payerId, $paymentId);
         if (isset($payment->name) && strtoupper($payment->name) === 'PAYMENT_ALREADY_DONE') {
-            $payment = $rest->lookUpPayment($paymentId);
+            $payment = $this->restApi->lookUpPayment($paymentId);
         }
 
         $ready = false;
@@ -244,9 +252,6 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
             $this->context->cart->delete();
         }
         $logs = [sprintf($this->module->l('An unknown error occurred. The payment status is `%s`'), $payment->state ?? $this->module->l('Unknown'))];
-        if (_PS_MODE_DEV_) {
-            $logs[] = json_encode(['The full payment object looks like' => $payment]);
-        }
 
         $this->context->smarty->assign(
             [
@@ -391,7 +396,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
                 }
             }
         }
-        if ($paypalAddress == false) {
+        if (!$paypalAddress) {
             $paypalAddress = $this->setCustomerAddress($payment, $customer);
         }
 

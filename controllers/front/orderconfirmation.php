@@ -31,7 +31,9 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalorderconfirmationModuleFrontController extends ModuleFrontController
 {
-    /** @var PayPal $module */
+    /**
+     * @var PayPal $module
+     */
     public $module;
 
     /**

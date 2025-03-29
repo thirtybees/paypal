@@ -26,7 +26,6 @@ use Address;
 use Customer;
 use Language;
 use PrestaShopException;
-use GuzzleHttp\Exception\GuzzleException;
 use stdClass;
 use Tools;
 
@@ -47,14 +46,17 @@ class PayPalLogin
     protected $logs = [];
 
     /**
-     * @var bool
-     */
-    protected $enableLog = false;
-
-    /**
      * @var PayPalRestApi $rest
      */
-    protected $rest;
+    protected PayPalRestApi $rest;
+
+    /**
+     * @param PayPalRestApi $restApi
+     */
+    public function __construct(PayPalRestApi $restApi)
+    {
+        $this->rest = $restApi;
+    }
 
     /**
      * PayPalLogin constructor.
@@ -63,10 +65,7 @@ class PayPalLogin
      * @copyright 2007-2016 PrestaShop SA
      * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
      */
-    public function __construct()
-    {
-        $this->rest = new PayPalRestApi();
-    }
+
 
     /**
      * @return string
@@ -114,7 +113,6 @@ class PayPalLogin
     /**
      * @return PayPalLoginUser|false
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -144,14 +142,6 @@ class PayPalLogin
             true,
             'POST'
         );
-
-        if ($this->enableLog === true) {
-            $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
-            fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
-            fwrite($handle, "Result => ".print_r($result, true)."\r\n");
-            fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
-            fclose($handle);
-        }
 
         $result = json_decode($result);
 
@@ -188,7 +178,6 @@ class PayPalLogin
     /**
      * @return PayPalLoginUser|false
      *
-     * @throws GuzzleException
      * @throws PrestaShopException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
@@ -215,14 +204,6 @@ class PayPalLogin
             'POST'
         );
 
-        if ($this->enableLog === true) {
-            $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
-            fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
-            fwrite($handle, "Result => ".print_r($result, true)."\r\n");
-            fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
-            fclose($handle);
-        }
-
         $result = json_decode($result);
 
         if ($result) {
@@ -243,7 +224,7 @@ class PayPalLogin
      * @return Customer|false
      *
      * @throws PrestaShopException
-     * @throws GuzzleException
+     * @throws \PrestaShopDatabaseException
      * @author    PrestaShop SA <contact@prestashop.com>
      * @copyright 2007-2016 PrestaShop SA
      * @license   https://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
@@ -265,15 +246,6 @@ class PayPalLogin
             false,
             $headers
         );
-
-        if ($this->enableLog === true) {
-            $handle = fopen(dirname(__FILE__).'/Results.txt', 'a+');
-            fwrite($handle, "Request => ".print_r(http_build_query($params, '', '&'), true)."\r\n");
-            fwrite($handle, "Result => ".print_r($result, true)."\r\n");
-            fwrite($handle, "Headers => ".print_r($headers, true)."\r\n");
-            fwrite($handle, "Journal => ".print_r($this->logs, true."\r\n"));
-            fclose($handle);
-        }
 
         $result = json_decode($result);
 

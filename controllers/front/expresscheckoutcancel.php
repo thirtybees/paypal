@@ -29,7 +29,9 @@ if (!defined('_TB_VERSION_')) {
  */
 class paypalexpresscheckoutcancelModuleFrontController extends ModuleFrontController
 {
-    /** @var bool $ssl */
+    /**
+     * @var bool $ssl
+     */
     public $ssl = true;
 
     /**
