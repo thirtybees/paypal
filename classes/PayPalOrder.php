@@ -157,10 +157,11 @@ class PayPalOrder extends ObjectModel
     public static function getTransactionDetails($payment)
     {
         $transactionId = pSQL($payment->id);
+        $transaction = $payment->transactions[0];
 
         try {
             // Search for a more usable transaction id in the payment object
-            $relatedResources = $payment->transactions[0]->related_resources;
+            $relatedResources = $transaction->related_resources;
             foreach ($relatedResources as $rr)
             {
                 if (!is_null($rr->sale))
@@ -176,7 +177,6 @@ class PayPalOrder extends ObjectModel
 
         $paymentId = pSQL($payment->id);
         $payerId = pSQL($payment->payer->payer_info->payer_id);
-        $transaction = $payment->transactions[0];
 
         return [
             'currency' => pSQL($payment->transactions[0]->amount->currency),
