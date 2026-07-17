@@ -154,7 +154,7 @@ class PayPalexpresscheckoutModuleFrontController extends ModuleFrontController
                 $customer->add();
 
                 $ppc = new PayPalCustomer();
-                $ppc->id_customer = $this->context->customer->id;
+                $ppc->id_customer = $customer->id;
                 $ppc->paypal_email = $email;
                 $ppc->add();
             }
