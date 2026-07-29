@@ -87,7 +87,7 @@ class PayPal extends PaymentModule
     {
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
-        $this->version = '5.6.2';
+        $this->version = '5.6.3';
         $this->author = 'thirty bees';
 
         $this->currencies = true;
@@ -116,6 +116,10 @@ class PayPal extends PaymentModule
             'logintoken',
             'orderconfirmation',
         ];
+
+        if (Module::isInstalled('paypal')) {
+            $this->warning = 'Legacy paypal module has been deprecated and is no longer maintained. You can install new paypal module replacement';
+        }
     }
 
     /**
